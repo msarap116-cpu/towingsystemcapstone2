@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Android build files
+android/build/
+android/app/build/
+android/.gradle/
+*.iml
+*.jks
+*.keystore
+!debug.keystore
+
+# iOS build files
+ios/build/
+ios/DerivedData/
+ios/Pods/
+ios/.xccheckout
+ios/*.xcworkspace
+ios/*.xcuserdata
+ios/*.lock
+
+# Environment secrets (IMPORTANT)
+.env
+.env.local
+.env.production
+
+# System files
+.DS_Store
+Thumbs.db
