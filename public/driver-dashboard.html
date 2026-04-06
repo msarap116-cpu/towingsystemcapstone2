@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Dashboard - Towing System</title>
+    <script>
+        // Redirect if not logged in
+        if (!localStorage.getItem('token')) {
+            window.location.replace('login');
+        }
+    </script>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    
+</head>
+
+<body>
+    <!-- Navigation - Fixed at top -->
+    <nav class="navbar">
+        <div class="container" style="padding: 0; width: 100%;">
+            <a class="navbar-brand" href="home.html">Tow the Rescue</a>
+        </div>
+    </nav>
+
+    <!-- Wrapper for sidebar and main content -->
+    <div class="dashboard-main-wrapper">
+        <div class="container">
+            <!-- Sidebar - Stays fixed position -->
+            <div class="sidebar">
+                <div class="dashboard-card">
+                    <h3>My Account</h3>
+                    <div class="profile-info">
+                        <div class="profile-icon">
+                            <span id="userInitials">U</span>
+                        </div>
+                        <h4 id="profileName">Driver Name</h4>
+                        <p id="userType">Driver</p>
+                    </div>
+                    <hr>
+                    <ul class="sidebar-nav">
+                        <li><a class="active" href="dashboard">Dashboard</a></li>
+                        <li><a href="my-requests">My Requests</a></li>
+                        <li><a href="vehicles">My Vehicles</a></li>
+                        <li><a href="profile">Profile Settings</a></li>
+                        <li><a class="text-danger" id="logoutBtnSidebar" href="#">Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content - ONLY THIS SECTION SCROLLS -->
+            <div class="main-content">
+                <!-- Quick Actions / Stats -->
+                <div class="quick-actions">
+               
+                    <div class="dashboard-card text-center">
+                        <h3>Active Requests</h3>
+                        <h1 id="activeRequestsCount">0</h1>
+                        <p>Currently active</p>
+                    </div>
+                    <div class="dashboard-card text-center">
+                        <h3>Total Requests</h3>
+                        <h1 id="totalRequestsCount">0</h1>
+                        <p>All time</p>
+                    </div>
+                </div>
+
+                <!-- Driver Map and Job Actions -->
+                <div class="dashboard-card">
+                    <h3>Driver Map</h3>
+                    <div id="map" style="height:600px;"></div>
+                    
+                    <div id="job-actions" style="margin-top: 1rem; display: none;">
+                        <p id="job-info" style="margin-bottom: 0.5rem;"></p>
+                        <button id="complete-btn" onclick="completeJob()" style="   
+                            background: #1D9E75; color: white; border: none;
+                            padding: 10px 24px; border-radius: 8px;
+                            font-size: 15px; cursor: pointer; width:20%;">Complete Job</button> 
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+   
+    <script src="js/app.js"></script>
+    <script src="js/driver-dashboard.js"></script>
+    <script>
+        // Set profile info from localStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (user.name) {
+                const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                document.getElementById('userInitials').textContent = initials || 'U';
+                document.getElementById('profileName').textContent = user.name || 'Driver Name';
+                document.getElementById('userType').textContent = user.role || 'Driver';
+            }
+        });
+
+        // Logout handler
+        document.getElementById('logoutBtnSidebar')?.addEventListener('click', handleLogout);
+
+        // Handle page reload from cache
+        window.addEventListener('pageshow', function(event){
+            if(event.persisted || (window.performance && window.performance.navigation.type === 2)){
+                window.location.reload();
+            }
+        });
+        
+        // Profile image handling
+        const savedImage = localStorage.getItem("profileImage");
+        if(savedImage){
+            const profileImg = document.getElementById("profileImage");
+            if(profileImg) {
+                profileImg.src = savedImage;
+            }
+        }
+    </script>
+</body>
+</html>

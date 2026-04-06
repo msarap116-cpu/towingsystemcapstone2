@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Towing Assistance</title>
+    
+    <script>
+        const token = localStorage.getItem('token');
+        const userData = JSON.parse(localStorage.getItem('user'));
+
+        if (!token || !userData || userData.role.toLowerCase() !== 'admin') {
+            window.location.replace('login');
+        } else {
+            // Fill sidebar dynamically
+            const adminName = document.getElementById('adminName');
+            const adminEmail = document.getElementById('adminEmail');
+            const userInitials = document.getElementById('userInitials');
+
+            if (adminName) adminName.textContent = userData.name;
+            if (adminEmail) adminEmail.textContent = userData.email;
+            if (userInitials) {
+                const initials = userData.name
+                    .split(" ")
+                    .map(word => word[0])
+                    .join("")
+                    .toUpperCase();
+                userInitials.textContent = initials;
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/admin-dashboard.css">
+
+</head>
+<body>
+    <!-- Navigation - Fixed at top -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a class="navbar-brand" href="home.html">Tow the Rescue - Admin</a>
+            <ul class="nav-menu">
+                <li><a href="admin-dashboard" class="active">Dashboard</a></li>
+                <li><a href="home.html">View Site</a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <!-- Main Layout Wrapper -->
+    <div class="app-wrapper">
+        <!-- Sidebar - Stays fixed position -->
+        <div class="sidebar">
+            <div class="profile-info">
+                <div class="profile-icon">
+                    <span id="userInitials">U</span>
+                </div>
+                <h4 id="adminName">Admin User</h4>
+                <p id="adminEmail">admin@towrescue.com</p>
+            </div>
+            <hr>
+            <ul class="sidebar-nav">
+                <li><a href="admin-dashboard" class="active">Dashboard</a></li>
+                <li><a href="admin-requests">All Requests</a></li>
+                <li><a href="admin-users">Manage Users</a></li>
+                <li><a href="admin-services">Services</a></li>
+                <li><a href="admin-reports">Reports</a></li>
+                <li><a href="admin-settings">Settings</a></li>
+                <li><a class="text-danger" id="logoutBtn" href="#">Logout</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content - ONLY THIS SECTION SCROLLS -->
+        <div class="main-content">
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h2 id="totalRequests">0</h2>
+                    <p>Total Requests</p>
+                </div>
+                <div class="stat-card">
+                    <h2 id="activeRequests">0</h2>
+                    <p>Active Requests</p>
+                </div>
+                <div class="stat-card">
+                    <h2 id="pendingRequests">0</h2>
+                    <p>Pending</p>
+                </div>
+                <div class="stat-card">
+                    <h2 id="totalUsers">0</h2>
+                    <p>Total Users</p>
+                </div>
+            </div>
+
+           
+
+            <!-- Loading State -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Loading requests...</p>
+            </div>
+     
+            <!-- Users Management -->
+            <div class="action-bar">
+                <h2>Manage Users</h2>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="userSearch" class="search-box" placeholder="Search users...">
+                    <button class="btn btn-primary" onclick="openUserModal()">+ Add User</button>
+                </div>
+            </div>
+            <!-- users table -->
+            <div class="table-container">
+                <table id="usersTable">
+                    <thead>
+                        <th>User ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <!-- User rows will load here -->       
+                    </tbody>
+                </table>
+            </div>
+            <!-- Action Bar -->
+            <div class="action-bar">
+                <h2>Manage Requests</h2>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="searchInput" class="search-box" placeholder="Search requests...">
+                    <button class="btn btn-primary" onclick="openAddModal()">+ New Request</button>
+                </div>
+            </div>
+            <!-- Requests Table -->
+            <div id="tableContainer" style="display: none;">
+                <div class="table-container">
+                    <table id="requestsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Customer</th>
+                                <th>Phone</th>
+                                <th>Service</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Created at</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Table data will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination"></div>
+            </div>
+
+            <!-- No Data Message -->
+            <div id="noData" class="loading" style="display: none;">
+                <p>No requests found</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Modal -->
+    <div id="requestModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Request</h3>
+                <button onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="requestForm">
+                    <input type="hidden" id="requestId">
+                    
+                    <div class="form-group">
+                        <label for="customerName">Customer Name</label>
+                        <input type="text" id="customerName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="customerPhone">Phone Number</label>
+                        <input type="tel" id="customerPhone" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="serviceType">Service Type</label>
+                        <select id="serviceType" required>
+                            <option value="">Select Service</option>
+                            <option value="towing">Towing</option>
+                            <option value="jumpstart">Jump Start</option>
+                            <option value="tire">Tire Change</option>
+                            <option value="fuel">Fuel Delivery</option>
+                            <option value="lockout">Lockout</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" placeholder="Enter address" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" required>
+                            <option value="pending">Pending</option>
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" style="background: #6c757d; color: white;" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveRequest()">Save Request</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Add/Edit Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="userModalTitle">Add User</h3>
+                <button onclick="closeUserModal()">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId">
+
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="userName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="userEmail" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" id="userPhone" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="userRole">
+                            <option value="admin">Admin</option>
+                            <option value="driver">Driver</option>
+                            <option value="customer">Customer</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="text" id="password" required>
+
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn" style="background:#6c757d;color:white;" onclick="closeUserModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveUser()">Save User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Modal -->
+    <div id="viewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Request Details</h3>
+                <button onclick="closeViewModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="viewDetails">
+                <!-- Details will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeViewModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" style="background: #dc3545;">
+                <h3>Confirm Delete</h3>
+                <button onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this request? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" style="background: #6c757d; color: white;" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-delete" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+    <script src="js/app.js"></script>
+    <script src="js/admin-dashboard.js"></script>
+    
+</body>
+</html>

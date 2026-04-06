@@ -1,0 +1,118 @@
+/* request form css */
+
+.emergency-section{
+max-width:700px;
+margin:auto;
+padding:60px 20px;
+}
+
+.page-title{
+text-align:center;
+margin-bottom:30px;
+font-size:30px;
+}
+
+
+/* FORM CONTAINER */
+
+.form-container{
+background:#0066cc;
+padding:30px;
+border-radius:10px;
+box-shadow:0 6px 15px rgba(102, 54, 54, 0.1);
+}
+
+
+/* FORM GROUP */
+
+.form-group{
+margin-bottom:20px;
+display:flex;
+flex-direction:column;
+}
+
+.form-group label{
+font-weight:600;
+margin-bottom:6px;
+}
+label{
+    color: white;
+}
+
+/* INPUTS */
+
+input,
+select,
+textarea{
+
+padding:10px;
+border:1px solid #ccc;
+border-radius:6px;
+font-size:15px;
+}
+
+textarea{
+resize:none;
+}
+
+
+/* BUTTONS */
+
+.btn-secondary{
+background:#dc3545;
+color:white;
+border:none;
+padding:10px 16px;
+border-radius:6px;
+cursor:pointer;
+margin-top:6px;
+}
+
+.btn-secondary:hover{
+background:#5a6268;
+}
+
+.submit-btn{
+width:100%;
+margin-top:10px;
+}
+
+
+/* NAVBAR LIGHT BUTTON */
+
+.nav-menu li a{
+color:white;
+text-decoration:none;
+font-size:15px;
+transition:0.3s;
+}
+
+
+/* LOCATION STATUS */
+
+.location-status{
+margin-top:8px;
+font-size:14px;
+color:#444;
+}
+
+
+/* MANUAL ADDRESS */
+
+.manual-address{
+margin-top:15px;
+display:flex;
+flex-direction:column;
+}
+
+
+/* CONFIRMATION */
+
+.confirmation-box{
+margin-top:30px;
+background:#e6ffed;
+border:1px solid #b2f2bb;
+padding:20px;
+border-radius:8px;
+display:none;
+}

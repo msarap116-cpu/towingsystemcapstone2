@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="services.html">
+</head>
+<body>
+    <!-- SERVICES -->
+<section id="services" class="services-section">
+
+<h2>Our Services</h2>
+<p class="subtitle">Roadside Assistance - Just a click away</p>
+
+<div class="services-grid">
+
+<!-- TOWING -->
+<div class="service-card"
+onclick="showServiceDetails('towing')" 
+data-service="towing">
+
+<div class="service-icon">🚗</div>
+
+<h4>Towing Service</h4>
+<p>Professional towing to your preferred location</p>
+
+<div class="service-price">Starting at ₱1,500</div>
+
+<button onclick="event.stopPropagation(); requestService('towing')">
+Request Now
+</button>
+
+</div>
+
+
+<!-- FLAT TIRE -->
+<div class="service-card"
+onclick="showServiceDetails('flat_tire')" 
+data-service="flat_tire">
+
+<div class="service-icon">🔧</div>
+
+<h4>Flat Tire Change</h4>
+<p>Quick tire change with your spare</p>
+
+<div class="service-price">Starting at ₱500</div>
+
+<button onclick="event.stopPropagation(); requestService('flat_tire')">
+Request Now
+</button>
+
+</div>
+
+
+<!-- JUMP START -->
+<div class="service-card"
+onclick="showServiceDetails('jump_start')" 
+data-service="jump_start">
+
+<div class="service-icon">⚡</div>
+
+<h4>Jump Start</h4>
+<p>Battery jump start to get you back on the road</p>
+
+<div class="service-price">Starting at ₱300</div>
+
+<button onclick="event.stopPropagation(); requestService('jump_start')">
+Request Now
+</button>
+
+</div>
+
+
+<!-- FUEL -->
+<div class="service-card"
+onclick="showServiceDetails('fuel')" 
+data-service="fuel">
+
+<div class="service-icon">⛽</div>
+
+<h4>Fuel Delivery</h4>
+<p>Emergency fuel delivery when you run out</p>
+
+<div class="service-price">Starting at ₱800</div>
+
+<button onclick="event.stopPropagation(); requestService('fuel')">
+Request Now
+</button>
+
+</div>
+
+<!-- BATTERY -->
+<div class="service-card"
+onclick="showServiceDetails('battery')" 
+data-service="battery">
+
+<div class="service-icon">🔋</div>
+
+<h4>Battery Replacement</h4>
+<p>New battery delivery and installation</p>
+
+<div class="service-price">Starting at ₱2,500</div>
+
+<button onclick="event.stopPropagation(); requestService('battery')">
+Request Now
+</button>
+
+</div>
+
+</div>
+</section>
+<!-- SERVICE MODAL -->
+<div id="serviceModal" class="modal">
+
+<div class="modal-content">
+
+<div class="modal-header">
+
+<h3 id="serviceModalTitle">Service Details</h3>
+
+<button onclick="closeModal()">✖</button>
+
+</div>
+
+<div id="serviceModalBody">
+<!-- JS will insert content here -->
+</div>
+
+<div class="modal-footer">
+
+<button onclick="closeModal()">Close</button>
+
+<button onclick="requestFromModal()" class="btn-danger">
+Request This Service
+</button>
+
+</div>
+
+</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard - Towing Assistance</title>
+    <script>
+        // Redirect if not logged in
+        if (!localStorage.getItem('token')) {
+            window.location.replace('login');
+        }
+    </script>
+    
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+
+<body>
+    <!-- Navigation - Fixed at top (unchanged) -->
+    <nav class="navbar">
+        <div class="container" style="padding: 0; width: 100%;">
+            <a class="navbar-brand" href="index">Tow the Rescue</a>
+        </div>
+    </nav>
+
+    <!-- Wrapper for sidebar and main content (unchanged) -->
+    <div class="dashboard-main-wrapper">
+        <div class="container">
+            <!-- Sidebar - Stays fixed position (unchanged) -->
+            <div class="sidebar">
+                <div class="dashboard-card">
+                    <h3>My Account</h3>
+                    <div class="profile-info">
+                        <div class="profile-icon">
+                            <span id="userInitials">U</span>
+                        </div>
+                        <h4 id="profileName">User Name</h4>
+                        <p id="userType">Customer</p>
+                    </div>
+                    <hr>
+                    <ul class="sidebar-nav">
+                        <li><a class="active" href="dashboard">Dashboard</a></li>
+                        <li><a href="requestform.html">Request</a></li>
+                        <li><a href="vehicles">My Vehicles</a></li>
+                        <li><a href="profile">Profile Settings</a></li>
+                        <li><a class="text-danger" id="logoutBtnSidebar" href="#">Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content - ONLY THIS SECTION SCROLLS (unchanged) -->
+            <div class="main-content">
+                <!-- Recent Requests / Map -->
+                <div class="dashboard-card">
+                    <h3>My Location</h3>
+                    <div id="map" style="height: 600px; border-radius: 10px;"></div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <script src="js/app.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script>
+        // Logout functionality
+        document.getElementById('logoutBtnSidebar')?.addEventListener('click', handleLogout);
+
+        // Load user profile data
+        document.addEventListener('DOMContentLoaded', function() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (user.name) {
+                const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                document.getElementById('userInitials').textContent = initials || 'U';
+                document.getElementById('profileName').textContent = user.name || 'User Name';
+                document.getElementById('userType').textContent = user.role || 'Customer';
+            }
+        });
+
+        // Handle page reload from cache
+        window.addEventListener('pageshow', function(event){
+            if(event.persisted || (window.performance && window.performance.navigation.type === 2)){
+                window.location.reload();
+            }
+        });
+        
+        // Initialize map if the element exists
+        if (document.getElementById('map')) {
+            // You can add your map initialization code here
+            console.log('Map container ready');
+        }
+    </script>
+</body>
+</html>
