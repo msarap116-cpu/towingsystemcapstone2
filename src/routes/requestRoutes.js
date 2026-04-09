@@ -44,30 +44,33 @@ router.get('/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
 
-        // ✅ No destructuring — db.query already returns rows directly
         const rows = await db.query(`
             SELECT 
                 sr.request_id,
-                u.name AS customer_name,
-                u.phone AS customer_phone,
-                sr.service_type,
-                sr.vehicle_type,
-                sr.address AS location,
+                u.name        AS customer_name,
+                u.phone       AS customer_phone,
+                st.name       AS service_type,
+                v.vehicle_type,
+                v.license_plate,
+                sr.address    AS location,
                 sr.status,
-                sr.created_at,
-                sr.license_plate
+                sr.created_at
             FROM service_requests sr
-            LEFT JOIN users u ON sr.user_id = u.user_id
+            LEFT JOIN users u          ON sr.user_id         = u.user_id
+            LEFT JOIN service_types st ON sr.service_type_id = st.service_type_id
+            LEFT JOIN vehicles v       ON sr.vehicle_id      = v.vehicle_id
             WHERE sr.request_id = ?
         `, [id]);
 
-        if (!rows[0]) {
+        console.log('GET /:id rows:', rows); // debug
+
+        if (!rows || !rows[0]) {
             return res.status(404).json({ message: 'Request not found' });
         }
 
         res.json(rows[0]);
     } catch (err) {
-        console.error('GET /:id error:', err);
+        console.error('GET /:id error:', err.message); // this shows in Render logs
         res.status(500).json({ error: 'Failed to fetch request: ' + err.message });
     }
 });
@@ -140,7 +143,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
             WHERE sr.request_id = ?
         `, [id]);
 
-        if (!rows[0]) {
+        if (!rows || !rows[0]) {
             return res.status(404).json({ message: 'Request not found' });
         }
 
@@ -152,21 +155,23 @@ router.put('/:id', authenticateToken, async (req, res) => {
             WHERE sr.request_id = ?
         `, [customer_name, customer_phone, id]);
 
-        // Update request — lookup service_type_id by name
+        // Update request — resolve service_type name to ID
         await db.query(`
             UPDATE service_requests
             SET service_type_id = (
                 SELECT service_type_id FROM service_types 
                 WHERE name = ? LIMIT 1
             ),
-            address = ?, status = ?, updated_at = NOW()
+            address = ?, 
+            status = ?, 
+            updated_at = NOW()
             WHERE request_id = ?
         `, [service_type, location, status, id]);
 
         res.json({ success: true, message: `Request #${id} updated` });
 
     } catch (err) {
-        console.error('PUT /:id error:', err);
+        console.error('PUT /:id error:', err.message);
         res.status(500).json({ error: 'Failed to update request: ' + err.message });
     }
 });
