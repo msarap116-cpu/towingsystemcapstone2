@@ -121,7 +121,6 @@ app.post('/users/login', async (req, res) => {
     }
 });
 
-// ==================== START SERVER ====================
 async function startServer() {
     try {
         const dbConnected = await db.testConnection();

@@ -3,29 +3,30 @@ const db = require('../database/database'); // ✅ fix the typo (was '../dabase/
 const Request = require('../models/requestModel'); // ✅ add this — needed for getStatistics
 
 exports.getAllRequests = async (req, res) => {
-    try {
-       const sql = `
-    SELECT 
+  try {
+    const sql = `
+      SELECT 
         sr.request_id,
-        u.name AS customer_name,
+        u.name  AS customer_name,
         u.phone AS customer_phone,
-        sr.service_type,
-        sr.vehicle_type,
+        st.name AS service_type,
+        v.vehicle_type,
+        v.license_plate,
         sr.address AS location,
         sr.status,
-        sr.created_at,
-        sr.license_plate
-    FROM service_requests sr
-    JOIN users u ON sr.user_id = u.user_id
-    ORDER BY sr.created_at DESC 
+        sr.created_at
+      FROM service_requests sr
+      JOIN users u ON sr.user_id = u.user_id
+      LEFT JOIN service_types st ON sr.service_type_id = st.service_type_id
+      LEFT JOIN vehicles v ON sr.vehicle_id = v.vehicle_id
+      ORDER BY sr.created_at DESC
     `;
-        const [rows] = await db.query(sql);
-        res.json({ requests: rows });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to fetch requests' });
-    }
+    const [rows] = await db.query(sql);
+    res.json({ requests: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch requests' });
+  }
 };
 
 exports.getStatistics = async (req, res) => {

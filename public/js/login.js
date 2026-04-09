@@ -62,13 +62,13 @@ async function handleLogin(e) {
             setTimeout(() => {
 
                 if (data.user.role === "admin") {
-                    window.location.href = "admin-dashboard.html";
+                    window.location.href = "admin-dashboard";
                 }
                 else if (data.user.role === "driver") {
-                    window.location.href = "driver-dashboard.html";
+                    window.location.href = "driver-dashboard";
                 }
                 else {
-                    window.location.href = "dashboard.html";
+                    window.location.href = "dashboard";
                 }
 
             }, 1500);

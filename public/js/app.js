@@ -4,7 +4,7 @@
 let loggedinUser = null;
 
 // const API_BASE_URL = "http://localhost:3000/api";
-const API_BASE_URL = "http://192.168.0.102:3000/api";
+const API_BASE_URL = "https://tow-the-rescue.onrender.com/api";
 const LOCATIONIQ_API_KEY = 'pk.d0c02828c7c455983b75676c45e1f1bd';
 
 

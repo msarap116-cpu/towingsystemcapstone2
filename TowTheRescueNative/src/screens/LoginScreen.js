@@ -13,7 +13,7 @@ import {
     StatusBar
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import API_BASE_URL from '../config';  // ✅
+import API_BASE_URL from '../config';  // 
 // const API_BASE_URL = 'http://192.168.0.104:3000/api/login'; // Change to your computer's IP
 
 const LoginScreen = ({ navigation }) => {

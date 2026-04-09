@@ -20,11 +20,13 @@ const User = {
         }
     },
 
- async findByEmail(email) {
+async findByEmail(email) {
     const sql = `SELECT user_id AS id, name, email, phone, password, role 
                  FROM users WHERE email = ?`;
-    const users = await db.query(sql, [email]);
-    return users[0];
+    const result = await db.query(sql, [email]);
+    // handle both [[rows], fields] and [rows] return shapes
+    const rows = Array.isArray(result[0]) ? result[0] : result;
+    return rows[0] || null;
 },
 
   async findById(user_id) {
