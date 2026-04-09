@@ -137,7 +137,6 @@ router.put('/:id', authenticateToken, async (req, res) => {
         const rows = await db.query(`
             SELECT sr.request_id, sr.user_id 
             FROM service_requests sr
-            JOIN users u ON sr.user_id = u.user_id
             WHERE sr.request_id = ?
         `, [id]);
 
@@ -153,10 +152,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
             WHERE sr.request_id = ?
         `, [customer_name, customer_phone, id]);
 
-        // Update request info
+        // Update request — lookup service_type_id by name
         await db.query(`
             UPDATE service_requests
-            SET service_type = ?, address = ?, status = ?
+            SET service_type_id = (
+                SELECT service_type_id FROM service_types 
+                WHERE name = ? LIMIT 1
+            ),
+            address = ?, status = ?, updated_at = NOW()
             WHERE request_id = ?
         `, [service_type, location, status, id]);
 

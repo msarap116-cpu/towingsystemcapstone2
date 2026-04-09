@@ -3,32 +3,22 @@ const Request = require('../models/requestModel');
 
 exports.createRequest = async (req, res) => {
     try {
-        // Get user_id from the authenticated token
         const user_id = req.user.id || req.user.user_id;
         
         if (!user_id) {
-            console.error('No user_id in token:', req.user);
             return res.status(401).json({ error: "User not authenticated" });
         }
-        
-        console.log('Creating request for user:', user_id);
-        console.log('Request body:', req.body);
-        
+
         const requestId = await Request.create({
-            user_id: user_id,
-            service_type: req.body.service_type,
-            vehicle_type: req.body.vehicle_type,
-            license_plate: req.body.license_plate || null,
-            location_lat: req.body.location_lat,
-            location_lng: req.body.location_lng,
-            address: req.body.address
+            user_id,
+            service_type_id: req.body.service_type_id || null,
+            vehicle_id:      req.body.vehicle_id      || null,
+            location_lat:    req.body.location_lat    || null,
+            location_lng:    req.body.location_lng    || null,
+            address:         req.body.address         || null
         });
 
-        if (!requestId) {
-            throw new Error('Failed to create request - no ID returned');
-        }
-
-        console.log('Request created with ID:', requestId);
+        if (!requestId) throw new Error('Failed to create request - no ID returned');
 
         res.json({
             message: "Request created successfully",
