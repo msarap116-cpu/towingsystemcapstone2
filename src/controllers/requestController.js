@@ -65,3 +65,19 @@ exports.updateStatus = async (req, res) => {
         res.status(500).json({ error: "Failed to update status" });
     }
 };
+exports.updateAddress = async (req, res) => {
+    try {
+        const requestId = req.params.id;
+        const { address } = req.body;
+
+        await Request.updateAddress(requestId, address);
+
+        res.json({
+            message: "Address updated successfully"
+        });
+
+    } catch (error) {
+        console.error('updateAddress error:', error);
+        res.status(500).json({ error: "Failed to update address" });
+    }
+};

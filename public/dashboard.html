@@ -39,13 +39,13 @@
                         <p id="userType">Customer</p>
                     </div>
                     <hr>
-                    <ul class="sidebar-nav">
+                   <ul class="sidebar-nav">
                         <li><a class="active" href="dashboard">Dashboard</a></li>
-                        <li><a href="requestform">Request</a></li>
-                        <li><a href="vehicles">My Vehicles</a></li>
-                        <li><a href="profile">Profile Settings</a></li>
-                        <li><a class="text-danger" id="logoutBtnSidebar" href="#">Logout</a></li>
-                    </ul>
+                         <li><a href="requestform">Request</a></li>
+                          <li><a href="vehicles">My Vehicles</a></li>
+                            <li><a href="#" id="editAddressSidebarBtn">Edit Address</a></li>
+                             <li><a class="text-danger" id="logoutBtnSidebar" href="#">Logout</a></li>
+</ul>
                 </div>
             </div>
 
@@ -60,6 +60,21 @@
             </div>
         </div>
     </div>
+
+    <!-- Edit Address Modal -->
+<div id="editAddressModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span id="closeModalBtn" class="close-btn">&times;</span>
+        <h3>Edit Request Address</h3>
+
+        <input type="hidden" id="editRequestId">
+
+        <label for="editAddressInput">New Address:</label>
+        <textarea id="editAddressInput" rows="4" style="width:100%;"></textarea>
+
+        <button id="saveAddressBtn">Save Changes</button>
+    </div>
+</div>
 
     <!-- Alert Container -->
     <div id="alertContainer"></div>
@@ -93,6 +108,59 @@
             // You can add your map initialization code here
             console.log('Map container ready');
         }
+    </script>
+    <script>
+        const modal = document.getElementById('editAddressModal');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const saveAddressBtn = document.getElementById('saveAddressBtn');
+
+function openEditModal(requestId, currentAddress) {
+    document.getElementById('editRequestId').value = requestId;
+    document.getElementById('editAddressInput').value = currentAddress;
+    modal.style.display = 'block';
+}
+
+closeModalBtn.onclick = () => {
+    modal.style.display = 'none';
+};
+
+window.onclick = function(event) {
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+};
+
+saveAddressBtn.onclick = async function() {
+    const requestId = document.getElementById('editRequestId').value;
+    const newAddress = document.getElementById('editAddressInput').value;
+
+    try {
+        const token = localStorage.getItem('token');
+
+        const response = await fetch(`/requests/${requestId}/address`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                address: newAddress
+            })
+        });
+
+        const data = await response.json();
+
+        alert(data.message);
+
+        modal.style.display = 'none';
+
+        location.reload();
+
+    } catch (error) {
+        console.error(error);
+        alert('Failed to update address');
+    }
+};
     </script>
 </body>
 </html>

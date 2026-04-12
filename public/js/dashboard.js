@@ -8,6 +8,8 @@ let customerMarker = null;
 let driverMarker = null;
 let routeLayer = null;
 let pollingInterval = null;
+let latestRequestId = null;
+let latestRequestData = null;
 
 const MAP_CONFIG = {
     bounds: {
@@ -128,6 +130,8 @@ async function loadUserMap() {
         }
 
         const data = await res.json();
+        latestRequestId = data.request_id;
+        latestRequestData = data;
 
         if (!data?.location_lat || !data?.location_lng) {
             console.warn('No location data on request.');
@@ -339,6 +343,80 @@ async function geocodeAddress(address) {
         console.error('Geocoding error:', err);
         return null;
     }
+}
+//edit address
+const editAddressModal = document.getElementById('editAddressModal');
+const editAddressSidebarBtn = document.getElementById('editAddressSidebarBtn');
+const closeEditModalBtn = document.getElementById('closeModalBtn');
+const saveEditAddressBtn = document.getElementById('saveAddressBtn');
+const editAddressInput = document.getElementById('editAddressInput');
+
+if (editAddressSidebarBtn) {
+    editAddressSidebarBtn.addEventListener('click', () => {
+        if (!latestRequestData) {
+            alert("No active request found.");
+            return;
+        }
+
+        editAddressInput.value = latestRequestData.address || '';
+        editAddressModal.style.display = 'block';
+    });
+}
+
+if (closeEditModalBtn) {
+    closeEditModalBtn.onclick = () => {
+        editAddressModal.style.display = 'none';
+    };
+}
+
+window.onclick = function(event) {
+    if (event.target == editAddressModal) {
+        editAddressModal.style.display = 'none';
+    }
+};
+
+if (saveEditAddressBtn) {
+    saveEditAddressBtn.onclick = async () => {
+        const newAddress = editAddressInput.value.trim();
+
+        if (!newAddress) {
+            alert("Address cannot be empty.");
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+
+            const res = await fetch(`${API_BASE_URL}/requests/${latestRequestId}/address`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    address: newAddress
+                })
+            });
+
+            const result = await res.json();
+
+            alert(result.message || "Address updated successfully");
+
+            editAddressModal.style.display = 'none';
+
+            if (map) {
+                map.remove();
+                map = null;
+            }
+
+            latestRequestData.address = newAddress;
+            loadUserMap();
+
+        } catch (err) {
+            console.error(err);
+            alert("Failed to update address.");
+        }
+    };
 }
 
 // Clean up polling on page unload

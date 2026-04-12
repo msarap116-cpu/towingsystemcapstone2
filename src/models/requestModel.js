@@ -140,7 +140,18 @@ const Request = {
 
   async deleteById(id) {
     await db.query('DELETE FROM service_requests WHERE request_id = ?', [id]);
-  }
+  },
+  
+  async updateAddress(request_id, address) {
+    const sql = `
+        UPDATE service_requests
+        SET address = ?, updated_at = NOW()
+        WHERE request_id = ?
+    `;
+    await db.query(sql, [address, request_id]);
+},
+
 };
+
 
 module.exports = Request;
