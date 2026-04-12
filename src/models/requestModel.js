@@ -76,13 +76,13 @@ const Request = {
       FROM service_requests r
       LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
       LEFT JOIN vehicles v ON r.vehicle_id = v.vehicle_id
-      LEFT JOIN (
-        SELECT driver_id, lat, lng
-        FROM driver_locations
-        WHERE (driver_id, recorded_at) IN (
-          SELECT driver_id, MAX(recorded_at) FROM driver_locations GROUP BY driver_id
-        )
-      ) dl ON r.driver_id = dl.driver_id
+      LEFT JOIN driver_locations dl 
+ON dl.driver_id = r.driver_id
+AND dl.recorded_at = (
+    SELECT MAX(recorded_at)
+    FROM driver_locations dl2
+    WHERE dl2.driver_id = r.driver_id
+)
       WHERE r.user_id = ?
       ORDER BY r.created_at DESC
       LIMIT 1
@@ -92,22 +92,22 @@ const Request = {
   },
 
   async getLatestPendingForDriver() {
-    const sql = `
-      SELECT 
-        r.request_id, r.user_id, r.status, r.address,
-        r.location_lat, r.location_lng, r.driver_id,
-        st.name AS service_type,
-        v.vehicle_type, v.license_plate
-      FROM service_requests r
-      LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
-      LEFT JOIN vehicles v ON r.vehicle_id = v.vehicle_id
-      WHERE r.status = 'pending'
-      ORDER BY r.created_at ASC
-      LIMIT 1
-    `;
-    const result = await db.query(sql);
-    return Array.isArray(result) ? result[0] : result;
-  },
+  const sql = `
+    SELECT 
+      r.request_id, r.user_id, r.status, r.address,
+      r.location_lat, r.location_lng, r.driver_id,
+      st.name AS service_type,
+      v.vehicle_type, v.license_plate
+    FROM service_requests r
+    LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
+    LEFT JOIN vehicles v ON r.vehicle_id = v.vehicle_id
+    WHERE r.status IN ('pending', 'in progress')
+    ORDER BY r.created_at ASC
+    LIMIT 1
+  `;
+  const result = await db.query(sql);
+  return Array.isArray(result) ? result[0] : result;
+},
 
   // Now INSERTs into driver_locations instead of updating the request row
   async updateDriverLocation(request_id, driver_id, lat, lng) {
@@ -141,15 +141,18 @@ const Request = {
   async deleteById(id) {
     await db.query('DELETE FROM service_requests WHERE request_id = ?', [id]);
   },
-  
-  async updateAddress(request_id, address) {
-    const sql = `
+
+  async updateAddress(requestId, address, lat, lng) {
+    return db.query(`
         UPDATE service_requests
-        SET address = ?, updated_at = NOW()
+        SET 
+            address = ?,
+            location_lat = ?,
+            location_lng = ?,
+            updated_at = NOW()
         WHERE request_id = ?
-    `;
-    await db.query(sql, [address, request_id]);
-},
+    `, [address, lat, lng, requestId]);
+}
 
 };
 

@@ -11,20 +11,30 @@ const authenticateToken = require('../middleware/authMiddleware'); // your JWT m
  */
 router.post('/location', authenticateToken, async (req, res) => {
     const { lat, lng, request_id } = req.body;
-    const driver_id = req.user.id; // from JWT
+    const driver_id = req.user.id;
 
     if (!lat || !lng || !request_id) {
         return res.status(400).json({ error: 'lat, lng, and request_id are required' });
     }
 
     try {
-        // Update the requests table with driver's current location
+        // 1. Update only request assignment (NOT location anymore)
         await db.query(
-            `UPDATE requests SET driver_lat = ?, driver_lng = ?, driver_id = ? WHERE id = ?`,
-            [lat, lng, driver_id, request_id]
+            `UPDATE service_requests 
+             SET driver_id = ?, status = 'in_progress'
+             WHERE request_id = ?`,
+            [driver_id, request_id]
+        );
+
+        // 2. Insert driver GPS into history table (NEW DESIGN)
+        await db.query(
+            `INSERT INTO driver_locations (driver_id, lat, lng)
+             VALUES (?, ?, ?)`,
+            [driver_id, lat, lng]
         );
 
         res.json({ success: true });
+
     } catch (err) {
         console.error('Error saving driver location:', err);
         res.status(500).json({ error: 'Failed to save location' });
@@ -41,11 +51,21 @@ router.get('/requests/latest', authenticateToken, async (req, res) => {
 
     try {
         const [rows] = await db.query(
-            `SELECT id, location_lat, location_lng, address, status,
-                    driver_lat, driver_lng
-             FROM requests
-             WHERE user_id = ? AND status = 'pending'
-             ORDER BY created_at DESC LIMIT 1`,
+            `SELECT sr.request_id,
+                    sr.location_lat,
+                    sr.location_lng,
+                    sr.address,
+                    sr.status,
+                    dl.lat AS driver_lat,
+                    dl.lng AS driver_lng,
+                    dl.recorded_at
+             FROM service_requests sr
+             LEFT JOIN driver_locations dl 
+                    ON dl.driver_id = sr.driver_id
+             WHERE sr.user_id = ?
+               AND sr.status IN ('pending', 'assigned', 'in progress')
+             ORDER BY sr.created_at DESC
+             LIMIT 1`,
             [user_id]
         );
 
@@ -54,6 +74,7 @@ router.get('/requests/latest', authenticateToken, async (req, res) => {
         }
 
         res.json(rows[0]);
+
     } catch (err) {
         console.error('Error fetching request:', err);
         res.status(500).json({ error: 'Failed to fetch request' });

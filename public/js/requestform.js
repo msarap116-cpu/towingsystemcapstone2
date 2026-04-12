@@ -1,5 +1,4 @@
-// requestform.js - Fixed Version with Manual Address Geocoding
-
+// requestform.js 
 // Handle emergency request
 async function handleEmergencyRequest(e) {
     e.preventDefault();
@@ -29,7 +28,16 @@ async function handleEmergencyRequest(e) {
 
     // Check if user manually entered address (and no coordinates from "Use Current Location")
     const hasManualAddress = address && address.trim() !== '';
-    const hasCoordinates = latitude && longitude;
+    const hasCoordinates =
+    latitude !== '' &&
+    longitude !== '' &&
+    latitude !== null &&
+    longitude !== null &&
+    latitude !== undefined &&
+    longitude !== undefined;
+
+    console.log("Final latitude:", latitude);
+    console.log("Final longitude:", longitude);
     
     // If manual address is provided but no coordinates, geocode it
     if (hasManualAddress && !hasCoordinates) {
@@ -108,7 +116,16 @@ async function handleEmergencyRequest(e) {
             body: JSON.stringify(requestData)
         });
 
-        const data = await response.json();
+        // const data = await response.json();
+        const text = await response.text();
+    console.log("Raw server response:", text);
+
+    let data;
+    try {
+    data = JSON.parse(text);
+    } catch {
+    data = { error: text };
+    }
 
         if (response.ok) {
             // Show success message
@@ -148,22 +165,40 @@ async function handleEmergencyRequest(e) {
 // NEW FUNCTION: Geocode address to coordinates using Nominatim
 async function geocodeAddress(address) {
     try {
-        const encodedAddress = encodeURIComponent(address);
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodedAddress}&format=json&limit=1`;
+        // Add Philippines context + structured query
+        const searchQuery = address.includes('Philippines') 
+            ? address 
+            : `${address}, Philippines`;
+            
+        const encodedAddress = encodeURIComponent(searchQuery);
+        const url = `https://nominatim.openstreetmap.org/search?` +
+            `q=${encodedAddress}` +
+            `&format=json` +
+            `&limit=5` +              // get top 5 results
+            `&countrycodes=ph` +       //  restrict to Philippines only
+            `&addressdetails=1`;       //  get structured address back
         
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'TowTheRescue/1.0'
+                'User-Agent': 'TowTheRescue/1.0' // required by Nominatim
             }
         });
         
         const data = await response.json();
+        console.log('Nominatim results:', data); // see what it returns
         
         if (data && data.length > 0) {
+            // ✅ Pick the result closest to South Cotabato area
+            const best = data.find(r => 
+                parseFloat(r.lat) >= 6.0 && parseFloat(r.lat) <= 7.0 &&
+                parseFloat(r.lon) >= 124.0 && parseFloat(r.lon) <= 126.0
+            ) || data[0]; // fallback to first result
+            
+            console.log('Best match:', best.display_name, best.lat, best.lon);
             return {
-                lat: parseFloat(data[0].lat),
-                lng: parseFloat(data[0].lon),
-                displayName: data[0].display_name
+                lat: parseFloat(best.lat),
+                lng: parseFloat(best.lon),
+                displayName: best.display_name
             };
         }
         return null;

@@ -38,7 +38,7 @@ const customerIcon = L.divIcon({
     iconAnchor: [18, 36],
     popupAnchor: [0, -36]
 });
-// Configuration for South Cotabato boundaries
+// Configuration for South Cotabato boundaries sang san jose kag palvillla
 const MAP_CONFIG = {
     bounds: {
         southWest: { lat: 6.1, lng: 124.5 },  
@@ -62,7 +62,7 @@ function initMapWithBounds(mapDiv, initialCenter, initialZoom = 14) {
         bounceAtZoomLimits: false
     }).setView(initialCenter, initialZoom);
 
-    // Add tile layer
+    //tile layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19
@@ -88,8 +88,8 @@ function initMapWithBounds(mapDiv, initialCenter, initialZoom = 14) {
     return map;
 }
 
-// Then in your initDriverMap function, replace map initialization with:
-// map = initMapWithBounds('map', [customerLat, customerLng], 14);
+
+
 
 // DOMContentLoaded regular50
 document.addEventListener('DOMContentLoaded', function () {
@@ -101,7 +101,6 @@ document.addEventListener('DOMContentLoaded', function () {
         console.error('Failed to load dashboard:', err);
     });
 });
-// Init driver map (Point A = driver, Point B = customer) 
 // Init driver map (Point A = driver, Point B = customer) 
 async function initDriverMap() {
     const mapDiv = document.getElementById('map');
@@ -118,10 +117,10 @@ async function initDriverMap() {
     const customerLng = parseFloat(requestData.location_lng);
 
     // Initialize Leaflet map with a default center (will update when we get driver location)
-    map = L.map('map').setView([customerLat, customerLng], 14);
-        // map = initMapWithBounds('map', [customerLat, customerLng], 14);
+    map = L.map('map').setView([customerLat, customerLng], 15);
+        // map = initMapWithBounds('map', [customerLat, customerLng], 14);// muhon
 
-    // FREE tile layer - NO API KEY NEEDED!
+    // FREE tile layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19

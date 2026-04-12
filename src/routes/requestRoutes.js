@@ -12,7 +12,7 @@ router.use((req, res, next) => {
     console.log('requestRoutes hit:', req.method, req.path);
     next();
 });
-// ✅ Static/specific routes FIRST
+//Static/specific routes FIRST
 router.post('/', authenticateToken, requestController.createRequest);
 router.get('/my-requests', authenticateToken, requestController.getMyRequests);
 router.get('/', authenticateToken, requestController.getAllRequests);

@@ -68,9 +68,14 @@ exports.updateStatus = async (req, res) => {
 exports.updateAddress = async (req, res) => {
     try {
         const requestId = req.params.id;
-        const { address } = req.body;
+        const { address, location_lat, location_lng } = req.body;
 
-        await Request.updateAddress(requestId, address);
+        await Request.updateAddress(
+        requestId,
+        address,
+        location_lat,
+        location_lng
+        );
 
         res.json({
             message: "Address updated successfully"

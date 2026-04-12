@@ -13,8 +13,8 @@ let latestRequestData = null;
 
 const MAP_CONFIG = {
     bounds: {
-        southWest: { lat: 6.1, lng: 124.5 },  
-        northEast: { lat: 6.5, lng: 124.9}   
+        southWest: { lat: 6.0, lng: 124.4 },  
+        northEast: { lat: 6.7, lng: 125.1 }   
     },
     minZoom: 10,
     maxZoom: 18,
@@ -112,7 +112,16 @@ function initMapWithBounds(mapDiv, initialCenter, initialZoom = 14) {
     return map;
 }
 // Main function to load user map
+// dashboard.js
+
+// 1. Fix the clearInterval BEFORE creating a new map instance
 async function loadUserMap() {
+    // ✅ Clear any existing polling FIRST, before anything else
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+    }
+
     const token = localStorage.getItem('token');
     if (!token) {
         console.error('No token — customer not logged in.');
@@ -137,7 +146,7 @@ async function loadUserMap() {
             console.warn('No location data on request.');
             const mapDiv = document.getElementById('map');
             if (mapDiv) {
-                mapDiv.innerHTML = '<p style="padding:1rem;color:#888">No active request found. Please create a service request first.</p>';
+                mapDiv.innerHTML = '<p style="padding:1rem;color:#888">No active request found.</p>';
             }
             return;
         }
@@ -145,23 +154,32 @@ async function loadUserMap() {
         const lat = parseFloat(data.location_lat);
         const lng = parseFloat(data.location_lng);
 
-        // Initialize map with FREE OpenStreetMap tiles
-        map = L.map('map').setView([lat, lng], 15);
-    //    map = initMapWithBounds('map', [lat, lng], 14);
+        console.log('Customer:', lat, lng);
+    console.log('Driver:', data.driver_lat, data.driver_lng);
+    console.log('Status:', data.status);
+    console.log('Full data:', data); // see ALL fields returned
 
-        // FREE tile layer - NO API KEY NEEDED!
+        // ✅ Destroy old map instance before creating new one
+        if (map) {
+            map.remove();
+            map = null;
+            customerMarker = null;
+            driverMarker = null;
+            routeLayer = null;
+        }
+
+        map = L.map('map').setView([lat, lng], 15);
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19
         }).addTo(map);
 
-        // Customer pin
         customerMarker = L.marker([lat, lng], { icon: customerIcon })
             .addTo(map)
             .bindPopup(`<strong>📍 Your Location</strong><br>${data.address || 'Your requested location'}`)
             .openPopup();
 
-        // If driver location already exists, show it immediately
         if (data.driver_lat && data.driver_lng) {
             showDriverOnMap(
                 parseFloat(data.driver_lat),
@@ -170,15 +188,14 @@ async function loadUserMap() {
             );
         }
 
-        // Poll for driver location updates
-        if (pollingInterval) clearInterval(pollingInterval);
+        // ✅ Only start ONE interval, stored in the global variable
         pollingInterval = setInterval(() => pollDriverLocation(lat, lng), POLL_INTERVAL_MS);
 
     } catch (err) {
         console.error('Map load error:', err);
         const mapDiv = document.getElementById('map');
         if (mapDiv) {
-            mapDiv.innerHTML = '<p style="padding:1rem;color:#888">Error loading map. Please refresh the page.</p>';
+            mapDiv.innerHTML = '<p style="padding:1rem;color:#888">Error loading map. Please refresh.</p>';
         }
     }
 }
@@ -213,17 +230,23 @@ async function showDriverOnMap(driverLat, driverLng, customerLat, customerLng) {
         driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
             .addTo(map)
             .bindPopup('<strong>🚗 Driver is on the way</strong>');
+    } else {
+        driverMarker.setLatLng([driverLat, driverLng]);
+    }
 
+    // ✅ Only fitBounds if driver is meaningfully far from customer (> 50 meters)
+    const distance = calculateDistance(driverLat, driverLng, customerLat, customerLng);
+    if (parseFloat(distance) > 0.05) { // 0.05 km = 50 meters
         const bounds = L.latLngBounds(
             [driverLat, driverLng],
             [customerLat, customerLng]
         );
         map.fitBounds(bounds, { padding: [60, 60] });
     } else {
-        driverMarker.setLatLng([driverLat, driverLng]);
+        // Driver is at/near customer — just center on customer at street level
+        map.setView([customerLat, customerLng], 16);
     }
 
-    // Draw route using FREE OSRM
     await drawRoute(driverLat, driverLng, customerLat, customerLng);
 }
 
@@ -321,24 +344,40 @@ function getMidpoint(lat1, lng1, lat2, lng2) {
 // Optional: Add geocoding function if needed (convert address to coordinates)
 async function geocodeAddress(address) {
     try {
+        const searchQuery = address.includes('Philippines')
+            ? address
+            : `${address}, Philippines`;
+
+        const encoded = encodeURIComponent(searchQuery);
+
         const url = `https://nominatim.openstreetmap.org/search?` +
-            `q=${encodeURIComponent(address)}&format=json&limit=1`;
-        
+            `q=${encoded}` +
+            `&format=json` +
+            `&limit=5` +
+            `&countrycodes=ph` +
+            `&addressdetails=1`;
+
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'YourApp/1.0' // Required by Nominatim
+                'User-Agent': 'TowTheRescue/1.0'
             }
         });
+
         const data = await response.json();
-        
-        if (data.length > 0) {
-            return {
-                lat: parseFloat(data[0].lat),
-                lng: parseFloat(data[0].lon),
-                displayName: data[0].display_name
-            };
-        }
-        return null;
+
+        if (!data || data.length === 0) return null;
+
+        const best = data.find(r =>
+            parseFloat(r.lat) >= 6.0 && parseFloat(r.lat) <= 7.0 &&
+            parseFloat(r.lon) >= 124.0 && parseFloat(r.lon) <= 126.0
+        ) || data[0];
+
+        return {
+            lat: parseFloat(best.lat),
+            lng: parseFloat(best.lon),
+            displayName: best.display_name
+        };
+
     } catch (err) {
         console.error('Geocoding error:', err);
         return null;
@@ -379,6 +418,7 @@ window.onclick = function(event) {
 if (saveEditAddressBtn) {
     saveEditAddressBtn.onclick = async (e) => {
         e.preventDefault();
+
         const newAddress = editAddressInput.value.trim();
 
         if (!newAddress) {
@@ -389,6 +429,15 @@ if (saveEditAddressBtn) {
         try {
             const token = localStorage.getItem('token');
 
+            // Step 1: Convert address → coordinates
+            const geo = await geocodeAddress(newAddress);
+
+            if (!geo) {
+                alert("Address not found. Please enter a valid address.");
+                return;
+            }
+
+            // Step 2: Send address + lat/lng to backend
             const res = await fetch(`${API_BASE_URL}/requests/${latestRequestId}/address`, {
                 method: 'PUT',
                 headers: {
@@ -396,22 +445,34 @@ if (saveEditAddressBtn) {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    address: newAddress
+                    address: newAddress,
+                    location_lat: geo.lat,
+                    location_lng: geo.lng
                 })
             });
 
             const result = await res.json();
 
+            if (!res.ok) {
+                alert(result.error || "Failed to update address");
+                return;
+            }
+
             alert(result.message || "Address updated successfully");
 
             editAddressModal.style.display = 'none';
 
+            // Update local data
+            latestRequestData.address = newAddress;
+            latestRequestData.location_lat = geo.lat;
+            latestRequestData.location_lng = geo.lng;
+
+            // Reload map
             if (map) {
                 map.remove();
                 map = null;
             }
 
-            latestRequestData.address = newAddress;
             loadUserMap();
 
         } catch (err) {
