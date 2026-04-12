@@ -352,7 +352,8 @@ const saveEditAddressBtn = document.getElementById('saveAddressBtn');
 const editAddressInput = document.getElementById('editAddressInput');
 
 if (editAddressSidebarBtn) {
-    editAddressSidebarBtn.addEventListener('click', () => {
+    editAddressSidebarBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         if (!latestRequestData) {
             alert("No active request found.");
             return;
@@ -376,7 +377,8 @@ window.onclick = function(event) {
 };
 
 if (saveEditAddressBtn) {
-    saveEditAddressBtn.onclick = async () => {
+    saveEditAddressBtn.onclick = async (e) => {
+        e.preventDefault();
         const newAddress = editAddressInput.value.trim();
 
         if (!newAddress) {
