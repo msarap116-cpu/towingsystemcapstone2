@@ -17,7 +17,7 @@ router.post('/', authenticateToken, requestController.createRequest);
 router.get('/my-requests', authenticateToken, requestController.getMyRequests);
 router.get('/', authenticateToken, requestController.getAllRequests);
 router.put('/:id/status', authenticateToken, requestController.updateStatus);
-router.put('/requests/:id/address', authMiddleware, requestController.updateAddress);
+router.put('/:id/address', authenticateToken, requestController.updateAddress);
 
 router.get('/latest', authenticateToken, async (req, res) => {
     const user_id = req.user.id ?? req.user.user_id;
