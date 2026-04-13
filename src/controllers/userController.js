@@ -248,13 +248,13 @@ const userController = {
             });
         }
 
-        // ✅ Pass plain password — userModel.create() handles the hashing
+       
         const newUserId = await User.create({
             name,
             email,
             phone,
             role,
-            password  // plain text from req.body
+            password  
         });
 
         // Fetch the newly created user to return it
