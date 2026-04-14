@@ -77,8 +77,8 @@ const Request = {
       LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
       LEFT JOIN vehicles v ON r.vehicle_id = v.vehicle_id
       LEFT JOIN driver_locations dl 
-ON dl.driver_id = r.driver_id
-AND dl.recorded_at = (
+    ON dl.driver_id = r.driver_id
+    AND dl.recorded_at = (
     SELECT MAX(recorded_at)
     FROM driver_locations dl2
     WHERE dl2.driver_id = r.driver_id

@@ -166,7 +166,10 @@ async function initDriverMap() {
             watchId = navigator.geolocation.watchPosition(
                 (newPosition) => onDriverLocationUpdate(newPosition, customerLat, customerLng),
                 (err) => console.error('Geolocation error:', err),
-                { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+                {         enableHighAccuracy: true,
+                         maximumAge: 0,
+                         timeout: 15000
+                }
             );
         },
         (err) => {
@@ -175,10 +178,18 @@ async function initDriverMap() {
             watchId = navigator.geolocation.watchPosition(
                 (position) => onDriverLocationUpdate(position, customerLat, customerLng),
                 (err) => console.error('Geolocation error:', err),
-                { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+                {           
+                              enableHighAccuracy: true,
+                             maximumAge: 0,
+                             timeout: 15000
+
+                }
             );
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        {       
+              enableHighAccuracy: true,
+                  maximumAge: 0,
+                  timeout: 15000}
     );
 }
 
@@ -186,6 +197,12 @@ async function initDriverMap() {
 async function onDriverLocationUpdate(position, customerLat, customerLng) {
     const driverLat = position.coords.latitude;
     const driverLng = position.coords.longitude;
+
+        console.log("GPS Update:", 
+    position.coords.latitude,
+    position.coords.longitude,
+    "Accuracy:", position.coords.accuracy
+    );
 
     if (!driverMarker) {
         driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
@@ -199,6 +216,8 @@ async function onDriverLocationUpdate(position, customerLat, customerLng) {
     } else {
         driverMarker.setLatLng([driverLat, driverLng]);
     }
+
+
 
     await drawRoute(driverLat, driverLng, customerLat, customerLng);
     sendDriverLocation(driverLat, driverLng);
@@ -477,7 +496,7 @@ async function completeJob() {
         
         // Update marker popup
         if (driverMarker) {
-            driverMarker.setPopupContent('<strong>✅ Job Completed!</strong>');
+            driverMarker.setPopupContent('<strong>Job Completed!</strong>');
         }
 
         // Optional: Redirect to dashboard or show completion message

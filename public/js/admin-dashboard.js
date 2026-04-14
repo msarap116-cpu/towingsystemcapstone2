@@ -306,7 +306,7 @@ async function editRequest(request_id) {
         const request = await response.json();
         
         document.getElementById('modalTitle').textContent = 'Edit Request';
- //Now these will all work correctly
+
 document.getElementById('requestId').value      = request.request_id;
 document.getElementById('customerName').value   = request.customer_name;
 document.getElementById('customerPhone').value  = request.customer_phone;
@@ -372,87 +372,7 @@ function closeDeleteModal() {
     currentDeleteId = null;
 }
 
-// Delete request
-// async function deleteRequest() {
-//     if (!currentDeleteId) return;
-    
-//     try {
-//         const token = localStorage.getItem('token');
-//         const response = await fetch(`${API_BASE_URL}/requests/${currentDeleteId}`, {
-//             method: 'DELETE',
-//             headers: {
-//                 'Authorization': `Bearer ${token}`,
-//                 'Content-Type': 'application/json'
-//             }
-//         });
 
-//         if (!response.ok) {
-//             throw new Error('Failed to delete request');
-//         }
-
-//         showAlert('Request deleted successfully!', 'success');
-        
-//         // Refresh data
-//         await fetchRequests();
-//         await fetchStatistics();
-        
-//         closeDeleteModal();
-//     } catch (error) {
-//         console.error('Error deleting request:', error);
-//         showAlert('Failed to delete request', 'error');
-//     }
-// }
-// //load the users into table
-// async function loadUsers() {
-
-//     const token = localStorage.getItem('token');
-
-//     try {
-        
-//         console.log("token",token);//debug fatasm
-
-//         const res = await fetch('/api/users', {
-//             method: 'GET',
-//             headers: {
-//                 'Authorization': `Bearer ${token}`,
-//                 'Content-Type': 'application/json'
-//             }
-//         });
-
-//         if (!res.ok) {
-//             throw new Error('Failed to fetch users');
-//         }
-
-//         const users = await res.json();
-//         console.log("Users:", users);
-
-//         const tbody = document.getElementById('usersTableBody');
-//         tbody.innerHTML = '';
-
-//         users.forEach(user => {
-
-//             const row = `
-//             <tr>
-//                 <td>${user.id}</td>
-//                 <td>${user.name}</td>
-//                 <td>${user.email}</td>
-//                 <td>${user.phone}</td>
-//                 <td>${user.role}</td>
-//                 <td>
-//                     <button onclick="editUser(${user.id})" class="btn btn-primary">Edit</button>
-//                     <button onclick="deleteUser(${user.id})" class="btn btn-delete">Delete</button>
-//                 </td>
-//             </tr>
-//             `;
-
-//             tbody.innerHTML += row;
-//         });
-
-//     } catch (error) {
-//         console.error("Error loading users:", error);
-//     }
-// }
-//save users ngain
 async function saveUser() {
 
     const id = document.getElementById('userId').value;

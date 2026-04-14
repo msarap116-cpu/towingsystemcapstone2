@@ -18,7 +18,7 @@ const { generateToken } = require('./src/controllers/userController');
 const userroutes = require('./src/routes/userroutes');
 const requestsRoute = require('./src/routes/requestRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
-
+const driverRoutes = require('./src/routes/driverRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -34,6 +34,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/users/', userroutes);
 app.use('/api/requests', requestsRoute);
 app.use('/api/admin', adminRoutes);
+app.use('/api/driver', driverRoutes);
 
 // HTML page routes
 app.get(['/', '/home'], (req, res) => {
