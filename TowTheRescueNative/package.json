@@ -14,15 +14,18 @@
     "@react-native-community/geolocation": "^3.4.0",
     "@react-native-picker/picker": "^2.11.4",
     "@react-native/new-app-screen": "0.84.1",
+    "@react-navigation/drawer": "^7.9.8",
     "@react-navigation/native": "^7.2.0",
     "@react-navigation/native-stack": "^7.14.10",
     "@react-navigation/stack": "^7.8.7",
     "react": "19.2.3",
     "react-native": "0.84.1",
-    "react-native-gesture-handler": "^2.30.0",
+    "react-native-gesture-handler": "^2.31.1",
+    "react-native-reanimated": "^4.3.0",
     "react-native-safe-area-context": "^5.7.0",
     "react-native-screens": "^4.24.0",
-    "react-native-webview": "^13.16.1"
+    "react-native-webview": "^13.16.1",
+    "react-native-worklets": "^0.8.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

@@ -1,35 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
-    ScrollView,
-    Alert,
-    ActivityIndicator,
-    RefreshControl,
-    Dimensions,
-    StatusBar
-} from 'react-native';
-import { WebView } from 'react-native-webview';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import API_BASE_URL from '../config';
+import { useNavigation } from '@react-navigation/native';
 
-const { width } = Dimensions.get('window');
-const POLL_INTERVAL_MS = 30000;
-
-const DashboardScreen = ({ navigation }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-    const [hasActiveRequest, setHasActiveRequest] = useState(false);
-    const [requestData, setRequestData] = useState(null);
-    const [token, setToken] = useState(null);
+const DashboardScreen = () => {
+    const navigation = useNavigation();
     
-    const webViewRef = useRef(null);
-    const pollingInterval = useRef(null);
-
+    // This useEffect is correct for drawer navigator
     useEffect(() => {
+        navigation.setOptions({
+            headerLeft: () => (
+                <TouchableOpacity 
+                    onPress={() => {
+                        // This should work since Dashboard is inside Drawer
+                        navigation.openDrawer();
+                    }}
+                    style={{ marginLeft: 15 }}
+                >
+                    <Text style={{ fontSize: 24, color: '#fff' }}>☰</Text>
+                </TouchableOpacity>
+            ),
+            headerTitle: 'Dashboard',
+            headerStyle: {
+                backgroundColor: '#0066cc',
+            },
+            headerTintColor: '#fff',
+        });
+    }, [navigation]);
+    
+    // Rest of your component remains the same
+     useEffect(() => {
         loadDashboard();
         return () => {
             if (pollingInterval.current) {
@@ -91,35 +88,6 @@ const DashboardScreen = ({ navigation }) => {
     const onRefresh = () => {
         setRefreshing(true);
         loadDashboard();
-    };
-
-    const handleLogout = () => {
-        Alert.alert(
-            'Logout',
-            'Are you sure you want to logout?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Logout',
-                    style: 'destructive',
-                    onPress: async () => {
-                        await AsyncStorage.removeItem('token');
-                        await AsyncStorage.removeItem('user');
-                        navigation.replace('Home');
-                    }
-                }
-            ]
-        );
-    };
-
-    const getUserInitials = () => {
-        if (!user?.name) return 'U';
-        return user.name
-            .split(' ')
-            .map(n => n[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2);
     };
 
     // HTML for the map - matches your web dashboard exactly
@@ -273,11 +241,6 @@ const DashboardScreen = ({ navigation }) => {
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#0066cc" />
             
-            {/* Navigation Bar - matches web dashboard */}
-            <View style={styles.navbar}>
-                <Text style={styles.navbarBrand}>Tow the Rescue</Text>
-            </View>
-            
             <ScrollView 
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={
@@ -285,57 +248,7 @@ const DashboardScreen = ({ navigation }) => {
                 }
             >
                 <View style={styles.content}>
-                    {/* Sidebar - matches web dashboard */}
-                    <View style={styles.sidebar}>
-                        <View style={styles.dashboardCard}>
-                            <Text style={styles.cardTitle}>My Account</Text>
-                            <View style={styles.profileInfo}>
-                                <View style={styles.profileIcon}>
-                                    <Text style={styles.profileInitials}>{getUserInitials()}</Text>
-                                </View>
-                                <Text style={styles.profileName}>{user?.name || 'User'}</Text>
-                                <Text style={styles.userType}>{user?.role || 'Customer'}</Text>
-                            </View>
-                            <View style={styles.divider} />
-                            
-                            <TouchableOpacity 
-                                style={styles.sidebarNavItem}
-                                onPress={() => navigation.navigate('Dashboard')}
-                            >
-                                <Text style={styles.activeNavText}>Dashboard</Text>
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity 
-                                style={styles.sidebarNavItem}
-                                onPress={() => navigation.navigate('RequestForm')}
-                            >
-                                <Text style={styles.navText}>Request</Text>
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity 
-                                style={styles.sidebarNavItem}
-                                onPress={() => Alert.alert('Coming Soon', 'My Vehicles feature coming soon!')}
-                            >
-                                <Text style={styles.navText}>My Vehicles</Text>
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity 
-                                style={styles.sidebarNavItem}
-                                onPress={() => Alert.alert('Coming Soon', 'Profile Settings coming soon!')}
-                            >
-                                <Text style={styles.navText}>Profile Settings</Text>
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity 
-                                style={[styles.sidebarNavItem, styles.logoutItem]}
-                                onPress={handleLogout}
-                            >
-                                <Text style={styles.logoutText}>Logout</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                    
-                    {/* Main Content - matches web dashboard */}
+                    {/* Main Content - Full width now */}
                     <View style={styles.mainContent}>
                         <View style={styles.dashboardCard}>
                             <Text style={styles.cardTitle}>My Location</Text>
@@ -388,34 +301,12 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#666',
     },
-    navbar: {
-        backgroundColor: '#0066cc',
-        paddingTop: 50,
-        paddingBottom: 15,
-        paddingHorizontal: 20,
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-    },
-    navbarBrand: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
     scrollContent: {
         flexGrow: 1,
     },
     content: {
         flex: 1,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
         padding: 15,
-        gap: 15,
-    },
-    sidebar: {
-        width: width >= 768 ? 280 : '100%',
     },
     dashboardCard: {
         backgroundColor: '#fff',
@@ -433,63 +324,9 @@ const styles = StyleSheet.create({
         marginBottom: 15,
         color: '#333',
     },
-    profileInfo: {
-        alignItems: 'center',
-        marginBottom: 15,
-    },
-    profileIcon: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: '#0066cc',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    profileInitials: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    profileName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 5,
-    },
-    userType: {
-        fontSize: 14,
-        color: '#666',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#e0e0e0',
-        marginVertical: 15,
-    },
-    sidebarNavItem: {
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
-    },
-    activeNavText: {
-        fontSize: 14,
-        color: '#0066cc',
-        fontWeight: 'bold',
-    },
-    navText: {
-        fontSize: 14,
-        color: '#333',
-    },
-    logoutItem: {
-        borderBottomWidth: 0,
-        marginTop: 10,
-    },
-    logoutText: {
-        fontSize: 14,
-        color: '#dc3545',
-    },
     mainContent: {
         flex: 1,
-        minWidth: width >= 768 ? 500 : '100%',
+        width: '100%',
     },
     mapContainer: {
         height: 600,
@@ -531,5 +368,4 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
 });
-
 export default DashboardScreen;
