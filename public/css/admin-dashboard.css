@@ -1,4 +1,4 @@
-  /* FIXED LAYOUT STYLES - Makes only main content scrollable */
+  /* FIXED LAYOUT STYLES  */
         * {
             margin: 0;
             padding: 0;
@@ -72,7 +72,7 @@
             overflow: hidden;
         }
 
-        /* Sidebar - Fixed, does not scroll */
+        /* Sidebar - Fixed*/
         .sidebar {
             width: 280px;
             background: white;
@@ -85,7 +85,7 @@
             flex-shrink: 0;
         }
 
-        /* Main Content - THIS IS THE ONLY PART THAT SCROLLS */
+        /* Main Content*/
         .main-content {
             flex: 1;
             background: white;
@@ -130,7 +130,7 @@
             border-radius: 10px;
         }
 
-        /* Keep original styles but ensure they work within new layout */
+        
         .dashboard-container {
             display: block;
             height: auto;
@@ -152,7 +152,7 @@
             text-align: center;
         }
 
-        /* Different color variations for stat cards */
+        
         .stat-card:nth-child(2) {
             background: linear-gradient(135deg, #28a745, #218838);
         }

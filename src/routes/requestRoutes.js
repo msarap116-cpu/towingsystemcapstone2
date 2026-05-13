@@ -7,12 +7,12 @@ const authenticateToken = require('../middleware/authMiddleware');
 const Request = require('../models/requestModel');
 const db = require('../database/database'); 
 
-// Add at the very TOP of requestRoutes.js after the requires
+
 router.use((req, res, next) => {
     console.log('requestRoutes hit:', req.method, req.path);
     next();
 });
-//Static/specific routes FIRST
+
 router.post('/', authenticateToken, requestController.createRequest);
 router.get('/my-requests', authenticateToken, requestController.getMyRequests);
 router.get('/', authenticateToken, requestController.getAllRequests);
@@ -40,7 +40,7 @@ router.get('/latest', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Database query failed: ' + err.message });
     }
 });
-// requestRoutes.js — add this BEFORE module.exports, AFTER /latest
+
 router.get('/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -132,7 +132,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Failed to delete request: ' + err.message });
     }
 });
-// PUT /api/requests/:id — full update for editRequest/saveRequest
+
 router.put('/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -148,7 +148,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'Request not found' });
         }
 
-        // Update user info
+        
         await db.query(`
             UPDATE users u
             JOIN service_requests sr ON sr.user_id = u.user_id
@@ -156,7 +156,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
             WHERE sr.request_id = ?
         `, [customer_name, customer_phone, id]);
 
-        // Update request — resolve service_type name to ID
+        
         await db.query(`
             UPDATE service_requests
             SET service_type_id = (

@@ -12,7 +12,7 @@
         if (!token || !userData || userData.role.toLowerCase() !== 'admin') {
             window.location.replace('login');
         } else {
-            // Fill sidebar dynamically
+            
             const adminName = document.getElementById('adminName');
             const adminEmail = document.getElementById('adminEmail');
             const userInitials = document.getElementById('userInitials');
@@ -39,14 +39,14 @@
             <a class="navbar-brand" href="home">Tow the Rescue - Admin</a>
             <ul class="nav-menu">
                 <li><a href="admin-dashboard" class="active">Dashboard</a></li>
-                <li><a href="home">View Site</a></li>
+                <!-- <li><a href="home">View Site</a></li> -->
             </ul>
         </div>
     </nav>
     
-    <!-- Main Layout Wrapper -->
+    <!-- Main Layout Wrapper karne -->
     <div class="app-wrapper">
-        <!-- Sidebar - Stays fixed position -->
+        
         <div class="sidebar">
             <div class="profile-info">
                 <div class="profile-icon">
@@ -57,19 +57,19 @@
             </div>
             <hr>
             <ul class="sidebar-nav">
-                <li><a href="admin-dashboard" class="active">Dashboard</a></li>
+                <!-- <li><a href="admin-dashboard" class="active">Dashboard</a></li>
                 <li><a href="admin-requests">All Requests</a></li>
                 <li><a href="admin-users">Manage Users</a></li>
                 <li><a href="admin-services">Services</a></li>
                 <li><a href="admin-reports">Reports</a></li>
-                <li><a href="admin-settings">Settings</a></li>
+                <li><a href="admin-settings">Settings</a></li> -->
                 <li><a class="text-danger" id="logoutBtn" href="#">Logout</a></li>
             </ul>
         </div>
 
-        <!-- Main Content - ONLY THIS SECTION SCROLLS -->
+        <!-- Main Content fdgfdsg -->
         <div class="main-content">
-            <!-- Statistics -->
+        
             <div class="stats-grid">
                 <div class="stat-card">
                     <h2 id="totalRequests">0</h2>
@@ -139,7 +139,7 @@
                                 <th>ID</th>
                                 <th>Customer</th>
                                 <th>Phone</th>
-                                <th>Service</th>
+                                <!-- <th>Service</th> -->
                                 <th>Location</th>
                                 <th>Status</th>
                                 <th>Created at</th>

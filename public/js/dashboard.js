@@ -1,7 +1,6 @@
 // dashboard.js
-// Shows the customer's own request location + driver's live location (if available)
 
-const POLL_INTERVAL_MS = 30000; // refresh driver position every 30 seconds (increased from 6 to respect rate limits)
+const POLL_INTERVAL_MS = 30000;
 
 let map = null;
 let customerMarker = null;
@@ -114,9 +113,7 @@ function initMapWithBounds(mapDiv, initialCenter, initialZoom = 14) {
 // Main function to load user map
 // dashboard.js
 
-// 1. Fix the clearInterval BEFORE creating a new map instance
 async function loadUserMap() {
-    // ✅ Clear any existing polling FIRST, before anything else
     if (pollingInterval) {
         clearInterval(pollingInterval);
         pollingInterval = null;
@@ -157,9 +154,8 @@ async function loadUserMap() {
         console.log('Customer:', lat, lng);
     console.log('Driver:', data.driver_lat, data.driver_lng);
     console.log('Status:', data.status);
-    console.log('Full data:', data); // see ALL fields returned
+    console.log('Full data:', data); 
 
-        // ✅ Destroy old map instance before creating new one
         if (map) {
             map.remove();
             map = null;
@@ -188,7 +184,7 @@ async function loadUserMap() {
             );
         }
 
-        // ✅ Only start ONE interval, stored in the global variable
+        
         pollingInterval = setInterval(() => pollDriverLocation(lat, lng), POLL_INTERVAL_MS);
 
     } catch (err) {
@@ -200,7 +196,7 @@ async function loadUserMap() {
     }
 }
 
-// Poll for driver location updates
+
 async function pollDriverLocation(customerLat, customerLng) {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -234,7 +230,7 @@ async function showDriverOnMap(driverLat, driverLng, customerLat, customerLng) {
         driverMarker.setLatLng([driverLat, driverLng]);
     }
 
-    // ✅ Only fitBounds if driver is meaningfully far from customer (> 50 meters)
+
     const distance = calculateDistance(driverLat, driverLng, customerLat, customerLng);
     if (parseFloat(distance) > 0.05) { // 0.05 km = 50 meters
         const bounds = L.latLngBounds(
@@ -243,17 +239,17 @@ async function showDriverOnMap(driverLat, driverLng, customerLat, customerLng) {
         );
         map.fitBounds(bounds, { padding: [60, 60] });
     } else {
-        // Driver is at/near customer — just center on customer at street level
+        
         map.setView([customerLat, customerLng], 16);
     }
 
     await drawRoute(driverLat, driverLng, customerLat, customerLng);
 }
 
-// Draw route using FREE OSRM (no API key needed)
+
 async function drawRoute(fromLat, fromLng, toLat, toLng) {
     try {
-        // Using free OSRM public server - NO API KEY NEEDED!
+        
         const url = `https://router.project-osrm.org/route/v1/driving/` +
             `${fromLng},${fromLat};${toLng},${toLat}` +
             `?overview=full&geometries=geojson&steps=true`;
@@ -281,7 +277,7 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
             lineJoin: 'round'
         }).addTo(map);
         
-        // Update driver marker popup with ETA
+
         if (driverMarker) {
             driverMarker.setPopupContent(
                 `<strong>🚗 Driver is on the way</strong><br>
@@ -290,7 +286,7 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
             );
         }
         
-        // Optional: Add a small popup with route summary
+
         const midPoint = getMidpoint(fromLat, fromLng, toLat, toLng);
         const routeSummary = L.popup()
             .setLatLng(midPoint)
@@ -303,7 +299,7 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
     } catch (err) {
         console.error('Route drawing failed:', err);
         
-        // Fallback to straight line with distance calculation
+        
         if (routeLayer) map.removeLayer(routeLayer);
         
         routeLayer = L.polyline(
@@ -324,7 +320,6 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
     }
 }
 
-// Helper function to calculate straight-line distance (fallback)
 function calculateDistance(lat1, lng1, lat2, lng2) {
     const R = 6371; // Earth's radius in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -336,12 +331,10 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
     return (R * c).toFixed(1);
 }
 
-// Helper function to get midpoint between two points
 function getMidpoint(lat1, lng1, lat2, lng2) {
     return [(lat1 + lat2) / 2, (lng1 + lng2) / 2];
 }
 
-// Optional: Add geocoding function if needed (convert address to coordinates)
 async function geocodeAddress(address) {
     try {
         const searchQuery = address.includes('Philippines')
@@ -429,7 +422,6 @@ if (saveEditAddressBtn) {
         try {
             const token = localStorage.getItem('token');
 
-            // Step 1: Convert address → coordinates
             const geo = await geocodeAddress(newAddress);
 
             if (!geo) {
@@ -437,7 +429,6 @@ if (saveEditAddressBtn) {
                 return;
             }
 
-            // Step 2: Send address + lat/lng to backend
             const res = await fetch(`${API_BASE_URL}/requests/${latestRequestId}/address`, {
                 method: 'PUT',
                 headers: {
@@ -482,7 +473,6 @@ if (saveEditAddressBtn) {
     };
 }
 
-// Clean up polling on page unload
 window.addEventListener('beforeunload', () => {
     if (pollingInterval) {
         clearInterval(pollingInterval);
@@ -491,6 +481,6 @@ window.addEventListener('beforeunload', () => {
 
 
 document.addEventListener('DOMContentLoaded', function () {
-    displayUserInfo();  // Just call it directly - it's synchronous
-    loadUserMap();      // Then load the map
+    displayUserInfo();  
+    loadUserMap();
 });

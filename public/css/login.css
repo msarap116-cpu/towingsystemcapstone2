@@ -14,7 +14,7 @@ body {
 
 /* Navbar Styling */
 .navbar {
-    background-color: #0d6efd; /* Same blue as Bootstrap Primary */
+    background-color: #0d6efd; 
     padding: 1rem 0;
     color: white;
 }
@@ -174,7 +174,6 @@ body {
     opacity: 1;
 }
 
-/* Optional: Add some spacing to the input for the button */
 .password-wrapper .custom-input {
     padding-right: 40px;
 }

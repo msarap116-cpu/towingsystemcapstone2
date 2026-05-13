@@ -56,7 +56,7 @@ const userController = {
         }
     },
 
-    // ✅ FIXED LOGIN
+    
     login: async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -110,7 +110,7 @@ const userController = {
     }
 },
 
-    // FIXED PROFILE
+    
     getProfile: async (req, res) => {
         try {
             // req.user comes from authMiddleware

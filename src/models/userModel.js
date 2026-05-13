@@ -36,9 +36,9 @@ async findByEmail(email) {
         // 0123 040126
         // const result = await db.query(sql, [user_id]);
 
-        // console.log("findById result:", result); // 👈 debug
+        // console.log("findById result:", result); 
 
-        // return result[0] || null; // ✅ FIXED
+        // return result[0] || null; 
         const rows = await db.query(sql, [user_id]);
 
         console.log("rows:", rows); // debug

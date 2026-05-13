@@ -1,12 +1,12 @@
 
-        /* RESET & BASE - Added to ensure proper box sizing */
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
         
-        /* Body - Fixed height, no overflow */
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
@@ -17,7 +17,6 @@
             background-color: #f8f9fa;
         }
         
-        /* Navbar stays fixed at top - MODIFIED: Fixed positioning */
         .navbar {
             position: fixed;
             top: 0;
@@ -34,7 +33,6 @@
             height: 70px;
         }
         
-        /* Navbar brand styling */
         .navbar-brand {
             font-size: 1.5rem;
             font-weight: bold;
@@ -42,7 +40,6 @@
             color: white;
         }
         
-        /* Main wrapper for sidebar and content - MODIFIED: Fixed positioning */
         .dashboard-main-wrapper {
             position: fixed;
             top: 70px; /* Height of navbar */
@@ -52,7 +49,6 @@
             overflow: hidden;
         }
         
-        /* Container layout - MODIFIED: Ensures proper height distribution */
         .container {
             display: flex;
             flex-wrap: wrap;
@@ -62,7 +58,7 @@
             overflow: hidden;
         }
         
-        /* Sidebar - Fixed position, scrolls independently if needed */
+    
         .sidebar {
             flex: 1 1 250px;
             max-width: 250px;
@@ -71,7 +67,6 @@
             position: relative;
         }
         
-        /* Main content - THIS IS THE ONLY PART THAT SCROLLS - MODIFIED: Always scrollable */
         .main-content {
             flex: 3 1 700px;
             display: flex;
@@ -82,7 +77,7 @@
             overflow-x: hidden;
         }
         
-        /* Custom scrollbar for main content - Always visible on hover */
+        
         .main-content::-webkit-scrollbar {
             width: 8px;
         }
@@ -101,7 +96,6 @@
             background: #555;
         }
         
-        /* Sidebar scrollbar styling */
         .sidebar::-webkit-scrollbar {
             width: 6px;
         }
@@ -127,7 +121,6 @@
             gap: 10px;
         }
         
-        /* Quick actions layout - if you add back later */
         .quick-actions {
             display: flex;
             flex-wrap: wrap;
@@ -282,7 +275,6 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* Responsive adjustments */
         @media (max-width: 768px) {
             .dashboard-main-wrapper {
                 top: 60px;

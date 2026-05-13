@@ -9,15 +9,15 @@ document.addEventListener("DOMContentLoaded", () => {
         toggleBtn.addEventListener("click", function() {
             if (passwordInput.type === "password") {
                 passwordInput.type = "text";
-                toggleBtn.textContent = "🙈";  // change icon to indicate visible
+                toggleBtn.textContent = "🙈";  
             } else {
                 passwordInput.type = "password";
-                toggleBtn.textContent = "👁️";  // change icon back🙈
+                toggleBtn.textContent = "👁️";  // 🙈
             }
         });
     }
 
-    // --- Login form handler ---
+    
     const loginForm = document.getElementById("loginForm");
     if (loginForm) {
         loginForm.addEventListener("submit", handleLogin);

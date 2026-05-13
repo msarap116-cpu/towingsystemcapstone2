@@ -101,7 +101,7 @@ app.post('/users/login', async (req, res) => {
         // Generate token using the function from userController
         const token = generateToken(user.id, user.role);
         
-        // Don't send password back
+        
         const { password: _, ...userWithoutPassword } = user;
         
         console.log('Login successful for:', email);

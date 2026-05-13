@@ -13,13 +13,15 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import API_BASE_URL from '../config';
 
 const { width } = Dimensions.get('window');
+const API_BASE_URL = 'http://192.168.0.104:3000'; // Change to your computer's IP
 const POLL_INTERVAL_MS = 30000;
 
 const DashboardScreen = ({ navigation }) => {
     const [user, setUser] = useState(null);
+    const [activeRequestsCount, setActiveRequestsCount] = useState(0);
+    const [totalRequestsCount, setTotalRequestsCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [hasActiveRequest, setHasActiveRequest] = useState(false);
@@ -53,6 +55,7 @@ const DashboardScreen = ({ navigation }) => {
             }
 
             await loadRequestData(userToken);
+            await loadRequestCounts(userToken);
             
         } catch (error) {
             console.error('Dashboard load error:', error);
@@ -85,6 +88,30 @@ const DashboardScreen = ({ navigation }) => {
         } catch (error) {
             console.error('Load request error:', error);
             setHasActiveRequest(false);
+        }
+    };
+
+    const loadRequestCounts = async (userToken) => {
+        try {
+            // Get all user requests
+            const response = await fetch(`${API_BASE_URL}/requests/my-requests`, {
+                headers: { 'Authorization': `Bearer ${userToken}` }
+            });
+
+            if (response.ok) {
+                const requests = await response.json();
+                setTotalRequestsCount(requests.length);
+                
+                // Count active requests (pending, accepted, en_route)
+                const active = requests.filter(r => 
+                    r.status === 'pending' || 
+                    r.status === 'accepted' || 
+                    r.status === 'en_route'
+                ).length;
+                setActiveRequestsCount(active);
+            }
+        } catch (error) {
+            console.error('Load counts error:', error);
         }
     };
 
@@ -122,7 +149,7 @@ const DashboardScreen = ({ navigation }) => {
             .slice(0, 2);
     };
 
-    // HTML for the map - matches your web dashboard exactly
+    // HTML content for the map - FIXED: removed async/await
     const getMapHtml = () => {
         if (!requestData) return '';
         
@@ -138,10 +165,24 @@ const DashboardScreen = ({ navigation }) => {
                     * { margin: 0; padding: 0; box-sizing: border-box; }
                     #map { height: 100%; width: 100%; }
                     body { height: 100vh; margin: 0; padding: 0; }
+                    .info-panel {
+                        position: absolute;
+                        bottom: 20px;
+                        left: 20px;
+                        right: 20px;
+                        background: rgba(0,0,0,0.85);
+                        color: white;
+                        padding: 12px;
+                        border-radius: 12px;
+                        z-index: 1000;
+                        font-family: sans-serif;
+                    }
                 </style>
             </head>
             <body>
                 <div id="map"></div>
+                <div id="info-panel" class="info-panel"></div>
+                
                 <script>
                     const API_BASE_URL = '${API_BASE_URL}';
                     const POLL_INTERVAL_MS = ${POLL_INTERVAL_MS};
@@ -151,7 +192,6 @@ const DashboardScreen = ({ navigation }) => {
                     const requestLng = ${requestData.location_lng};
                     const requestAddress = '${(requestData.address || 'Your requested location').replace(/'/g, "\\'")}';
                     
-                    // Customer icon
                     const customerIcon = L.divIcon({
                         className: '',
                         html: '<div style="background:#D85A30;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)">📍</div>',
@@ -160,7 +200,6 @@ const DashboardScreen = ({ navigation }) => {
                         popupAnchor: [0, -36]
                     });
                     
-                    // Driver icon
                     const driverIcon = L.divIcon({
                         className: '',
                         html: '<div style="background:#1D9E75;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)">🚗</div>',
@@ -169,7 +208,6 @@ const DashboardScreen = ({ navigation }) => {
                         popupAnchor: [0, -20]
                     });
                     
-                    // Initialize map
                     function initMap() {
                         map = L.map('map').setView([requestLat, requestLng], 14);
                         
@@ -184,7 +222,6 @@ const DashboardScreen = ({ navigation }) => {
                             .openPopup();
                     }
                     
-                    // Check driver location
                     async function checkDriverLocation() {
                         if (!token) return;
                         
@@ -204,7 +241,6 @@ const DashboardScreen = ({ navigation }) => {
                         }
                     }
                     
-                    // Update driver on map
                     async function updateDriver(driverLat, driverLng) {
                         if (!driverMarker) {
                             driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
@@ -220,7 +256,6 @@ const DashboardScreen = ({ navigation }) => {
                         await drawRoute(driverLat, driverLng, requestLat, requestLng);
                     }
                     
-                    // Draw route
                     async function drawRoute(fromLat, fromLng, toLat, toLng) {
                         try {
                             const url = 'https://router.project-osrm.org/route/v1/driving/' + fromLng + ',' + fromLat + ';' + toLng + ',' + toLat + '?overview=full&geometries=geojson';
@@ -236,24 +271,17 @@ const DashboardScreen = ({ navigation }) => {
                                 const distance = (data.routes[0].distance / 1000).toFixed(1);
                                 const duration = Math.ceil(data.routes[0].duration / 60);
                                 
-                                if (driverMarker) {
-                                    driverMarker.setPopupContent('<strong>🚗 Driver on the way</strong><br>Distance: ' + distance + ' km<br>ETA: ' + duration + ' min');
-                                }
+                                const panel = document.getElementById('info-panel');
+                                panel.innerHTML = '<strong>🚗 Driver Status</strong><br>Distance: ' + distance + ' km<br>ETA: ' + duration + ' min';
                             }
                         } catch(err) {
                             console.error('Route error:', err);
                         }
                     }
                     
-                    // Start everything
                     initMap();
                     checkDriverLocation();
                     pollingInterval = setInterval(checkDriverLocation, POLL_INTERVAL_MS);
-                    
-                    // Cleanup
-                    window.addEventListener('beforeunload', () => {
-                        if (pollingInterval) clearInterval(pollingInterval);
-                    });
                 </script>
             </body>
             </html>
@@ -273,7 +301,7 @@ const DashboardScreen = ({ navigation }) => {
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#0066cc" />
             
-            {/* Navigation Bar - matches web dashboard */}
+            {/* Navigation Bar */}
             <View style={styles.navbar}>
                 <Text style={styles.navbarBrand}>Tow the Rescue</Text>
             </View>
@@ -285,49 +313,40 @@ const DashboardScreen = ({ navigation }) => {
                 }
             >
                 <View style={styles.content}>
-                    {/* Sidebar - matches web dashboard */}
+                    {/* Sidebar - User Profile Card */}
                     <View style={styles.sidebar}>
-                        <View style={styles.dashboardCard}>
-                            <Text style={styles.cardTitle}>My Account</Text>
-                            <View style={styles.profileInfo}>
-                                <View style={styles.profileIcon}>
-                                    <Text style={styles.profileInitials}>{getUserInitials()}</Text>
-                                </View>
-                                <Text style={styles.profileName}>{user?.name || 'User'}</Text>
-                                <Text style={styles.userType}>{user?.role || 'Customer'}</Text>
+                        <View style={styles.profileCard}>
+                            <View style={styles.profileIcon}>
+                                <Text style={styles.profileInitials}>{getUserInitials()}</Text>
                             </View>
+                            <Text style={styles.profileName}>{user?.name || 'User'}</Text>
+                            <Text style={styles.userType}>{user?.role || 'Customer'}</Text>
+                            
                             <View style={styles.divider} />
                             
                             <TouchableOpacity 
-                                style={styles.sidebarNavItem}
-                                onPress={() => navigation.navigate('Dashboard')}
-                            >
-                                <Text style={styles.activeNavText}>Dashboard</Text>
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity 
-                                style={styles.sidebarNavItem}
+                                style={styles.navItem}
                                 onPress={() => navigation.navigate('RequestForm')}
                             >
-                                <Text style={styles.navText}>Request</Text>
+                                <Text style={styles.navItemText}>Request Assistance</Text>
                             </TouchableOpacity>
                             
                             <TouchableOpacity 
-                                style={styles.sidebarNavItem}
-                                onPress={() => Alert.alert('Coming Soon', 'My Vehicles feature coming soon!')}
+                                style={styles.navItem}
+                                onPress={() => Alert.alert('Coming Soon', 'My Requests feature coming soon!')}
                             >
-                                <Text style={styles.navText}>My Vehicles</Text>
+                                <Text style={styles.navItemText}>My Requests</Text>
                             </TouchableOpacity>
                             
                             <TouchableOpacity 
-                                style={styles.sidebarNavItem}
+                                style={styles.navItem}
                                 onPress={() => Alert.alert('Coming Soon', 'Profile Settings coming soon!')}
                             >
-                                <Text style={styles.navText}>Profile Settings</Text>
+                                <Text style={styles.navItemText}>Profile Settings</Text>
                             </TouchableOpacity>
                             
                             <TouchableOpacity 
-                                style={[styles.sidebarNavItem, styles.logoutItem]}
+                                style={[styles.navItem, styles.logoutItem]}
                                 onPress={handleLogout}
                             >
                                 <Text style={styles.logoutText}>Logout</Text>
@@ -335,10 +354,37 @@ const DashboardScreen = ({ navigation }) => {
                         </View>
                     </View>
                     
-                    {/* Main Content - matches web dashboard */}
+                    {/* Main Content */}
                     <View style={styles.mainContent}>
-                        <View style={styles.dashboardCard}>
-                            <Text style={styles.cardTitle}>My Location</Text>
+                        {/* Quick Actions Cards */}
+                        <View style={styles.quickActions}>
+                            <View style={styles.card}>
+                                <Text style={styles.cardTitle}>Request Help</Text>
+                                <Text style={styles.cardText}>Need immediate assistance?</Text>
+                                <TouchableOpacity 
+                                    style={styles.emergencyButton}
+                                    onPress={() => navigation.navigate('RequestForm')}
+                                >
+                                    <Text style={styles.emergencyButtonText}>EMERGENCY HELP</Text>
+                                </TouchableOpacity>
+                            </View>
+                            
+                            <View style={styles.card}>
+                                <Text style={styles.cardTitle}>Active Requests</Text>
+                                <Text style={styles.cardCount}>{activeRequestsCount}</Text>
+                                <Text style={styles.cardText}>Currently active</Text>
+                            </View>
+                            
+                            <View style={styles.card}>
+                                <Text style={styles.cardTitle}>Total Requests</Text>
+                                <Text style={styles.cardCount}>{totalRequestsCount}</Text>
+                                <Text style={styles.cardText}>All time</Text>
+                            </View>
+                        </View>
+                        
+                        {/* Map Section */}
+                        <View style={styles.mapCard}>
+                            <Text style={styles.mapTitle}>My Location</Text>
                             {hasActiveRequest && requestData ? (
                                 <View style={styles.mapContainer}>
                                     <WebView
@@ -355,7 +401,7 @@ const DashboardScreen = ({ navigation }) => {
                                 <View style={styles.noRequestContainer}>
                                     <Text style={styles.noRequestText}>No active request found</Text>
                                     <Text style={styles.noRequestSubtext}>
-                                        Please create a service request first
+                                        Click "Request Assistance" to create a new service request
                                     </Text>
                                     <TouchableOpacity 
                                         style={styles.requestButton}
@@ -417,25 +463,15 @@ const styles = StyleSheet.create({
     sidebar: {
         width: width >= 768 ? 280 : '100%',
     },
-    dashboardCard: {
+    profileCard: {
         backgroundColor: '#fff',
-        borderRadius: 10,
+        borderRadius: 15,
         padding: 20,
-        elevation: 2,
+        elevation: 3,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 2,
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 15,
-        color: '#333',
-    },
-    profileInfo: {
-        alignItems: 'center',
-        marginBottom: 15,
+        shadowRadius: 4,
     },
     profileIcon: {
         width: 80,
@@ -444,7 +480,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#0066cc',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 10,
+        alignSelf: 'center',
+        marginBottom: 15,
     },
     profileInitials: {
         fontSize: 32,
@@ -454,34 +491,31 @@ const styles = StyleSheet.create({
     profileName: {
         fontSize: 18,
         fontWeight: 'bold',
+        textAlign: 'center',
         marginBottom: 5,
     },
     userType: {
         fontSize: 14,
         color: '#666',
+        textAlign: 'center',
+        marginBottom: 15,
     },
     divider: {
         height: 1,
         backgroundColor: '#e0e0e0',
         marginVertical: 15,
     },
-    sidebarNavItem: {
+    navItem: {
         paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
     },
-    activeNavText: {
-        fontSize: 14,
-        color: '#0066cc',
-        fontWeight: 'bold',
-    },
-    navText: {
+    navItemText: {
         fontSize: 14,
         color: '#333',
     },
     logoutItem: {
         borderBottomWidth: 0,
-        marginTop: 10,
     },
     logoutText: {
         fontSize: 14,
@@ -491,8 +525,72 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: width >= 768 ? 500 : '100%',
     },
+    quickActions: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 15,
+        marginBottom: 20,
+    },
+    card: {
+        flex: 1,
+        minWidth: width >= 768 ? 180 : '100%',
+        backgroundColor: '#fff',
+        borderRadius: 15,
+        padding: 20,
+        alignItems: 'center',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    cardTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#0066cc',
+        marginBottom: 10,
+    },
+    cardText: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: 10,
+    },
+    cardCount: {
+        fontSize: 36,
+        fontWeight: 'bold',
+        color: '#333',
+        marginVertical: 5,
+    },
+    emergencyButton: {
+        backgroundColor: '#dc3545',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+        marginTop: 5,
+    },
+    emergencyButtonText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    mapCard: {
+        backgroundColor: '#fff',
+        borderRadius: 15,
+        padding: 15,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    mapTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 10,
+    },
     mapContainer: {
-        height: 600,
+        height: 400,
         borderRadius: 10,
         overflow: 'hidden',
     },

@@ -7,13 +7,13 @@ let requests = []; // Will be populated from database
 let filteredRequests = [];
 let requestToDelete = null; // track which ID is pending deletion
 
-// Call this from your table button
+
 function confirmDelete(request_id) {
     requestToDelete = request_id;
     document.getElementById('deleteModal').style.display = 'flex'; // show your confirm modal
 }
 
-// This fires when the user clicks the confirm button 1
+
 async function deleteRequest() {
     if (!requestToDelete) return;
 
@@ -76,7 +76,7 @@ async function fetchRequests() {
     }
 }
 
-// Filter requests locally (you can also implement server-side filtering)
+
 function filterRequests() {
     const term = document.getElementById('searchInput').value.toLowerCase();
 
@@ -106,7 +106,7 @@ function displayRequests() {
     const loading = document.getElementById('loading');
     const tableContainer = document.getElementById('tableContainer');
     const noData = document.getElementById('noData');
-console.log("AT DISPLAY:", filteredRequests);
+    console.log("AT DISPLAY:", filteredRequests);
     if (filteredRequests.length === 0) {
         loading.style.display = 'none';
         tableContainer.style.display = 'none';
@@ -126,7 +126,7 @@ console.log("AT DISPLAY:", filteredRequests);
         <td>#${request.request_id}</td>
         <td>${request.customer_name || 'N/A'}</td>
         <td>${request.customer_phone || 'N/A'}</td>
-        <td>${formatServiceType(request.service_type)}</td>
+        
         <td>${request.location || 'N/A'}</td>
         <td>
             <span class="status-badge status-${request.status}">
@@ -151,6 +151,8 @@ console.log("AT DISPLAY:", filteredRequests);
         console.log("paginated:", paginatedRequests);
         console.log("RAW REQUESTS:", requests);
 }
+
+
 
 // Format service type
 function formatServiceType(type) {
@@ -232,7 +234,7 @@ function updateStatistics() {
     ).length;
     document.getElementById('pendingRequests').textContent = requests.filter(r => r.status === 'pending').length;
     
-    // For server data, call fetchStatistics() instead
+
 }
 
 // View request details
@@ -321,7 +323,7 @@ document.getElementById('status').value         = request.status;   // sr.status
     }
 }
 
-// Save request (Create or Update)
+
 async function saveRequest() {
     const id = document.getElementById('requestId').value;
     const requestData = {
@@ -350,8 +352,7 @@ async function saveRequest() {
 
         showAlert(id ? 'Request updated successfully!' : 'Request added successfully!', 'success');
 
-       await fetchRequests();    // reloads just the requests table    // ✅ replace fetchRequests() with your actual function name
-        // await fetchStatistics();  // ✅ fix or remove this too
+       await fetchRequests();
 
         closeModal();
     } catch (error) {
@@ -465,7 +466,7 @@ async function deleteUser(id){
 }
 //open and close modal
 function openUserModal(){
-    document.getElementById('userModal').style.display='block';
+    document.getElementById('userModal').style.display='flex';
 }
 
 function closeUserModal(){
@@ -493,7 +494,7 @@ async function loadUsers() {
         if (!res.ok) throw new Error('Failed to fetch users');
         const users = await res.json();
 
-        allUsers = users; // store globally for filtering
+        allUsers = users; 
         displayUsers(users);
     } catch (error) {
         console.error("Error loading users:", error);
@@ -520,7 +521,7 @@ function displayUsers(users) {
     });
 }
 
-// New function to filter users
+//filter users
 function filterUsers() {
     const term = document.getElementById('userSearch').value.toLowerCase();
 
@@ -595,11 +596,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// loadUsers();
+// loadUsers() function;
 document.addEventListener("DOMContentLoaded", () => {
     loadUsers();
 });
-//for profile
+
 const savedImage = localStorage.getItem("profileImage");
 
 if(savedImage){

@@ -1,5 +1,5 @@
 // requestform.js 
-// Handle emergency request
+
 async function handleEmergencyRequest(e) {
     e.preventDefault();
 
@@ -7,7 +7,7 @@ async function handleEmergencyRequest(e) {
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
-    // Check if user is logged in
+    
     if (!token || !user) {
         showAlert('Please login first!', 'warning');
         setTimeout(() => {
@@ -16,7 +16,7 @@ async function handleEmergencyRequest(e) {
         return;
     }
 
-    // Get form values
+    
     const serviceType = document.getElementById('serviceType')?.value;
     const vehicleType = document.getElementById('vehicleType')?.value;
     const licensePlate = document.getElementById('licensePlate')?.value;
@@ -82,20 +82,20 @@ async function handleEmergencyRequest(e) {
         });
     }
 
-    // Final validation
+    
     if (!latitude || !longitude) {
         showAlert('Please provide your location (use current location or enter a valid address)!', 'danger');
         return;
     }
 
-    // Disable submit button
+   
     const submitBtn = document.querySelector('.submit-btn') || e.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = 'Submitting...';
     submitBtn.disabled = true;
 
     try {
-        // Prepare request data
+        
         const requestData = {
             service_type: serviceType,
             vehicle_type: vehicleType,
@@ -128,7 +128,7 @@ async function handleEmergencyRequest(e) {
     }
 
         if (response.ok) {
-            // Show success message
+            // Show success message fdf df
             const confirmationDiv = document.getElementById('confirmation');
             const requestIdSpan = document.getElementById('requestId');
             

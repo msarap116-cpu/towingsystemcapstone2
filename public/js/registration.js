@@ -1,6 +1,6 @@
 // registration.js
 document.addEventListener("DOMContentLoaded", () => {
-    // --- Password toggle functionality ---
+
     const toggleButtons = document.querySelectorAll('.toggle-password');
     
     toggleButtons.forEach(btn => {
@@ -22,14 +22,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // --- Registration form handler ---
+
     const registerForm = document.getElementById('registerForm');
     if (registerForm) {
         registerForm.addEventListener('submit', handleRegister);
     }
 });
 
-// Handle registration (same as your existing function)
+
 async function handleRegister(e) {
     e.preventDefault();
     
@@ -40,7 +40,7 @@ async function handleRegister(e) {
     const confirmPassword = document.getElementById('confirmPassword').value;
     const userType = document.getElementById('userType').value;
     
-    // Validate passwords match
+    // Validate passwords 
     if (password !== confirmPassword) {
         showAlert('Passwords do not match!', 'danger');
         return;

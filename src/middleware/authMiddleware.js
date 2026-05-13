@@ -18,7 +18,7 @@ const authenticateToken = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         
-        // Now decoded has { id: userId } from the token
+        //  { id: userId } from the token
         req.user = decoded;  // req.user.id will be available
         
         next();

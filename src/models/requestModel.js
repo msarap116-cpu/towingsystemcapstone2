@@ -2,8 +2,6 @@ const db = require('../database/database');
 
 const Request = {
 
-  // vehicle_id is now required (pre-registered vehicle)
-  // service_type_id replaces the raw string
   async create({ user_id, service_type_id, vehicle_id, location_lat, location_lng, address }) {
     if (!user_id) throw new Error('user_id is required');
 
@@ -109,14 +107,14 @@ const Request = {
   return Array.isArray(result) ? result[0] : result;
 },
 
-  // Now INSERTs into driver_locations instead of updating the request row
+  
   async updateDriverLocation(request_id, driver_id, lat, lng) {
-    // Update which driver is assigned to the request
+    
     await db.query(
       `UPDATE service_requests SET driver_id = ?, updated_at = NOW() WHERE request_id = ?`,
       [driver_id, request_id]
     );
-    // Log the location separately
+
     await db.query(
       `INSERT INTO driver_locations (driver_id, lat, lng, recorded_at) VALUES (?, ?, ?, NOW())`,
       [driver_id, lat, lng]

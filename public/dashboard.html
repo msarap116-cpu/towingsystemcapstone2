@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Dashboard - Towing Assistance</title>
     <script>
-        // Redirect if not logged in
+        // Redirect if not logged in para ang galing
         if (!localStorage.getItem('token')) {
             window.location.replace('login');
         }
@@ -17,17 +17,17 @@
 </head>
 
 <body>
-    <!-- Navigation - Fixed at top (unchanged) -->
+    
     <nav class="navbar">
         <div class="container" style="padding: 0; width: 100%;">
             <a class="navbar-brand" href="index">Tow the Rescue</a>
         </div>
     </nav>
 
-    <!-- Wrapper for sidebar and main content (unchanged) -->
+    
     <div class="dashboard-main-wrapper">
         <div class="container">
-            <!-- Sidebar - Stays fixed position (unchanged) -->
+          
             <div class="sidebar">
                 <div class="dashboard-card">
                     <h3>My Account</h3>
@@ -42,16 +42,16 @@
                    <ul class="sidebar-nav">
                         <li><a class="active" href="dashboard">Dashboard</a></li>
                          <li><a href="requestform">Request</a></li>
-                          <li><a href="vehicles">My Vehicles</a></li>
+                          <!-- <li><a href="vehicles">My Vehicles</a></li> -->
                             <li><a href="#" id="editAddressSidebarBtn">Edit Address</a></li>
                              <li><a class="text-danger" id="logoutBtnSidebar" href="#">Logout</a></li>
 </ul>
                 </div>
             </div>
 
-            <!-- Main Content - ONLY THIS SECTION SCROLLS (unchanged) -->
+            
             <div class="main-content">
-                <!-- Recent Requests / Map -->
+               
                 <div class="dashboard-card">
                     <h3>My Location</h3>
                     <div id="map" style="height: 600px; border-radius: 10px;"></div>

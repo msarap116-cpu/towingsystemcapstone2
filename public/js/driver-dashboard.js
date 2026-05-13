@@ -38,7 +38,7 @@ const customerIcon = L.divIcon({
     iconAnchor: [18, 36],
     popupAnchor: [0, -36]
 });
-// Configuration for South Cotabato boundaries sang san jose kag palvillla
+
 const MAP_CONFIG = {
     bounds: {
         southWest: { lat: 6.1, lng: 124.5 },  
@@ -49,7 +49,7 @@ const MAP_CONFIG = {
     boundsViscosity: 1.0
 };
 
-// Function to initialize map with boundaries
+
 function initMapWithBounds(mapDiv, initialCenter, initialZoom = 14) {
     const map = L.map(mapDiv, {
         maxBounds: L.latLngBounds(
@@ -68,7 +68,7 @@ function initMapWithBounds(mapDiv, initialCenter, initialZoom = 14) {
         maxZoom: 19
     }).addTo(map);
 
-    // Optional: Add boundary overlay
+
     const boundsLayer = L.rectangle(
         L.latLngBounds(
             [MAP_CONFIG.bounds.southWest.lat, MAP_CONFIG.bounds.southWest.lng],
@@ -96,15 +96,15 @@ document.addEventListener('DOMContentLoaded', function () {
     displayUserInfo();
     setupEventListeners();
     loadDashboardData().then(() => {
-        initDriverMap(); // only one map init, only for driver
+        initDriverMap(); 
     }).catch(err => {
         console.error('Failed to load dashboard:', err);
     });
 });
-// Init driver map (Point A = driver, Point B = customer) 
+
 async function initDriverMap() {
     const mapDiv = document.getElementById('map');
-    if (!mapDiv) return; // no map div on this page, skip
+    if (!mapDiv) return; 
 
     const requestData = await fetchActiveRequest();
     if (!requestData) {
@@ -116,53 +116,52 @@ async function initDriverMap() {
     const customerLat = parseFloat(requestData.location_lat);
     const customerLng = parseFloat(requestData.location_lng);
 
-    // Initialize Leaflet map with a default center (will update when we get driver location)
+    
     map = L.map('map').setView([customerLat, customerLng], 15);
         // map = initMapWithBounds('map', [customerLat, customerLng], 14);// muhon
 
-    // FREE tile layer
+   
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19
     }).addTo(map);
 
-    // Point B — customer location
+  
     customerMarker = L.marker([customerLat, customerLng], { icon: customerIcon })
         .addTo(map)
         .bindPopup(`<strong>📍 Customer Location</strong><br>${requestData.address || 'Customer location'}`)
         .openPopup();
 
-    // Show job info
+
     showJobActions(requestData);
 
-    // Point A — driver GPS
+    
     if (!navigator.geolocation) {
         alert('Geolocation is not supported by your browser.');
         return;
     }
 
-    // Get current driver position first, then set map view to driver location
-    // and then start watching for updates
+   
     navigator.geolocation.getCurrentPosition(
         async (position) => {
             const driverLat = position.coords.latitude;
             const driverLng = position.coords.longitude;
             
-            // Create driver marker
+            
             driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
                 .addTo(map)
                 .bindPopup('<strong>🚗 You (Driver)</strong>');
             
-            // Set map view to driver location (centered on driver)
+           
             map.setView([driverLat, driverLng], 19);
             
-            // Draw initial route
+           
             await drawRoute(driverLat, driverLng, customerLat, customerLng);
             
-            // Send initial location to backend
+           
             sendDriverLocation(driverLat, driverLng);
             
-            // Now start watching for position changes
+            
             watchId = navigator.geolocation.watchPosition(
                 (newPosition) => onDriverLocationUpdate(newPosition, customerLat, customerLng),
                 (err) => console.error('Geolocation error:', err),
@@ -223,10 +222,10 @@ async function onDriverLocationUpdate(position, customerLat, customerLng) {
     sendDriverLocation(driverLat, driverLng);
 }
 
-// Draw route using OSRM 
+
 async function drawRoute(fromLat, fromLng, toLat, toLng) {
     try {
-        // Using free OSRM public server - NO API KEY NEEDED!
+       
         const url = `https://router.project-osrm.org/route/v1/driving/` +
             `${fromLng},${fromLat};${toLng},${toLat}` +
             `?overview=full&geometries=geojson&steps=true`;
@@ -265,14 +264,14 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
         
     } catch (err) {
         console.error('Route drawing failed:', err);
-        // Fallback to straight line
+       
         if (routeLayer) map.removeLayer(routeLayer);
         routeLayer = L.polyline(
             [[fromLat, fromLng], [toLat, toLng]],
             { color: '#888', weight: 3, dashArray: '8 6', opacity: 0.6 }
         ).addTo(map);
         
-        // Update with simple distance calculation (straight line)
+    
         const straightDistance = calculateDistance(fromLat, fromLng, toLat, toLng);
         if (driverMarker) {
             driverMarker.setPopupContent(

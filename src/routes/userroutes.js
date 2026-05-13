@@ -9,7 +9,7 @@ router.post('/register', userController.register);
 router.post('/login', userController.login);
 
 router.post('/', authMiddleware, userController.createUser); 
-// Protected routes (require authentication)
+
 router.get('/profile', authMiddleware, userController.getProfile);
 // router.put('/profile', authMiddleware, userController.updateProfile);
 // router.get('/drivers', authMiddleware, userController.getAllDrivers);

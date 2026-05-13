@@ -1,6 +1,6 @@
 // adminController.js
-const db = require('../database/database'); // ✅ fix the typo (was '../dabase/database')
-const Request = require('../models/requestModel'); // ✅ add this — needed for getStatistics
+const db = require('../database/database'); 
+const Request = require('../models/requestModel'); 
 
 exports.getAllRequests = async (req, res) => {
   try {

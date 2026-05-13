@@ -1,5 +1,4 @@
-// Add app.js content from above (simplified version)
-// Global variables
+
 
 let loggedinUser = null;
 
