@@ -3,7 +3,7 @@
 let loggedinUser = null;
 
 // const API_BASE_URL = "http://localhost:3000/api";
-const API_BASE_URL = "https://goodwrench-towing-rescue.onrender.com";
+const API_BASE_URL = "https://goodwrench-towing-rescue.onrender.com/api";
 
 async function apiFetch(endpoint, options = {}) {
     try {
