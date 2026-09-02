@@ -1,169 +1,156 @@
-<!-- request form -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Assistance - GoodWrench</title>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/requestform.css">
 
-<title>Emergency Assistance - Towing Help</title>
+    <style>
 
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/requestform.css">
+    </style>
 
 </head>
 
 <body>
 
+    <!-- ===== NAVBAR ===== -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a class="navbar-brand" href="index">
+                <span class="brand-icon">🎉</span>
+                <span class="brand-text">GoodWrench</span>
+            </a>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="dashboardLink" data-guest="home" data-user="dashboard.html">
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="myvehicles"> My Vehicles</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
 
-<nav class="navbar">
-    <div class="nav-container">
+    <!-- ===== MAIN CONTENT WITH ADS ===== -->
+    <div class="emergency-wrapper">
 
-        <a class="navbar-brand" href="index">Tow Assist</a>
 
-        <ul class="nav-menu">
-            <li class="nav-item"><a class="nav-link" href="dashboard">dashboard</a></li>
-        </ul>
-       
-        </a>
+        <!-- ===== FORM SECTION ===== -->
+        <section class="emergency-section">
+            <h2 class="page-title"> Request Roadside Assistance</h2>
+
+            <div class="form-container">
+                <form id="emergencyForm">
+                    <!-- Service Type -->
+                    <div class="form-group">
+                        <label>Service Needed:</label>
+                        <select id="serviceType" required>
+                            <option value="">Select Service</option>
+                            <option value="1">Towing Service</option>
+                            <option value="2">Flat Tire Change</option>
+                            <option value="3">Jump Start</option>
+                            <option value="4">Fuel Delivery</option>
+                            <option value="5">Lockout Service</option>
+                        </select>
+                    </div>
+
+                    <!-- Vehicle (from saved vehicles) -->
+                    <div class="form-group">
+                        <label>Vehicle:</label>
+                        <select id="vehicleId" required>
+                            <option value="">Loading your vehicles...</option>
+                        </select>
+                        <div id="noVehiclesNotice" style="display:none; margin-top:8px;">
+                            You don't have any saved vehicles yet.
+                            <a href="myvehicles">Add one here</a> before requesting assistance.
+                        </div>
+                        <div id="guestNotice" style="display:none; margin-top:8px;">
+                            You need an account to submit a request.
+                            <a href="#" id="guestLoginLink">Log in</a> or
+                            <a href="#" id="guestRegisterLink">Register</a>
+                        </div>
+                    </div>
+
+                    <!-- Location -->
+                    <div class="form-group">
+                        <label>Your Location:</label>
+                        <div class="location-actions">
+                            <button type="button" class="btn-location" onclick="getCurrentLocation()"
+                                id="getLocationBtn">
+                                Use Current Location
+                            </button>
+                            <div id="locationStatus" class="location-status"></div>
+                        </div>
+                        <input type="hidden" id="latitude">
+                        <input type="hidden" id="longitude">
+
+                        <div class="manual-address">
+                            <label>Or Enter Address:</label>
+
+                            <div class="address-search-wrapper">
+                                <textarea id="address" rows="2" placeholder="Search street, barangay, city, province..."
+                                    autocomplete="off"></textarea>
+
+                                <div id="addressSuggestions" class="address-suggestions"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <a href="dashboard">fdjfh</a>
+                    <!-- Submit -->
+                    <button type="submit" class="btn-submit" id="submitBtn"> Request Assistance</button>
+                </form>
+
+                <!-- Confirmation -->
+                <div id="confirmation" class="confirmation-box">
+                    <div class="confirmation-icon"></div>
+                    <h4>Request Submitted!</h4>
+                    <p>Your request ID: <strong id="requestId"></strong></p>
+                    <p>Estimated arrival time: <strong>25-40 minutes</strong></p>
+                    <p>You can track your request in the dashboard.</p>
+                </div>
+            </div>
+        </section>
+
 
     </div>
-</nav>
 
+    <!-- ===== SCRIPTS ===== -->
+    <script src="js/app.js"></script>
+    <script src="js/requestform.js"></script>
 
-<!-- MAIN CONTENT -->
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+  const link = document.getElementById('dashboardLink');
+  if (!link) return;
 
-<section class="emergency-section">
+  // Check login status — matches your auth system
+  function isLoggedIn() {
+    // If you store login data in localStorage/sessionStorage — this works perfectly
+    return !!(localStorage.getItem('userToken') || sessionStorage.getItem('userData'));
+  }
 
-<h2 class="page-title">
-Request Roadside Assistance
-</h2>
+  const loggedIn = isLoggedIn();
 
+  // Set correct href automatically
+  link.href = loggedIn ? link.dataset.user : link.dataset.guest;
 
-<div class="form-container">
-
-<form id="emergencyForm">
-
-<!-- SERVICE TYPE -->
-
-<div class="form-group">
-
-<label>Service Needed:</label>
-
-<select id="serviceType" required>
-
-<option value="">Select Service</option>
-<option value="towing">Towing Service</option>
-<option value="flat_tire">Flat Tire Change</option>
-<option value="jump_start">Jump Start</option>
-<option value="fuel">Fuel Delivery</option>
-<option value="lockout">Lockout Service</option>
-
-</select>
-
-</div>
-
-
-<!-- VEHICLE TYPE -->
-
-<div class="form-group">
-
-<label>Vehicle Type:</label>
-
-<input 
-type="text" 
-id="vehicleType"
-placeholder="e.g., Sedan, SUV, Truck"
-required
->
-
-</div>
-
-
-<!-- LICENSE -->
-
-<div class="form-group">
-
-<label>License Plate:</label>
-
-<input 
-type="text" 
-id="licensePlate"
-required
->
-
-</div>
-
-
-<!-- LOCATION -->
-
-<div class="form-group">
-
-<label>Your Location:</label>
-
-<button 
-type="button"
-class="btn-secondary"
-onclick="getCurrentLocation()"
-id="getLocationBtn">
-
-Use Current Location
-
-</button>
-
-<div id="locationStatus" class="location-status"></div>
-
-<input type="hidden" id="latitude">
-<input type="hidden" id="longitude">
-
-
-<div class="manual-address">
-    <label>Or Enter Address:</label>
-    <textarea id="address" rows="2" placeholder="Enter your full address (e.g., 123 Main St, City, Province)"></textarea>
-    <!-- <small style="color: #ac1b1b; display: block; margin-top: 5px;">
-        💡 Tip: Click "Search Address" after typing to get coordinates, or use "Use Current Location"
-    </small> -->
-</div>
-
-</div>
-
-
-<!-- SUBMIT -->
-
-<button 
-type="submit"
-class="btn-danger submit-btn">
-
-Request Assistance
-
-</button>
-
-</form>
-
-
-<!-- CONFIRMATION -->
-
-<div id="confirmation" class="confirmation-box">
-
-<h4>Request Submitted!</h4>
-
-<p>Your request ID: <strong id="requestId"></strong></p>
-
-<p>Estimated arrival time: <strong>25-40 minutes</strong></p>
-
-<p>You can track your request in the dashboard.</p>
-
-</div>
-
-
-</div>
-
-</section>
-
-
-<!-- JAVASCRIPT -->
-<script src="js/app.js"></script>
-<script src="js/requestform.js"></script>
-
+  // Extra safety: prevent wrong destination on click
+  link.addEventListener('click', function (e) {
+    if (!loggedIn) {
+      e.preventDefault();
+      window.location.href = 'home';
+    }
+  });
+});
+</script>
 </body>
+
 </html>

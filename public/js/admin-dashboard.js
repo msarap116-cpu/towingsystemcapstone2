@@ -1,608 +1,1512 @@
-// admin-dashboard.js
-// const API_BASE_URL = 'http://localhost:3000/'; // Replace with your actual API URL
-let currentPage = 1;
-const itemsPerPage = 5;
-let currentDeleteId = null;
-let requests = []; // Will be populated from database
-let filteredRequests = [];
-let requestToDelete = null; // track which ID is pending deletion
+// ===== WRAP EVERYTHING IN DOMContentLoaded =====
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ========== DATA STORE (Will be populated from API) ==========
+    let requests = [];
+    let drivers = [];
+    let customers = [];
+    let payments = [];
+    let map, markersList = [];
+
+    let customerMarkers = [];
+    let driverMarkers = [];
 
 
-function confirmDelete(request_id) {
-    requestToDelete = request_id;
-    document.getElementById('deleteModal').style.display = 'flex'; // show your confirm modal
-}
+    // ========== LOAD DATA FUNCTIONS ==========
+    // async function loadMapData() {
 
+    //     try {
 
-async function deleteRequest() {
-    if (!requestToDelete) return;
+    //         const token = sessionStorage.getItem('token');
 
+    //         const response = await fetch(
+    //             `${API_BASE_URL}/admin/map-data`,
+    //             {
+    //                 headers: {
+    //                     Authorization: `Bearer ${token}`
+    //                 },
+    //
+    //             }
+    //         );
+
+    //         if (!response.ok) {
+    //             throw new Error(`HTTP ${response.status}`);
+    //         }
+
+    //         const data = await response.json();
+
+    //         console.log('Map data:', data);
+
+    //         // displayMapData(data);
+
+    //     } catch (error) {
+
+    //         console.error('Failed to load map data:', error);
+
+    //     }
+    // }
+window.loadRequests = async function() {
     try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/requests/${requestToDelete}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
+        const data = await apiFetch("/admin/requests");
 
-        if (!response.ok) throw new Error('Failed to delete request');
+        requests = Array.isArray(data)
+            ? data
+            : data.requests || [];
 
-        document.getElementById('deleteModal').style.display = 'none';
-        requestToDelete = null;
-        showAlert('Request deleted successfully', 'success');
-        loadRequests(); // refresh your table
-    } catch (error) {
-        console.error('Delete error:', error);
-        showAlert('Failed to delete request', 'error');
-    }
-}
+        console.log("Admin fetched fresh requests:", requests);
 
-document.getElementById('confirmDeleteBtn').addEventListener('click', deleteRequest);
-// Fetch requests from database
-async function fetchRequests() {
-    showLoading(true);
-    
-    try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/requests`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch requests');
+        renderRequests(requests);
+
+        if (map) {
+            updateMapMarkers();
         }
-        
+
+    } catch (err) {
+        console.error("Failed to load requests:", err);
+    }
+};
+
+
+    async function loadDrivers() {
+        try {
+            drivers = await apiFetch("/admin/drivers");
+
+            console.log("Drivers loaded:", drivers);
+
+            renderDrivers();
+
+            // Update map after drivers are loaded
+            if (map) {
+                updateMapMarkers();
+            }
+
+        } catch (err) {
+            console.error("Failed to load drivers:", err);
+            showAlert("Could not load drivers", "danger");
+        }
+    }
+    async function loadCustomers() {
+        try {
+            customers = await apiFetch('/admin/customers');
+            renderCustomers();
+        } catch (error) {
+            console.error('Failed to load customers:', error);
+        }
+    }
+
+    window.loadPayments = async function () {
+        try {
+            payments = await apiFetch('/admin/payments');
+
+            console.log('Payments loaded:', payments);
+            renderPayments();
+        } catch (err) {
+            console.error('Failed to load payments:', err);
+            showAlert('Could not load payments', 'danger');
+        }
+    };
+
+    async function loadPendingPayments() {
+
+        const token = sessionStorage.getItem('token');
+
+        const response = await fetch(
+            `${API_BASE_URL}/payments/pending`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+
         const data = await response.json();
-        requests = data.requests; // Assuming your API returns { requests: [...] }
-        filteredRequests = [...requests];
-        // document.getElementById('tableContainer').style.display = 'block';
-        
-        console.log("fetch data(admin-dashboard):", data);
-        console.log("requests array:", data.requests);
-        console.log("is array?", Array.isArray(data.requests));
-        
-        displayRequests();
-        updateStatistics();
-    } catch (error) {
-        console.error('Error fetching requests:', error);
-        showAlert('Failed to load requests', 'error');
-    } finally {
-        showLoading(false);
+
+        if (!data.success) {
+            console.error(data.message);
+            return;
+        }
+
+        console.log('Pending payments:', data.payments);
+
+        // render your table here
+    }
+
+    let requestsPollingInterval = null;
+
+    function startRequestsPolling() {
+        if (requestsPollingInterval) {
+            clearInterval(requestsPollingInterval);
+        }
+
+        requestsPollingInterval = setInterval(async () => {
+            await loadRequests();
+        }, 5000); // every 5 seconds
+    }
+
+
+    function initMap() {
+        if (typeof L === 'undefined') {
+            console.error('Leaflet not loaded!');
+            return;
+        }
+
+        const mapElement = document.getElementById('map');
+
+        if (!mapElement) {
+            console.error('Map element not found!');
+            return;
+        }
+
+        map = L.map('map').setView([6.5000, 124.8469], 13);
+
+        L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            {
+                attribution: '© TowTrack'
+            }
+        ).addTo(map);
+
+        // Render whatever data is already available
+        updateMapMarkers();
+
+        // Load fresh data
+        loadRequests();
+        loadDrivers();
+    }
+
+
+function updateMapMarkers() {
+    if (!map) return;
+    markersList.forEach(m => map.removeLayer(m));
+    markersList = [];
+    const bounds = [];
+
+    // SEPARATE mappings for REQUESTS vs DRIVERS to avoid confusion
+    const getRequestIconUrl = (status) => {
+        switch (status) {
+            case 'pending':      return 'image/waypoint-red.png';    // Pending Customer
+            case 'assigned':     return 'image/waypoint-blue.png';   // Customer In Progress
+            case 'in progress':  return 'image/waypoint-blue.png';   // Customer In Progress
+            default:             return 'image/waypoint-red.png';
+        }
+    };
+
+    const getDriverIconUrl = (map_status) => {
+        switch (map_status) {
+            case 'online':       return 'image/waypoint-green.png';  // Driver Available
+            case 'busy':         return 'image/waypoint-yellow.png'; // Busy Driver
+            default:             return 'image/waypoint-green.png';
+        }
+    };
+
+    const ICON_SIZE = [24, 24];
+
+
+    // REQUESTS (Customers)
+
+    requests
+        .filter(req => ['pending', 'assigned', 'in progress'].includes(req.status))
+        .forEach(req => {
+            const lat = Number(req.location_lat);
+            const lng = Number(req.location_lng);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+            const iconUrl = getRequestIconUrl(req.status);
+
+            const markerIcon = L.icon({
+                iconUrl: iconUrl,
+                iconSize: ICON_SIZE,
+                iconAnchor: [12, 24],
+                popupAnchor: [0, -24]
+            });
+
+            const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+            marker.bindPopup(`
+                <b>${req.status === 'pending' ? 'Pending Request' : 'Service Request'}</b>
+                <br>Request ID: ${req.request_id}
+                <br>Customer: ${req.customer_name || 'Unknown'}
+                <br>Status: ${req.status}
+            `);
+            markersList.push(marker);
+            bounds.push([lat, lng]);
+        });
+
+
+    // DRIVERS
+
+    drivers
+        .filter(d => ['online', 'busy'].includes(d.map_status))
+        .forEach(d => {
+            const lat = Number(d.lat ?? d.latitude ?? d.driver_lat);
+            const lng = Number(d.lng ?? d.longitude ?? d.driver_lng);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+            const iconUrl = getDriverIconUrl(d.map_status); // SEPARATE function!
+
+            const markerIcon = L.icon({
+                iconUrl: iconUrl,
+                iconSize: ICON_SIZE,
+                iconAnchor: [12, 24],
+                popupAnchor: [0, -24]
+            });
+
+            const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+            marker.bindPopup(`
+                <b>🚛 ${d.name || 'Driver'}</b>
+                <br>Vehicle: ${d.vehicle || 'N/A'}
+                <br>Status: ${d.status}
+                <br>Rating: ${d.rating || 'N/A'} ⭐
+            `);
+            markersList.push(marker);
+            bounds.push([lat, lng]);
+        });
+
+
+    // Map View
+
+    const KORONADAL = [6.4215, 124.7859];
+    if (bounds.length > 0) {
+        bounds.push(KORONADAL);
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
+    } else {
+        map.setView(KORONADAL, 12);
     }
 }
 
-
-function filterRequests() {
-    const term = document.getElementById('searchInput').value.toLowerCase();
-
-    filteredRequests = requests.filter(request =>
-        (request.request_id && request.request_id.toString().includes(term)) ||
-        (request.customer_name && request.customer_name.toLowerCase().includes(term)) ||
-        (request.customer_phone && request.customer_phone.toLowerCase().includes(term)) ||
-        (request.service_type && request.service_type.toLowerCase().includes(term)) ||
-        (request.vehicle_type && request.vehicle_type.toLowerCase().includes(term)) ||
-        (request.location && request.location.toLowerCase().includes(term))
-    );
-
-    console.log("Filtered:", filteredRequests);
-
-    currentPage = 1;
-    displayRequests();
-}
-
-// Display requests in table
-function displayRequests() {
-    
-    const start = (currentPage - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    const paginatedRequests = filteredRequests.slice(start, end);
-
-    const tableBody = document.getElementById('tableBody');
-    const loading = document.getElementById('loading');
-    const tableContainer = document.getElementById('tableContainer');
-    const noData = document.getElementById('noData');
-    console.log("AT DISPLAY:", filteredRequests);
-    if (filteredRequests.length === 0) {
-        loading.style.display = 'none';
-        tableContainer.style.display = 'none';
-        noData.style.display = 'block';
-        return;
+    function refreshMapMarkers() {
+        // In production, this would update with real location data
+        loadDrivers();
+        loadRequests();
+        showAlert("Map updated", "success");
     }
-    tableContainer.style.display = 'block';
-    noData.style.display = 'none';
-    loading.style.display = 'none';
 
-    loading.style.display = 'none';
-    tableContainer.style.display = 'block';
-    noData.style.display = 'none';
+    function renderDrivers() {
+        console.log('driver data:', drivers);
+        const container = document.getElementById("driversListContainer");
+        if (!container) return;
 
-    tableBody.innerHTML = paginatedRequests.map(request => `
-    <tr>
-        <td>#${request.request_id}</td>
-        <td>${request.customer_name || 'N/A'}</td>
-        <td>${request.customer_phone || 'N/A'}</td>
-        
-        <td>${request.location || 'N/A'}</td>
+        if (!Array.isArray(drivers) || drivers.length === 0) {
+            container.innerHTML = `<p style="text-align:center; padding:2rem; color:#666;">No drivers found</p>`;
+            return;
+        }
+
+        container.innerHTML = `
+    <div class="table-responsive">
+        <table class="drivers-table">
+            <thead>
+                <tr>
+                    <th>Driver</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Vehicle Plate</th>
+                    <th>Status</th>
+                    <th>Performance</th>
+                    <th>Trips</th>
+                    <th>Earnings (30d)</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${drivers.map(d => `
+                    <tr>
+                        <td>
+                            <strong>${d.name || 'Unnamed'}</strong>
+                        </td>
+
+                        <td>
+                            ${d.phone || 'No phone'}
+                        </td>
+
+                        <td>
+                            ${d.email || 'No email'}
+                        </td>
+
+                        <td>
+                            ${d.vehicle_plate || 'No plate'}
+                        </td>
+
+                        <td>
+                            <span class="status-${d.status || 'inactive'}">
+                                ${d.status || 'Inactive'}
+                            </span>
+                        </td>
+
+                        <td>
+                            ${d.rating
+                ? Number(d.rating).toFixed(1) + ' ⭐'
+                : 'No rating'}
+                        </td>
+
+                        <td>
+                            ${d.total_completed || 0}
+                        </td>
+
+                        <td>
+                            ₱${Number(d.earnings_30d || 0).toFixed(2)}
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>
+`;
+    }
+
+    function renderCustomers() {
+        console.log('Customers data:', customers);
+        const tbody = document.getElementById('customersTable');
+        if (!tbody) return;
+
+        if (!Array.isArray(customers) || customers.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem;">No customers found</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = customers.map(c => `<tr>
+        <td>${c.id}</td>
+        <td>${c.name || '—'}</td>
+        <td>${c.phone || '—'}</td>
+        <td>${c.trips || 0}</td>
+        <td>₱${Number(c.total_spent || 0).toFixed(2)}</td>
         <td>
-            <span class="status-badge status-${request.status}">
-                ${request.status.toUpperCase()}
-            </span>
-        </td>
-        <td>${formatDate(request.created_at)}</td>
-        <td>
-            <div class="action-buttons">
-                <button class="btn btn-view" onclick="viewRequest(${request.request_id})">View</button>
-                <button class="btn btn-edit" onclick="editRequest(${request.request_id})">Edit</button>
-                <button class="btn btn-delete" onclick="confirmDelete(${request.request_id})">Delete</button>
+            <!-- Overflow Menu: Edit + Delete -->
+            <div class="overflow-menu">
+                <button class="btn-icon overflow-trigger" title="Actions">⋮</button>
+                <div class="overflow-dropdown">
+                    <button class="dropdown-item" onclick="editCustomer(${c.id})" title="Edit Customer">✏️ Edit</button>
+                    <button class="dropdown-item" onclick="deleteCustomer(${c.id})" title="Delete Customer" style="color: #dc3545;">🗑️ Delete</button>
+                </div>
             </div>
         </td>
-    </tr>
-`).join('');
-       
-    displayPagination();
-     console.log("Paginated requests:", paginatedRequests);
-        console.log("filtered:", filteredRequests.length);
-        console.log("start:", start, "end:", end);
-        console.log("paginated:", paginatedRequests);
-        console.log("RAW REQUESTS:", requests);
-}
+    </tr>`).join('');
+    }
 
+    function editCustomer(customerId) {
+        const customer = customers.find(c => String(c.id) === String(customerId));
 
+        if (!customer) {
+            console.error('Customer not found:', customerId);
+            return;
+        }
 
-// Format service type
-function formatServiceType(type) {
-    const types = {
-        'towing': 'Towing',
-        'jumpstart': 'Jump Start',
-        'tire': 'Tire Change',
-        'fuel': 'Fuel Delivery',
-        'lockout': 'Lockout'
+        document.getElementById('editCustId').value = customer.id;
+        document.getElementById('custName').value = customer.name || '';
+        document.getElementById('custPhone').value = customer.phone || '';
+        document.getElementById('custEmail').value = customer.email || '';
+
+        document.getElementById('customerModal').style.display = 'flex';
+    }
+    window.deleteCustomer = async function (customerId) {
+        if (!confirm('Are you sure you want to delete this customer?')) {
+            return;
+        }
+
+        try {
+            await apiFetch(`/admin/customers/${customerId}`, {
+                method: 'DELETE'
+            });
+
+            await loadCustomers();
+            showAlert('Customer deleted', 'success');
+        } catch (error) {
+            console.error('Delete error:', error);
+            showAlert('Failed to delete customer', 'danger');
+        }
     };
-    return types[type] || type;
-}
 
-// Format date
-function formatDate(dateString) {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleString();
-}
-
-// Display pagination
-function displayPagination() {
-    const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
-    const pagination = document.getElementById('pagination');
-    
-    let buttons = '';
-    
-    // Previous button
-    buttons += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
-    
-    // Page numbers
-    for (let i = 1; i <= totalPages; i++) {
-        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
-            buttons += `<button onclick="changePage(${i})" class="${i === currentPage ? 'active' : ''}">${i}</button>`;
-        } else if (i === currentPage - 3 || i === currentPage + 3) {
-            buttons += `<button disabled>...</button>`;
-        }
+    function openCustomerModal() {
+        document.getElementById('editCustId').value = '';
+        document.getElementById('customerForm').reset();
+        document.getElementById('customerModal').style.display = 'flex';
     }
-    
-    // Next button
-    buttons += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
-    
-    pagination.innerHTML = buttons;
-}
 
-// Change page
-function changePage(page) {
-    currentPage = page;
-    displayRequests();
-}
+    async function saveCustomer() {
+        const id = document.getElementById('editCustId').value.trim();
 
-// Show/hide loading
-function showLoading(show) {
-    const loading = document.getElementById('loading');
-    const tableContainer = document.getElementById('tableContainer');
-    const noData = document.getElementById('noData');
-    
-    if (show) {
-        loading.style.display = 'block';
-        tableContainer.style.display = 'none';
-        noData.style.display = 'none';
-    } else {
-        loading.style.display = 'none';
+        const data = {
+            name: document.getElementById('custName').value.trim(),
+            phone: document.getElementById('custPhone').value.trim(),
+            email: document.getElementById('custEmail').value.trim()
+        };
 
-        // ✅ ADD THIS
-        if (filteredRequests && filteredRequests.length > 0) {
-            tableContainer.style.display = 'block';
-        }
-    }
-}
-
-// Update statistics (local update, but you can also refetch from server)
-function updateStatistics() {
-    // You can either update locally or refetch from server
-    document.getElementById('totalRequests').textContent = requests.length;
-    document.getElementById('activeRequests').textContent =
-    requests.filter(r =>
-        r.status === 'assigned' || r.status === 'in progress'
-    ).length;
-    document.getElementById('pendingRequests').textContent = requests.filter(r => r.status === 'pending').length;
-    
-
-}
-
-// View request details
-async function viewRequest(request_id) {
-    try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/requests/${request_id}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+        try {
+            if (id) {
+                await apiFetch(`/admin/customers/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+            } else {
+                await apiFetch('/admin/customers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
             }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch request details');
+
+            await loadCustomers();
+            closeModal('customerModal');
+            showAlert('Customer saved', 'success');
+        } catch (error) {
+            console.error('Failed to save customer:', error);
+            showAlert('Failed to save customer', 'danger');
         }
-        
-        const request = await response.json();
-        
-        const details = document.getElementById('viewDetails');
-        details.innerHTML = `
-            <p><strong>ID:</strong> #${request.request_id}</p>
-            <p><strong>Customer:</strong> ${request.customer_name}</p>
-            <p><strong>Phone:</strong> ${request.customer_phone}</p>
-            <p><strong>Service:</strong> ${formatServiceType(request.service_type)}</p>
-            <p><strong>Location:</strong> ${request.location}</p>
-            <p><strong>Status:</strong> <span class="status-badge status-${request.status}">${request.status.toUpperCase()}</span></p>
-    
-            <p><strong>Created:</strong> ${formatDate(request.created_at)}</p>
+    }
+
+
+
+
+
+
+    function renderPayments() {
+        console.log('payments data:', payments);
+
+        const tbody = document.getElementById('paymentsTable');
+
+        if (!tbody) return;
+
+        if (!payments || payments.length === 0) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align:center; padding:2rem;">
+                    No payment records found
+                </td>
+            </tr>
         `;
-        document.getElementById('viewModal').style.display = 'flex';
-    } catch (error) {
-        console.error('Error fetching request details:', error);
-        showAlert('Failed to load request details', 'error');
-    }
-}
-
-// Open add modal
-function openAddModal() {
-    document.getElementById('modalTitle').textContent = 'Add New Request';
-    document.getElementById('requestForm').reset();
-    document.getElementById('requestId').value = '';
-    document.getElementById('requestModal').style.display = 'flex';
-}
-
-// Close modal
-function closeModal() {
-    document.getElementById('requestModal').style.display = 'none';
-}
-
-// Close view modal
-function closeViewModal() {
-    document.getElementById('viewModal').style.display = 'none';
-}
-
-// Edit request
-async function editRequest(request_id) {
-    try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/requests/${request_id}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch request details');
+            return;
         }
-        
-        const request = await response.json();
-        
-        document.getElementById('modalTitle').textContent = 'Edit Request';
 
-document.getElementById('requestId').value      = request.request_id;
-document.getElementById('customerName').value   = request.customer_name;
-document.getElementById('customerPhone').value  = request.customer_phone;
-document.getElementById('serviceType').value    = request.service_type;
-document.getElementById('location').value       = request.location;
-document.getElementById('status').value         = request.status;   // sr.status
-
-        document.getElementById('requestModal').style.display = 'flex';
-    } catch (error) {
-        console.error('Error fetching request details:', error);
-        showAlert('Failed to load request details', 'error');
-    }
-}
-
-
-async function saveRequest() {
-    const id = document.getElementById('requestId').value;
-    const requestData = {
-        customer_name: document.getElementById('customerName').value,
-        customer_phone: document.getElementById('customerPhone').value,
-        service_type: document.getElementById('serviceType').value,
-        location: document.getElementById('location').value,
-        status: document.getElementById('status').value,
-    };
-
-    try {
-        const token = localStorage.getItem('token');
-        const url = id ? `${API_BASE_URL}/requests/${id}` : `${API_BASE_URL}/requests`; // ✅ fixed
-        const method = id ? 'PUT' : 'POST';
-
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        });
-
-        if (!response.ok) throw new Error('Failed to save request');
-
-        showAlert(id ? 'Request updated successfully!' : 'Request added successfully!', 'success');
-
-       await fetchRequests();
-
-        closeModal();
-    } catch (error) {
-        console.error('Error saving request:', error);
-        showAlert('Failed to save request', 'error');
-    }
-}
-
-// Confirm delete
-function confirmDelete(user_id) {
-    currentDeleteId = user_id;
-    document.getElementById('deleteModal').style.display = 'flex';
-}
-
-// Close delete modal
-function closeDeleteModal() {
-    document.getElementById('deleteModal').style.display = 'none';
-    currentDeleteId = null;
-}
-
-
-async function saveUser() {
-
-    const id = document.getElementById('userId').value;
-
-    const data = {
-        name: document.getElementById('userName').value,
-        email: document.getElementById('userEmail').value,
-        phone: document.getElementById('userPhone').value,
-        role: document.getElementById('userRole').value,
-        password:document.getElementById('password').value
-    };
-
-    const url = id ? `/api/users/${id}` : `/api/users`;
-    const method = id ? 'PUT' : 'POST';
-
-    // await fetch(url, {
-    //     method: method,
-    //     headers: {
-    //         'Content-Type':'application/json',
-    //         'Authorization':`Bearer ${localStorage.getItem('token')}`
-    //     },
-    //     body: JSON.stringify(data)
-    // });
-    const response = await fetch(url, {
-    method: method,
-    headers: {
-        'Content-Type':'application/json',
-        'Authorization':`Bearer ${localStorage.getItem('token')}`
-    },
-    body: JSON.stringify(data)
-});
-
-const result = await response.json();
-console.log("Server response:", result);
-
-if (!response.ok) {
-    throw new Error(result.error || "Update failed");
-}
-
-    closeUserModal();
-    loadUsers();
-}
-//edit user daw
-async function editUser(id) {
-    try {
-        const res = await fetch(`/api/users/${id}`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
-
-        const user = await res.json();
-
-        document.getElementById('userId').value = user.id;
-        document.getElementById('userName').value = user.name;
-        document.getElementById('userEmail').value = user.email;
-        document.getElementById('userPhone').value = user.phone;
-        document.getElementById('userRole').value = user.role;
-
-        openUserModal();
-
-    } catch (error) {
-        console.error("Error fetching user:", error);
-    }
-}
-// Show alert
-function showAlert(message, type) {
-    const alertContainer = document.getElementById('alertContainer');
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type}`;
-    alert.textContent = message;
-    alertContainer.appendChild(alert);
-
-    setTimeout(() => {
-        alert.remove();
-    }, 3000);
-}
-async function deleteUser(id){
-
-    if(!confirm("Delete this user?")) return;
-
-    await fetch(`/api/users/${id}`,{
-        method:'DELETE',
-        headers:{
-            'Authorization':`Bearer ${localStorage.getItem('token')}`
-        }
-    });
-
-    loadUsers();
-}
-//open and close modal
-function openUserModal(){
-    document.getElementById('userModal').style.display='flex';
-}
-
-function closeUserModal(){
-    document.getElementById('userModal').style.display='none';
-}
-// Logout
-function logout(e) {
-    e.preventDefault();
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('userType');
-    window.location.replace('login');
-}
-
-
-let allUsers = []; // store users globally
-
-async function loadUsers() {
-    const token = localStorage.getItem('token');
-    try {
-        const res = await fetch('/api/users', {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type':'application/json' }
-        });
-        if (!res.ok) throw new Error('Failed to fetch users');
-        const users = await res.json();
-
-        allUsers = users; 
-        displayUsers(users);
-    } catch (error) {
-        console.error("Error loading users:", error);
-    }
-}
-
-function displayUsers(users) {
-    const tbody = document.getElementById('usersTableBody');
-    tbody.innerHTML = '';
-    users.forEach(user => {
-        tbody.innerHTML += `
+        tbody.innerHTML = payments.map(p => `
         <tr>
-            <td>${user.id}</td>
-            <td>${user.name}</td>
-            <td>${user.email}</td>
-            <td>${user.phone}</td>
-            <td>${user.role}</td>
+            <td>${p.receipt_number || '—'}</td>
+
+            <td>#${p.request_id || '—'}</td>
+
+            <td>${p.customer || '—'}</td>
+
+            <td>₱${Number(p.amount || 0).toFixed(2)}</td>
+
+            <td>${p.payment_method || '—'}</td>
+
             <td>
-                <button onclick="editUser(${user.id})" class="btn btn-primary">Edit</button>
-                <button onclick="deleteUser(${user.id})" class="btn btn-delete">Delete</button>
+                ${p.payment_date
+                ? new Date(p.payment_date).toLocaleDateString()
+                : '—'}
+            </td>
+
+            <td>
+                <span class="status-badge status-${p.status || 'unknown'}">
+                    ${p.status || '—'}
+                </span>
+            </td>
+
+            <td>
+                <div class="overflow-menu">
+
+                    <button
+                        class="btn-icon overflow-trigger"
+                        title="Actions"
+                    >
+                        ⋮
+                    </button>
+
+                    <div class="overflow-dropdown">
+
+                        <button
+                            class="dropdown-item"
+                            onclick="viewPaymentProof(${p.payment_id})"
+                        >
+                            View Proof
+                        </button>
+
+                        <button
+                            class="dropdown-item"
+                            onclick="approvePayment(${p.payment_id})"
+                        >
+                            Approve
+                        </button>
+
+                        <button
+                            class="dropdown-item"
+                            onclick="rejectPayment(${p.payment_id})"
+                        >
+                            Reject
+                        </button>
+
+                    </div>
+
+                </div>
             </td>
         </tr>
-        `;
+    `).join('');
+    }
+
+
+    function renderRequests(dataToRender) { // <--- Accept data as a parameter
+        const tbody = document.getElementById("requestsTable");
+        if (!tbody) return;
+
+        // Use dataToRender instead of the global 'requests' variable
+        if (!Array.isArray(dataToRender) || dataToRender.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem;">No service requests found</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = dataToRender.map(r => `
+       <tr>
+        <td><strong>#${r.request_id}</strong></td>
+        <td>
+            <div><strong>${r.customer_name || 'mark toto'}</strong></div>
+            <div style="font-size:0.9em; color:#666;">${r.customer_phone || '123'}</div>
+        </td>
+        <td style="max-width:300px; white-space:normal; word-wrap:break-word;">${r.location || 'Unknown'}</td>
+        <td>${r.driver_name || '—'}</td>
+        <td><span class="status-badge status-${r.status || 'pending'}">${r.status || 'pending'}</span></td>
+        <td><span class="payment-status ${r.payment_status === 'paid' ? 'paid' : 'pending'}">${r.payment_status === 'paid' ? ' Paid' : '⌛ Pending'}</span></td>
+        <td style="color:#666; font-size:0.9em;">${r.created_at || ''}</td>
+       <td>
+    <div class="overflow-menu">
+        <button class="btn-icon overflow-trigger" title="Actions">⋮</button>
+
+        <div class="overflow-dropdown">
+
+            ${
+                !r.driver_id && r.status === 'pending'
+                    ? `<button
+                        class="dropdown-item"
+                        onclick="openAssignDriverModal(${r.request_id})">
+                        🚛 Assign Driver
+                    </button>`
+                    : ''
+            }
+
+            <button
+                class="dropdown-item"
+                onclick="editRequest(${r.request_id})"
+                title="Edit Request">
+                ✏️ Edit Request
+            </button>
+
+            <button
+                class="dropdown-item"
+                onclick="openCustomerModal(${r.user_id})"
+                title="View Customer">
+                👤 View Customer
+            </button>
+
+            <button
+                class="dropdown-item"
+                onclick="deleteRequest(${r.request_id})"
+                title="Delete Request"
+                style="color:#dc3545;">
+                🗑️ Delete Request
+            </button>
+
+        </div>
+    </div>
+</td>
+
+    </tr>
+    `).join("");
+    }
+
+    document.addEventListener('click', function (e) {
+        const menu = e.target.closest('.overflow-menu');
+        if (menu && e.target.classList.contains('overflow-trigger')) {
+            menu.classList.toggle('active');
+        } else if (!menu) {
+            document.querySelectorAll('.overflow-menu').forEach(m => m.classList.remove('active'));
+        } else if (menu && e.target.classList.contains('dropdown-item')) {
+            menu.classList.remove('active');
+        }
     });
-}
-
-//filter users
-function filterUsers() {
-    const term = document.getElementById('userSearch').value.toLowerCase();
-
-    const filtered = allUsers.filter(user =>
-        (user.user_id && user.user_id.toString().includes(term)) || // ✅ ID search
-        (user.name && user.name.toLowerCase().includes(term)) ||
-        (user.email && user.email.toLowerCase().includes(term)) ||
-        (user.phone && user.phone.toLowerCase().includes(term)) ||
-        (user.role && user.role.toLowerCase().includes(term))
-    );
-
-    displayUsers(filtered);
-}
-// Make functions global for onclick events
-window.openAddModal = openAddModal;
-window.closeModal = closeModal;
-window.viewRequest = viewRequest;
-window.closeViewModal = closeViewModal;
-window.editRequest = editRequest;
-window.saveRequest = saveRequest;
-window.confirmDelete = confirmDelete;
-window.closeDeleteModal = closeDeleteModal;
-window.filterRequests = filterRequests;
-window.changePage = changePage;
 
 
-// Initialize dashboard
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if user is admin
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const token = localStorage.getItem('token');
-    //userSearch
-    const userSearchInput = document.getElementById('userSearch');
-    userSearchInput.addEventListener('input', filterUsers);
-    if (!token || user.role !== 'admin') {
-        window.location.replace('login');
+
+    function updateStats() {
+        const statRequests = document.getElementById('statRequests');
+        const statDrivers = document.getElementById('statDrivers');
+        const statCompleted = document.getElementById('statCompleted');
+        const statRevenue = document.getElementById('statRevenue');
+
+        if (statRequests) statRequests.innerText = requests.length;
+        if (statDrivers) statDrivers.innerText = drivers.filter(d => d.status !== 'offline').length;
+        if (statCompleted) statCompleted.innerText = requests.filter(r => r.status === 'completed').length;
+        if (statRevenue) {
+            let pendingRev = requests.filter(r => r.status === 'completed' && r.payment !== 'paid')
+                .reduce((s, r) => s + r.amount, 0);
+            statRevenue.innerText = `$${pendingRev}`;
+        }
+    }
+
+
+    function openRequestModal() {
+        document.getElementById('editReqId').value = '';
+        document.getElementById('requestForm').reset();
+        document.getElementById('requestModal').style.display = 'flex';
+    }
+
+    function editRequest(reqId) {
+        const req = requests.find(r => r.request_id === reqId);
+        if (!req) return;
+
+        document.getElementById('editReqId').value = req.request_id;
+        document.getElementById('reqCustomer').value = req.customer_name || '';
+        document.getElementById('reqPhone').value = req.customer_phone || '';
+        document.getElementById('reqLocation').value = req.location || '';
+        document.getElementById('reqService').value = req.service_type || 'Towing';
+        document.getElementById('reqStatus').value = req.status || 'pending';
+        document.getElementById('requestModal').style.display = 'flex';
+    }
+    //make request?
+    async function saveRequest() {
+        const request_id = document.getElementById('editReqId').value.trim();
+        const data = {
+            customer_name: document.getElementById('reqCustomer').value.trim(),
+            customer_phone: document.getElementById('reqPhone').value.trim(),
+            location: document.getElementById('reqLocation').value.trim(),
+            service_type: document.getElementById('reqService').value,
+            status: document.getElementById('reqStatus').value
+        };
+
+        try {
+            if (request_id) {
+                // Update existing
+                await apiFetch(`/admin/requests/${request_id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                showAlert("Request updated successfully", "success");
+            } else {
+                // Create new
+                await apiFetch(`/admin/requests`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                showAlert("New request added", "success");
+            }
+
+            await loadRequests(); // Refresh list
+            closeModal('requestModal');
+        } catch (err) {
+            console.error("Save error:", err);
+            showAlert("Error saving request — check console", "danger");
+            console.log('check and r.id kag ang sa getrequests matulog nko');
+        }
+    }
+    // delete request
+    async function deleteRequest(reqId) {
+        if (!confirm("Are you sure you want to delete this request? This cannot be undone.")) return;
+
+        try {
+            await apiFetch(`/admin/requests/${reqId}`, {
+                method: 'DELETE'
+            });
+
+            showAlert("Request deleted successfully", "success");
+            await loadRequests(); // Refresh list after delete
+        } catch (err) {
+            console.error("Delete error:", err);
+            showAlert("Failed to delete request", "danger");
+        }
+    }
+
+    // update the payment status
+    async function markPayment(reqId) {
+        if (!confirm("Mark this request as paid?")) return;
+        try {
+            await apiFetch(`/admin/payments/${reqId}/mark-paid`, { method: 'PATCH' });
+            showAlert("Payment marked as paid", "success");
+            await loadRequests();
+            await loadPayments();
+
+        } catch (err) {
+            console.error("Failed to update payment:", err);
+            showAlert("Error updating payment", "danger");
+        }
+    }
+
+    async function assignDriverPrompt(reqId) {
+        let freeDrivers = drivers.filter(d => d.status !== 'busy');
+        if (freeDrivers.length === 0) {
+            alert("No available drivers");
+            return;
+        }
+        let input = prompt(`Enter driver ID (${freeDrivers.map(d => `${d.id}: ${d.name}`).join(', ')})`);
+        let driver = drivers.find(d => d.id == input);
+        if (driver) {
+            try {
+                await apiFetch(`/requests/${reqId}/assign`, {
+                    method: 'POST',
+                    body: JSON.stringify({ driver_id: driver.id })
+                });
+                showAlert(`Assigned to ${driver.name}`, "success");
+                await loadRequests();
+                await loadDrivers();
+                updateMapMarkers();
+
+            } catch (error) {
+                console.error('Failed to assign driver:', error);
+            }
+        }
+    }
+
+    // async function markPayment(reqId, amt) {
+    //     let req = requests.find(r => r.id === reqId);
+    //     if (req && req.payment !== 'paid') {
+    //         try {
+    //             await apiFetch(`/requests/${reqId}/pay`, {
+    //                 method: 'POST',
+    //                 body: JSON.stringify({
+    //                     amount: amt,
+    //                     payment_method: 'cash'
+    //                 })
+    //             });
+    //             showAlert(`Payment recorded: $${amt}`, "success");
+    //             await loadRequests();
+    //             await loadPayments();
+    //             updateStats();
+    //         } catch (error) {
+    //             console.error('Failed to record payment:', error);
+    //         }
+    //     }
+    // }
+
+    // ========== CRUD: DRIVERS ==========
+    function openDriverModal() {
+        document.getElementById('editDriverId').value = '';
+
+        document.getElementById('driverForm').reset();
+
+        document.getElementById('driverStatusSelect').value =
+            'offline';
+
+        document.getElementById('driverModal').style.display =
+            'flex';
+    }
+
+    function editDriver(id) {
+        const d = drivers.find(
+            x => Number(x.id) === Number(id)
+        );
+
+        if (!d) {
+            console.error('Driver not found:', id);
+            return;
+        }
+
+        document.getElementById('editDriverId').value = d.id;
+
+        document.getElementById('driverName').value =
+            d.name || '';
+
+        document.getElementById('driverPhone').value =
+            d.phone || '';
+
+        document.getElementById('driverEmail').value =
+            d.email || '';
+
+        document.getElementById('driverPassword').value =
+            '';
+
+        document.getElementById('driverStatusSelect').value =
+            d.status || 'offline';
+
+        document.getElementById('driverModal').style.display =
+            'flex';
+    }
+
+    async function saveDriver() {
+        const id = document.getElementById('editDriverId').value;
+
+        const data = {
+            name: document.getElementById('driverName').value.trim(),
+            phone: document.getElementById('driverPhone').value.trim(),
+            email: document.getElementById('driverEmail').value.trim(),
+            password: document.getElementById('driverPassword').value,
+            status: document.getElementById('driverStatusSelect').value
+        };
+
+        if (!data.name) {
+            showAlert('Driver name is required.', 'danger');
+            return;
+        }
+
+        // Only require password when creating a driver
+        if (!id && !data.password) {
+            showAlert('Password is required for a new driver.', 'danger');
+            return;
+        }
+
+        try {
+            if (id) {
+
+                await apiFetch(`/admin/drivers/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(data)
+                });
+
+
+                showAlert(
+                    'Driver updated successfully.',
+                    'success'
+                );
+
+            } else {
+
+                await apiFetch('/admin/drivers', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+
+
+                showAlert(
+                    'Driver account created successfully.',
+                    'success'
+                );
+            }
+
+            await loadDrivers();
+
+            closeModal('driverModal');
+
+        } catch (error) {
+            console.error('Failed to save driver:', error);
+
+            showAlert(
+                error.message || 'Failed to save driver.',
+                'danger'
+            );
+        }
+    }
+
+    async function deleteDriver(id) {
+        if (confirm("Remove this driver?")) {
+            try {
+                await apiFetch(`/drivers/${id}`, {
+                    method: 'DELETE'
+                });
+                showAlert("Deleted", "success");
+                await loadDrivers();
+                updateMapMarkers();
+
+            } catch (error) {
+                console.error('Failed to delete driver:', error);
+            }
+        }
+    }
+
+
+    // GETTING THE MODAL ID'S
+
+
+    // ========== PAYMENTS ==========
+    async function addDemoPayment() {
+        try {
+            // Find a completed request without payment
+            let unpaidRequest = requests.find(r => r.status === 'completed' && r.payment !== 'paid');
+            if (unpaidRequest) {
+                await markPayment(unpaidRequest.id, unpaidRequest.amount);
+            } else {
+                showAlert("No completed unpaid requests found", "error");
+            }
+        } catch (error) {
+            console.error('Failed to add demo payment:', error);
+        }
+    }
+
+    // ========== UI NAVIGATION ==========
+    function switchPanel(panelId, title) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        const panel = document.getElementById(panelId);
+        if (panel) panel.classList.add('active');
+
+        document.querySelectorAll('.nav-item').forEach(link => link.classList.remove('active'));
+        const navLink = document.querySelector(`.nav-item[data-tab="${panelId.replace('Panel', '').toLowerCase()}"]`);
+        if (navLink) navLink.classList.add('active');
+
+        if (panelId === 'dashboardPanel') {
+            if (map) setTimeout(() => map.invalidateSize(), 100);
+            updateMapMarkers();
+            // loadDashboardStats();
+        }
+
+        document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
+            item.addEventListener('click', function () {
+                const tabId = this.getAttribute('data-tab');
+                // ... hide/show tabs ...
+                if (tabId === 'tracking') {
+                    // Give the browser time to show the tab, then init the map
+                    setTimeout(() => {
+                        initDriverMap();
+                    }, 150);
+                }
+            });
+        });
+
+        if (panelId === 'requestsPanel') loadRequests();
+        if (panelId === 'driversPanel') loadDrivers();
+        if (panelId === 'usersPanel') loadCustomers();
+        if (panelId === 'paymentsPanel') loadPayments();
+    }
+
+
+    // ========== SEARCH ==========
+    function setupSearch() {
+        const searchInput = document.getElementById('globalSearch');
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', function (e) {
+            let term = e.target.value.toLowerCase();
+            let requestsPanel = document.getElementById('requestsPanel');
+            if (!requestsPanel) return;
+
+            if (requestsPanel.classList.contains('active')) {
+                let filtered = requests.filter(r =>
+                    r.customer.toLowerCase().includes(term) ||
+                    r.location.toLowerCase().includes(term) ||
+                    r.service.toLowerCase().includes(term)
+                );
+                const tbody = document.getElementById('requestsTable');
+                if (!tbody) return;
+
+                tbody.innerHTML = filtered.map(r => {
+                    let driver = drivers.find(d => d.id === r.driverId);
+                    return `<tr>
+                        <td>#${r.id}</td>
+                        <td><strong>${r.customer}</strong><br><small>${r.phone}</small></td>
+                        <td>${r.location}</td>
+                        <td>${driver ? driver.name : '—'}</td>
+                        <td><span class="status-badge status-${r.status.replace(' ', '')}">${r.status}</span></td>
+                        <td>${r.payment === 'paid' ? '  Paid' : '⏳ Pending'}</td>
+                        <td>
+                            <button class="btn btn-outline" style="padding:4px 10px; margin:2px;" onclick="editRequest(${r.id})">✏️</button>
+                            <button class="btn btn-outline" style="padding:4px 10px; margin:2px;" onclick="assignDriverPrompt(${r.id})">👤</button>
+                            ${r.status === 'completed' && r.payment !== 'paid' ? `<button class="btn btn-success" style="padding:4px 10px; margin:2px;" onclick="markPayment(${r.id},${r.amount})">💳</button>` : ''}
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+        });
+    }
+
+    // ========== EXPOSE FUNCTIONS TO GLOBAL SCOPE ==========
+    window.refreshMapMarkers = refreshMapMarkers;
+    window.openRequestModal = openRequestModal;
+    window.editRequest = editRequest;
+    window.saveRequest = saveRequest;
+    window.assignDriverPrompt = assignDriverPrompt;
+    window.markPayment = markPayment;
+    window.openDriverModal = openDriverModal;
+    window.editDriver = editDriver;
+    window.saveDriver = saveDriver;
+    window.deleteDriver = deleteDriver;
+    window.openCustomerModal = openCustomerModal;
+    window.editCustomer = editCustomer;
+    window.saveCustomer = saveCustomer;
+    window.addDemoPayment = addDemoPayment;
+    window.closeModal = closeModal;
+    window.switchPanel = switchPanel;
+    window.deleteRequest = deleteRequest;
+
+    // ========== EVENT LISTENERS ==========
+    function setupNavigation() {
+        document.querySelectorAll('.nav-item[data-tab]').forEach(link => {
+            link.addEventListener('click', function (e) {
+                let tab = this.getAttribute('data-tab');
+                if (tab === 'dashboard') switchPanel('dashboardPanel', 'Dashboard');
+                else if (tab === 'requests') switchPanel('requestsPanel', 'Service Requests');
+                else if (tab === 'drivers') switchPanel('driversPanel', 'Tow Drivers');
+                else if (tab === 'users') switchPanel('usersPanel', 'Customers');
+                else if (tab === 'payments') switchPanel('paymentsPanel', 'Payments & Receipts');
+            });
+        });
+    }
+
+    function setupLogout() {
+        const logoutBtn = document.getElementById('logoutBtnSidebar');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', handleLogout);
+        }
+    }
+    window.openAdminModal = function () {
+
+        document.getElementById('editAdminId').value = '';
+
+        document.getElementById('adminName').value = '';
+        document.getElementById('adminPhone').value = '';
+        document.getElementById('adminEmail').value = '';
+        document.getElementById('adminPassword').value = '';
+
+        document.getElementById('adminModalTitle').textContent =
+            'Add Admin';
+
+        document.getElementById('adminModal').style.display = 'flex';
+    };
+
+    function editAdmin(id) {
+
+        const admin = admins.find(
+            x => Number(x.id) === Number(id)
+        );
+
+        if (!admin) {
+            console.error('Admin not found:', id);
+            return;
+        }
+
+        document.getElementById('editAdminId').value = admin.id;
+
+        document.getElementById('adminName').value =
+            admin.name || '';
+
+        document.getElementById('adminPhone').value =
+            admin.phone || '';
+
+        document.getElementById('adminEmail').value =
+            admin.email || '';
+
+        document.getElementById('adminPassword').value = '';
+
+        document.getElementById('adminModalTitle').textContent =
+            'Edit Admin';
+
+        document.getElementById('adminModal').style.display = 'flex';
+    }
+
+    async function saveAdmin() {
+
+        const id =
+            document.getElementById('editAdminId').value;
+
+        const data = {
+            name: document.getElementById('adminName').value.trim(),
+            phone: document.getElementById('adminPhone').value.trim(),
+            email: document.getElementById('adminEmail').value.trim(),
+            password: document.getElementById('adminPassword').value
+        };
+
+        if (!data.name) {
+            showAlert('Admin name is required.', 'danger');
+            return;
+        }
+
+        if (!data.email) {
+            showAlert('Admin email is required.', 'danger');
+            return;
+        }
+
+        // Password required only when creating
+        if (!id && !data.password) {
+            showAlert(
+                'Password is required for a new admin.',
+                'danger'
+            );
+            return;
+        }
+
+        try {
+
+            if (id) {
+
+                await apiFetch(`/admin/admins/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(data)
+                });
+
+                showAlert(
+                    'Admin updated successfully.',
+                    'success'
+                );
+
+            } else {
+
+                await apiFetch('/admin/admins', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+
+                showAlert(
+                    'Admin account created successfully.',
+                    'success'
+                );
+            }
+
+            await loadAdmins();
+
+            closeModal('adminModal');
+
+        } catch (error) {
+
+            console.error(
+                'Failed to save admin:',
+                error
+            );
+
+            showAlert(
+                error.message || 'Failed to save admin.',
+                'danger'
+            );
+        }
+    }
+
+    async function init() {
+        // Load user from sessionStorage (set during login)
+        let user = JSON.parse(sessionStorage.getItem('user') || '{"name":"Admin User"}');
+
+        const avatar = document.getElementById('avatarInitials');
+        if (avatar) {
+            avatar.innerText = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+        }
+
+        const profileName = document.getElementById('profileName');
+        if (profileName) {
+            profileName.innerText = user.name;
+        }
+
+        // Initialize everything
+        initMap();
+        // await loadDashboardStats();
+        await loadRequests();
+        await loadDrivers();
+        await loadCustomers();
+        await loadPayments();
+        setupSearch();
+        setupNavigation();
+        setupLogout();
+
+        console.log('Admin dashboard initialized successfully!');
+    }
+
+    // Start everything
+    init();
+
+});
+window.viewPaymentProof = async function (paymentId) {
+
+    console.log('View payment proof:', paymentId);
+
+    const token = sessionStorage.getItem('token');
+
+    if (!token) {
+        alert('Authentication required.');
         return;
     }
-    
-    // Set admin info from localStorage
-    if (user.name) {
-        const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
-        document.getElementById('userInitials').textContent = initials || 'A';
-        document.getElementById('adminName').textContent = user.name;
-        document.getElementById('adminEmail').textContent = user.email || '';
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/payments/${paymentId}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || 'Failed to load payment.'
+            );
+        }
+
+        const payment = data.payment;
+
+        console.log('Payment:', payment);
+
+        if (!payment.proof_image_path) {
+            alert('This payment has no uploaded proof.');
+            return;
+        }
+
+        let proofPath =
+            payment.proof_image_path.replace(/\\/g, '/');
+
+        // Remove leading slash if present
+        proofPath = proofPath.replace(/^\/+/, '');
+
+        const backendBase =
+            API_BASE_URL.replace(/\/api\/?$/, '');
+
+        const imageUrl =
+            `${backendBase}/${proofPath}`;
+
+        console.log('Proof image:', imageUrl);
+
+        window.open(imageUrl, '_blank');
+
+    } catch (error) {
+
+        console.error(
+            'View payment proof error:',
+            error
+        );
+
+        alert(error.message);
+
     }
 
-    // Load data from database
-    fetchRequests();
-    // fetchStatistics();
-    
-    // Add event listeners
-    document.getElementById('searchInput').addEventListener('input', filterRequests);
-    document.getElementById('confirmDeleteBtn').addEventListener('click', deleteRequest);
-    document.getElementById('logoutBtn').addEventListener('click', logout);
 
-    // Close modals when clicking outside
-    window.onclick = function(event) {
-        const modal = document.getElementById('requestModal');
-        const viewModal = document.getElementById('viewModal');
-        const deleteModal = document.getElementById('deleteModal');
-        
-        if (event.target === modal) {
-            closeModal();
-        }
-        if (event.target === viewModal) {
-            closeViewModal();
-        }
-        if (event.target === deleteModal) {
-            closeDeleteModal();
-        }
+
+};
+
+
+window.approvePayment = async function (paymentId) {
+
+    const token = sessionStorage.getItem('token');
+
+    if (!token) {
+        alert('Authentication required.');
+        return;
     }
-});
 
-// loadUsers() function;
-document.addEventListener("DOMContentLoaded", () => {
-    loadUsers();
-});
+    const confirmed = confirm(
+        `Approve payment #${paymentId}?\n\n` +
+        `This will mark the payment as COMPLETED and generate a receipt.`
+    );
 
-const savedImage = localStorage.getItem("profileImage");
+    if (!confirmed) {
+        return;
+    }
 
-if(savedImage){
-    document.getElementById("profileImage").src = savedImage;
-}
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/admin/payments/${paymentId}/approve`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || 'Failed to approve payment.'
+            );
+        }
+
+        alert(
+            `Payment approved!\n\n` +
+            `Receipt: ${data.receipt_number}`
+        );
+
+        // Reload admin payment table
+        await loadPayments();
+
+    } catch (error) {
+
+        console.error(
+            ' Approve payment error:',
+            error
+        );
+
+        alert(error.message);
+    }
+};
+
+
+window.rejectPayment = async function (paymentId) {
+
+    const token = sessionStorage.getItem('token');
+
+    if (!token) {
+        alert('Authentication required.');
+        return;
+    }
+
+    const reason = prompt(
+        'Why are you rejecting this payment proof?'
+    );
+
+    if (reason === null) {
+        return;
+    }
+
+    if (!reason.trim()) {
+        alert('Please provide a rejection reason.');
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/admin/payments/${paymentId}/reject`,
+            {
+                method: 'PUT',
+
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+
+                body: JSON.stringify({
+                    reason: reason.trim()
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || 'Failed to reject payment.'
+            );
+        }
+
+        alert(
+            'Payment proof rejected.\n\n' +
+            'The customer can now resubmit their proof.'
+        );
+
+        await loadPayments();
+
+    } catch (error) {
+
+        console.error(
+            'Reject payment error:',
+            error
+        );
+
+        alert(error.message);
+    }
+};
+
+window.openAssignDriverModal = async function(requestId) {
+
+    const modal = document.getElementById('assignDriverModal');
+    const requestInput = document.getElementById('assignRequestId');
+    const requestDisplay = document.getElementById('assignRequestDisplay');
+    const driverSelect = document.getElementById('assignDriverSelect');
+
+    if (!modal || !requestInput || !driverSelect) {
+        console.error('Assign driver modal elements not found.');
+        return;
+    }
+
+    requestInput.value = requestId;
+    requestDisplay.value = `Request #${requestId}`;
+
+    driverSelect.innerHTML = `
+        <option value="">Loading drivers...</option>
+    `;
+
+    modal.style.display = 'flex';
+
+    try {
+
+        const drivers = await apiFetch('/admin/drivers/available');
+
+        const driverList =
+            Array.isArray(drivers)
+                ? drivers
+                : drivers.drivers || [];
+
+        if (driverList.length === 0) {
+
+            driverSelect.innerHTML = `
+                <option value="">
+                    No available drivers
+                </option>
+            `;
+
+            return;
+        }
+
+        driverSelect.innerHTML = `
+            <option value="">-- Select Driver --</option>
+
+            ${driverList.map(driver => `
+                <option value="${driver.user_id}">
+                    ${driver.name}
+                    ${driver.phone ? ` - ${driver.phone}` : ''}
+                </option>
+            `).join('')}
+        `;
+
+    } catch (err) {
+
+        console.error('Failed to load drivers:', err);
+
+        driverSelect.innerHTML = `
+            <option value="">
+                Failed to load drivers
+            </option>
+        `;
+    }
+};
+window.closeAssignDriverModal = function() {
+
+    const modal = document.getElementById('assignDriverModal');
+
+    if (modal) {
+        modal.style.display = 'none';
+    }
+};
+window.confirmAssignDriver = async function() {
+
+    const requestId =
+        document.getElementById('assignRequestId').value;
+
+    const driverId =
+        document.getElementById('assignDriverSelect').value;
+
+    if (!requestId) {
+        alert('Request ID is missing.');
+        return;
+    }
+
+    if (!driverId) {
+        alert('Please select a driver.');
+        return;
+    }
+
+    try {
+
+        const data = await apiFetch(
+            `/admin/requests/${requestId}/assign-driver`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    driver_id: Number(driverId)
+                })
+            }
+        );
+
+        console.log('Driver assigned:', data);
+
+        showToast(
+            `Driver assigned to Request #${requestId}`
+        );
+
+        closeAssignDriverModal();
+
+        // Refresh admin requests
+        await loadRequests();
+
+    } catch (err) {
+
+        console.error('Assign driver error:', err);
+
+        alert(
+            err.message ||
+            'Failed to assign driver.'
+        );
+    }
+};

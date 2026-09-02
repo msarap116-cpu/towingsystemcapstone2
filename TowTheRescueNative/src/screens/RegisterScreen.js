@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
-import API_BASE_URL from '../config';  // ✅
+import API_BASE_URL from '../config';  //
 
 // const API_BASE_URL = 'http://192.168.0.104:3000'; // Change to your computer's IP
 
@@ -27,7 +27,7 @@ const RegisterScreen = ({ navigation }) => {
         password: '',
         confirmPassword: ''
     });
-    
+
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -43,14 +43,14 @@ const RegisterScreen = ({ navigation }) => {
 
     const validateForm = () => {
         const newErrors = {};
-        
+
         // Name validation
         if (!formData.name.trim()) {
             newErrors.name = 'Full name is required';
         } else if (formData.name.trim().length < 2) {
             newErrors.name = 'Name must be at least 2 characters';
         }
-        
+
         // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!formData.email.trim()) {
@@ -58,7 +58,7 @@ const RegisterScreen = ({ navigation }) => {
         } else if (!emailRegex.test(formData.email)) {
             newErrors.email = 'Please enter a valid email address';
         }
-        
+
         // Phone validation
         const phoneRegex = /^[0-9]{10,11}$/;
         if (!formData.phone.trim()) {
@@ -66,26 +66,26 @@ const RegisterScreen = ({ navigation }) => {
         } else if (!phoneRegex.test(formData.phone.replace(/[^0-9]/g, ''))) {
             newErrors.phone = 'Please enter a valid 10-11 digit phone number';
         }
-        
+
         // User type validation
         if (!formData.userType) {
             newErrors.userType = 'Please select an account type';
         }
-        
+
         // Password validation
         if (!formData.password) {
             newErrors.password = 'Password is required';
         } else if (formData.password.length < 6) {
             newErrors.password = 'Password must be at least 6 characters';
         }
-        
+
         // Confirm password validation
         if (!formData.confirmPassword) {
             newErrors.confirmPassword = 'Please confirm your password';
         } else if (formData.password !== formData.confirmPassword) {
             newErrors.confirmPassword = 'Passwords do not match';
         }
-        
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -94,9 +94,9 @@ const RegisterScreen = ({ navigation }) => {
         if (!validateForm()) {
             return;
         }
-        
+
         setLoading(true);
-        
+
         try {
             const response = await fetch(`${API_BASE_URL}/users/register`, {
                 method: 'POST',
@@ -111,16 +111,16 @@ const RegisterScreen = ({ navigation }) => {
                     role: formData.userType
                 })
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok) {
                 Alert.alert(
                     'Registration Successful!',
                     'Your account has been created. Please login to continue.',
                     [
-                        { 
-                            text: 'Go to Login', 
+                        {
+                            text: 'Go to Login',
                             onPress: () => navigation.navigate('Login')
                         }
                     ]
@@ -128,7 +128,7 @@ const RegisterScreen = ({ navigation }) => {
             } else {
                 Alert.alert('Registration Failed', data.error || 'Unable to create account. Please try again.');
             }
-            
+
         } catch (error) {
             console.error('Registration error:', error);
             Alert.alert(
@@ -148,13 +148,13 @@ const RegisterScreen = ({ navigation }) => {
     ];
 
     return (
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <StatusBar barStyle="dark-content" backgroundColor="#f4f6f9" />
-            
-            <ScrollView 
+
+            <ScrollView
                 contentContainerStyle={styles.scrollContainer}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
@@ -167,11 +167,11 @@ const RegisterScreen = ({ navigation }) => {
                         </TouchableOpacity>
                     </View>
                 </View>
-                
+
                 {/* Registration Card */}
                 <View style={styles.card}>
                     <Text style={styles.title}>Create Account</Text>
-                    
+
                     {/* Name Input */}
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Full Name</Text>
@@ -186,7 +186,7 @@ const RegisterScreen = ({ navigation }) => {
                         />
                         {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
                     </View>
-                    
+
                     {/* Email Input */}
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Email Address</Text>
@@ -202,7 +202,7 @@ const RegisterScreen = ({ navigation }) => {
                         />
                         {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
                     </View>
-                    
+
                     {/* Phone Input */}
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Phone Number</Text>
@@ -217,7 +217,7 @@ const RegisterScreen = ({ navigation }) => {
                         />
                         {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
                     </View>
-                    
+
                     {/* Account Type Picker */}
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Account Type</Text>
@@ -229,17 +229,17 @@ const RegisterScreen = ({ navigation }) => {
                                 style={styles.picker}
                             >
                                 {userTypes.map((type) => (
-                                    <Picker.Item 
-                                        key={type.value} 
-                                        label={type.label} 
-                                        value={type.value} 
+                                    <Picker.Item
+                                        key={type.value}
+                                        label={type.label}
+                                        value={type.value}
                                     />
                                 ))}
                             </Picker>
                         </View>
                         {errors.userType && <Text style={styles.errorText}>{errors.userType}</Text>}
                     </View>
-                    
+
                     {/* Password Input */}
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Password</Text>
@@ -254,7 +254,7 @@ const RegisterScreen = ({ navigation }) => {
                                 editable={!loading}
                                 color="#000"
                             />
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.eyeButton}
                                 onPress={() => setShowPassword(!showPassword)}
                             >
@@ -265,7 +265,7 @@ const RegisterScreen = ({ navigation }) => {
                         </View>
                         {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
                     </View>
-                    
+
                     {/* Confirm Password Input */}
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Confirm Password</Text>
@@ -280,7 +280,7 @@ const RegisterScreen = ({ navigation }) => {
                                 editable={!loading}
                                 color="#000"
                             />
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.eyeButton}
                                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                             >
@@ -291,9 +291,9 @@ const RegisterScreen = ({ navigation }) => {
                         </View>
                         {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
                     </View>
-                    
+
                     {/* Register Button */}
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={[styles.registerButton, loading && styles.registerButtonDisabled]}
                         onPress={handleRegister}
                         disabled={loading}
@@ -304,12 +304,12 @@ const RegisterScreen = ({ navigation }) => {
                             <Text style={styles.registerButtonText}>Create Account</Text>
                         )}
                     </TouchableOpacity>
-                    
+
                     {/* Footer */}
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>
                             Already have an account?{' '}
-                            <Text 
+                            <Text
                                 style={styles.link}
                                 onPress={() => navigation.navigate('Login')}
                             >

@@ -1,8 +1,8 @@
 // routes/driver.js
 const express = require('express');
 const router = express.Router();
-const db = require('../database/database'); 
-const authenticateToken = require('../middleware/authMiddleware'); 
+const db = require('../database/database');
+const authenticateToken = require('../middleware/authMiddleware');
 
 router.post('/location', authenticateToken, async (req, res) => {
     const { lat, lng, request_id } = req.body;
@@ -13,15 +13,15 @@ router.post('/location', authenticateToken, async (req, res) => {
     }
 
     try {
-       
+
         await db.query(
-            `UPDATE service_requests 
-             SET driver_id = ?, status = 'in_progress'
+            `UPDATE service_requests
+             SET driver_id = ?, status = 'in progress'
              WHERE request_id = ?`,
             [driver_id, request_id]
         );
 
-        
+
         await db.query(
             `INSERT INTO driver_locations (driver_id, lat, lng)
              VALUES (?, ?, ?)`,
@@ -51,7 +51,7 @@ router.get('/requests/latest', authenticateToken, async (req, res) => {
                     dl.lng AS driver_lng,
                     dl.recorded_at
              FROM service_requests sr
-             LEFT JOIN driver_locations dl 
+             LEFT JOIN driver_locations dl
                     ON dl.driver_id = sr.driver_id
              WHERE sr.user_id = ?
                AND sr.status IN ('pending', 'assigned', 'in progress')

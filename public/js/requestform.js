@@ -1,362 +1,579 @@
-// requestform.js 
+// requestform.js
 
-async function handleEmergencyRequest(e) {
-    e.preventDefault();
 
-    // Get token and user
-    const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    
-    
-    if (!token || !user) {
-        showAlert('Please login first!', 'warning');
-        setTimeout(() => {
-            window.location.href = 'login';
-        }, 1500);
+
+let addressSearchController = null;
+let addressSuggestions = null;
+
+//funcntion for request card
+function setServiceFromURL() {
+
+    const params = new URLSearchParams(window.location.search);
+
+    const serviceId = params.get('service');
+
+    if (!serviceId) {
         return;
     }
 
-    
-    const serviceType = document.getElementById('serviceType')?.value;
-    const vehicleType = document.getElementById('vehicleType')?.value;
-    const licensePlate = document.getElementById('licensePlate')?.value;
-    let latitude = document.getElementById('latitude')?.value;
-    let longitude = document.getElementById('longitude')?.value;
-    let address = document.getElementById('address')?.value;
+    const serviceSelect = document.getElementById('serviceType');
 
-    console.log('Form data:', { serviceType, vehicleType, licensePlate, latitude, longitude, address });
+    if (!serviceSelect) {
+        console.error('serviceType select not found.');
+        return;
+    }
 
-    // Check if user manually entered address (and no coordinates from "Use Current Location")
-    const hasManualAddress = address && address.trim() !== '';
-    const hasCoordinates =
-    latitude !== '' &&
-    longitude !== '' &&
-    latitude !== null &&
-    longitude !== null &&
-    latitude !== undefined &&
-    longitude !== undefined;
+    const optionExists = Array.from(serviceSelect.options)
+        .some(option => option.value === serviceId);
 
-    console.log("Final latitude:", latitude);
-    console.log("Final longitude:", longitude);
-    
-    // If manual address is provided but no coordinates, geocode it
-    if (hasManualAddress && !hasCoordinates) {
-        showAlert('Converting address to coordinates...', 'info');
-        
-        try {
-            const coords = await geocodeAddress(address);
-            if (coords) {
-                latitude = coords.lat;
-                longitude = coords.lng;
-                console.log('Geocoded address:', address, '->', latitude, longitude);
-                showAlert('Location found!', 'success');
-            } else {
-                showAlert('Could not find that address. Please check and try again.', 'warning');
-                return;
-            }
-        } catch (error) {
-            console.error('Geocoding error:', error);
-            showAlert('Error converting address. Please use current location instead.', 'danger');
+    if (!optionExists) {
+        console.warn(`Service ID ${serviceId} does not exist.`);
+        return;
+    }
+
+    serviceSelect.value = serviceId;
+};
+
+const DRAFT_KEY = 'draftRequest';
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    addressSuggestions = document.getElementById('addressSuggestions');
+
+    // Restore any draft saved before a login/register redirect
+    restoreRequestDraft();
+
+    // Load vehicles only if logged in; otherwise show guest state
+    const token = sessionStorage.getItem('token');
+    if (token) {
+        loadVehiclesForRequest();
+    } else {
+        showGuestState();
+    }
+
+    // Automatically select service from URL
+    setServiceFromURL();
+
+    const emergencyForm = document.getElementById('emergencyForm');
+    if (emergencyForm) {
+        emergencyForm.addEventListener('submit', handleRequestSubmit);
+    }
+
+    const addressField = document.getElementById('address');
+    if (addressField) {
+        addressField.addEventListener('input', () => {
+            clearTimeout(addressField._geocodeTimer);
+            const value = addressField.value.trim();
+            addressField._geocodeTimer = setTimeout(() => {
+                if (value.length >= 5) {
+                    forwardGeocode(value);
+                }
+            }, 1000);
+        });
+    }
+
+});
+
+function showGuestState() {
+    const select = document.getElementById('vehicleId');
+    const guestNotice = document.getElementById('guestNotice');
+    const submitBtn = document.getElementById('submitBtn');
+
+    select.innerHTML = '<option value="">Log in to select a vehicle</option>';
+    select.disabled = true;
+    submitBtn.disabled = true;
+    guestNotice.style.display = 'block';
+
+    const returnTo = encodeURIComponent(window.location.pathname);
+
+    document.getElementById('guestLoginLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        saveRequestDraft();
+        window.location.href = `/login?returnTo=${returnTo}`;
+    });
+
+    document.getElementById('guestRegisterLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        saveRequestDraft();
+        window.location.href = `/register?returnTo=${returnTo}`;
+    });
+}
+
+function saveRequestDraft() {
+    const draft = {
+        serviceType: document.getElementById('serviceType').value,
+        latitude: document.getElementById('latitude').value,
+        longitude: document.getElementById('longitude').value,
+        address: document.getElementById('address').value
+    };
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+}
+
+function restoreRequestDraft() {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+
+    const draft = JSON.parse(raw);
+    if (draft.serviceType) document.getElementById('serviceType').value = draft.serviceType;
+    if (draft.latitude) document.getElementById('latitude').value = draft.latitude;
+    if (draft.longitude) document.getElementById('longitude').value = draft.longitude;
+    if (draft.address) document.getElementById('address').value = draft.address;
+
+    sessionStorage.removeItem(DRAFT_KEY);
+}
+// your existing loadVehiclesForRequest() and handleRequestSubmit() stay exactly as-is below
+
+
+
+// document.addEventListener("DOMContentLoaded", () => {
+
+//     addressSuggestions = document.getElementById('addressSuggestions');
+
+//     loadVehiclesForRequest();
+
+//     const emergencyForm = document.getElementById('emergencyForm');
+
+//     if (emergencyForm) {
+//         emergencyForm.addEventListener(
+//             'submit',
+//             handleRequestSubmit
+//         );
+//     }
+
+//     const addressField =
+//         document.getElementById('address');
+
+//     if (addressField) {
+
+//         addressField.addEventListener('input', () => {
+
+//             clearTimeout(addressField._searchTimer);
+
+//             const query =
+//                 addressField.value.trim();
+
+//             addressField._searchTimer =
+//                 setTimeout(() => {
+
+//                     searchAddressLocations(query);
+
+//                 }, 1000);
+//         });
+//     }
+
+// });
+
+// document.addEventListener("DOMContentLoaded", () => {
+//     loadVehiclesForRequest();
+
+//     const emergencyForm = document.getElementById('emergencyForm');
+//     if (emergencyForm) {
+//         emergencyForm.addEventListener('submit', handleRequestSubmit);
+//     }
+
+//     // Forward-geocode manual address entry (debounced) so typing an
+//     // address also fills in lat/lng, same as "Use Current Location" does
+//     // in reverse.
+//     const addressField = document.getElementById('address');
+//     if (addressField) {
+//         addressField.addEventListener('input', () => {
+//             clearTimeout(addressField._geocodeTimer);
+//             addressField._geocodeTimer = setTimeout(() => {
+//                 const value = addressField.value.trim();
+//                 if (value.length >= 5) {
+//                     forwardGeocode(value);
+//                 }
+//             }, 1000); // wait 1s after typing stops — respects Nominatim's ~1 req/sec policy
+//         });
+//     }
+// });
+
+function escapeHtml(value) {
+
+    if (!value) {
+        return '';
+    }
+
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+// address suggestion
+function selectAddressResult(result) {
+
+    const addressField =
+        document.getElementById('address');
+
+    const latitudeField =
+        document.getElementById('latitude');
+
+    const longitudeField =
+        document.getElementById('longitude');
+
+    const statusEl =
+        document.getElementById('locationStatus');
+
+    // Set address
+    addressField.value =
+        result.display_name;
+
+    // Set coordinates
+    latitudeField.value =
+        result.lat;
+
+    longitudeField.value =
+        result.lon;
+
+    // Hide suggestions
+    addressSuggestions.innerHTML = '';
+
+    addressSuggestions.classList.remove('show');
+
+    // Update status
+    if (statusEl) {
+        statusEl.textContent =
+            '📍 Location selected';
+    }
+
+    console.log('Selected address:', {
+        address: result.display_name,
+        latitude: result.lat,
+        longitude: result.lon,
+        addressDetails: result.address
+    });
+}
+//search address
+async function searchAddressLocations(query) {
+
+    if (!query || query.trim().length < 3) {
+
+        addressSuggestions.innerHTML = '';
+
+        addressSuggestions.classList.remove('show');
+
+        return;
+    }
+
+    // Cancel previous search
+    if (addressSearchController) {
+        addressSearchController.abort();
+    }
+
+    addressSearchController =
+        new AbortController();
+
+    addressSuggestions.innerHTML = `
+        <div class="address-loading">
+            🔍 Searching locations...
+        </div>
+    `;
+
+    addressSuggestions.classList.add('show');
+
+    try {
+
+        const encodedQuery =
+            encodeURIComponent(
+                `${query}, Philippines`
+            );
+
+        const url =
+            `https://nominatim.openstreetmap.org/search` +
+            `?q=${encodedQuery}` +
+            `&format=json` +
+            `&addressdetails=1` +
+            `&limit=5` +
+            `&countrycodes=ph`;
+
+        const response = await fetch(url, {
+            signal: addressSearchController.signal
+        });
+
+        if (!response.ok) {
+            throw new Error(
+                `Search failed: ${response.status}`
+            );
+        }
+
+        const results =
+            await response.json();
+
+        if (!results || results.length === 0) {
+
+            addressSuggestions.innerHTML = `
+                <div class="address-no-results">
+                    No locations found.
+                </div>
+            `;
+
             return;
         }
-    }
-    
-    // If no coordinates and no address, try to get current location
-    if (!hasCoordinates && !hasManualAddress) {
-        showAlert('Getting your location...', 'info');
-        
-        await new Promise((resolve) => {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    latitude = pos.coords.latitude;
-                    longitude = pos.coords.longitude;
-                    resolve();
-                },
-                (err) => {
-                    console.error('Location error:', err);
-                    showAlert('Could not get location. Please enter address manually.', 'warning');
-                    resolve();
-                },
-                { enableHighAccuracy: true, timeout: 10000 }
-            );
-        });
-    }
 
-    
-    if (!latitude || !longitude) {
-        showAlert('Please provide your location (use current location or enter a valid address)!', 'danger');
-        return;
-    }
+        addressSuggestions.innerHTML = '';
 
-   
-    const submitBtn = document.querySelector('.submit-btn') || e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = 'Submitting...';
-    submitBtn.disabled = true;
+        results.forEach(result => {
 
-    try {
-        
-        const requestData = {
-            service_type: serviceType,
-            vehicle_type: vehicleType,
-            license_plate: licensePlate,
-            location_lat: parseFloat(latitude),
-            location_lng: parseFloat(longitude),
-            address: address || null
-        };
+            const item =
+                document.createElement('div');
 
-        console.log('Sending request:', requestData);
+            item.className =
+                'address-suggestion';
 
-        const response = await fetch(`${API_BASE_URL}/requests`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(requestData)
+            item.innerHTML = `
+                <strong>
+                    📍 ${escapeHtml(
+                        result.display_name.split(',')[0]
+                    )}
+                </strong>
+
+                <small>
+                    ${escapeHtml(
+                        result.display_name
+                    )}
+                </small>
+            `;
+
+            item.addEventListener('click', () => {
+
+                selectAddressResult(result);
+
+            });
+
+            addressSuggestions.appendChild(item);
         });
 
-        // const data = await response.json();
-        const text = await response.text();
-    console.log("Raw server response:", text);
-
-    let data;
-    try {
-    data = JSON.parse(text);
-    } catch {
-    data = { error: text };
-    }
-
-        if (response.ok) {
-            // Show success message fdf df
-            const confirmationDiv = document.getElementById('confirmation');
-            const requestIdSpan = document.getElementById('requestId');
-            
-            if (confirmationDiv) {
-                confirmationDiv.style.display = 'block';
-            }
-            if (requestIdSpan && data.request) {
-                requestIdSpan.textContent = data.request.id;
-            }
-            
-            // Reset form
-            e.target.reset();
-            document.getElementById('latitude').value = '';
-            document.getElementById('longitude').value = '';
-            
-            showAlert('Request submitted successfully! You can track it in your dashboard.', 'success');
-            
-            // Redirect to dashboard after 2 seconds
-            setTimeout(() => {
-                window.location.href = 'dashboard';
-            }, 2000);
-        } else {
-            showAlert(data.error || 'Request failed: ' + (data.message || 'Unknown error'), 'danger');
-        }
     } catch (error) {
-        console.error('Request error:', error);
-        showAlert('Network error: ' + error.message, 'danger');
-    } finally {
-        submitBtn.innerHTML = originalText;
+
+        if (error.name === 'AbortError') {
+            return;
+        }
+
+        console.error(
+            'Address search error:',
+            error
+        );
+
+        addressSuggestions.innerHTML = `
+            <div class="address-no-results">
+                ⚠️ Unable to search locations.
+            </div>
+        `;
+    }
+}
+//load vehicle
+async function loadVehiclesForRequest() {
+    const select = document.getElementById('vehicleId');
+    const notice = document.getElementById('noVehiclesNotice');
+    const submitBtn = document.getElementById('submitBtn');
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/vehicles`, {
+            headers: {
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            }
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            showAlert(data.error || 'Failed to load your vehicles', 'danger');
+            return;
+        }
+
+        const vehicles = data.vehicles || [];
+        select.innerHTML = '';
+
+        if (vehicles.length === 0) {
+            select.innerHTML = '<option value="">No saved vehicles</option>';
+            select.disabled = true;
+            notice.style.display = 'block';
+            submitBtn.disabled = true;
+            return;
+        }
+
+        select.disabled = false;
+        notice.style.display = 'none';
         submitBtn.disabled = false;
-    }
-}
 
-// NEW FUNCTION: Geocode address to coordinates using Nominatim
-async function geocodeAddress(address) {
-    try {
-        // Add Philippines context + structured query
-        const searchQuery = address.includes('Philippines') 
-            ? address 
-            : `${address}, Philippines`;
-            
-        const encodedAddress = encodeURIComponent(searchQuery);
-        const url = `https://nominatim.openstreetmap.org/search?` +
-            `q=${encodedAddress}` +
-            `&format=json` +
-            `&limit=5` +              // get top 5 results
-            `&countrycodes=ph` +       //  restrict to Philippines only
-            `&addressdetails=1`;       //  get structured address back
-        
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'TowTheRescue/1.0' // required by Nominatim
-            }
-        });
-        
-        const data = await response.json();
-        console.log('Nominatim results:', data); // see what it returns
-        
-        if (data && data.length > 0) {
-            // ✅ Pick the result closest to South Cotabato area
-            const best = data.find(r => 
-                parseFloat(r.lat) >= 6.0 && parseFloat(r.lat) <= 7.0 &&
-                parseFloat(r.lon) >= 124.0 && parseFloat(r.lon) <= 126.0
-            ) || data[0]; // fallback to first result
-            
-            console.log('Best match:', best.display_name, best.lat, best.lon);
-            return {
-                lat: parseFloat(best.lat),
-                lng: parseFloat(best.lon),
-                displayName: best.display_name
-            };
-        }
-        return null;
+        select.innerHTML = '<option value="">Select a vehicle</option>' +
+            vehicles.map(v => `
+                <option value="${v.vehicle_id}" ${v.is_default ? 'selected' : ''}>
+                  ${v.make} ${v.model} ——— ${v.license_plate}${v.is_default ? ' (Default)' : ''}
+                </option>
+            `).join('');
+
     } catch (error) {
-        console.error('Geocoding error:', error);
-        return null;
+        console.error('loadVehiclesForRequest error:', error);
+        showAlert('Network error while loading your vehicles.', 'danger');
     }
 }
-
-// Get address from coordinates (reverse geocoding)
-async function getAddressFromCoords(lat, lng) {
-    try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-        const data = await response.json();
-        return data.display_name || `${lat}, ${lng}`;
-    } catch (error) {
-        console.error('Reverse geocoding error:', error);
-        return `${lat}, ${lng}`;
-    }
-}
-
-// Get current location
-async function getCurrentLocation() {
-    const locationStatus = document.getElementById('locationStatus');
-    const locationBtn = document.getElementById('getLocationBtn');
-    const latitudeInput = document.getElementById('latitude');
-    const longitudeInput = document.getElementById('longitude');
-    const addressInput = document.getElementById('address');
-
-    if (!locationStatus) return;
-
-    locationStatus.innerHTML = '📍 Getting location...';
-    locationStatus.style.color = '#0066cc';
-    if (locationBtn) locationBtn.disabled = true;
+//get current location
+function getCurrentLocation() {
+    const statusEl = document.getElementById('locationStatus');
 
     if (!navigator.geolocation) {
-        locationStatus.innerHTML = '❌ Geolocation is not supported by your browser';
-        locationStatus.style.color = '#dc3545';
-        if (locationBtn) locationBtn.disabled = false;
+        statusEl.textContent = 'Geolocation is not supported by your browser.';
         return;
     }
+
+    statusEl.textContent = 'Getting your location...';
 
     navigator.geolocation.getCurrentPosition(
         async (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
 
-            if (latitudeInput) latitudeInput.value = lat;
-            if (longitudeInput) longitudeInput.value = lng;
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
+            statusEl.textContent = '📍 Location captured — looking up address...';
 
-            locationStatus.innerHTML = '📍 Getting address...';
-            
-            // Get address from coordinates
-            const address = await getAddressFromCoords(lat, lng);
-            if (addressInput && address) {
-                addressInput.value = address;
-                locationStatus.innerHTML = '✅ Location captured successfully!';
-                locationStatus.style.color = '#28a745';
-            } else {
-                locationStatus.innerHTML = '✅ Coordinates captured (enter address manually)';
-                locationStatus.style.color = '#ffc107';
-            }
-
-            if (locationBtn) locationBtn.disabled = false;
+            await reverseGeocode(lat, lng, statusEl);
         },
         (error) => {
-            let errorMessage = 'Unable to get location. ';
-            switch (error.code) {
-                case error.PERMISSION_DENIED:
-                    errorMessage += 'Please enable location services.';
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    errorMessage += 'Location information unavailable.';
-                    break;
-                case error.TIMEOUT:
-                    errorMessage += 'Location request timeout.';
-                    break;
-                default:
-                    errorMessage += 'Unknown error.';
-            }
-            locationStatus.innerHTML = `❌ ${errorMessage}`;
-            locationStatus.style.color = '#dc3545';
-            if (locationBtn) locationBtn.disabled = false;
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            console.error('Geolocation error:', error);
+            statusEl.textContent = 'Could not get your location. Please enter your address manually.';
+        }
     );
 }
 
-// Add a "Search Address" button to manually geocode
-function addSearchAddressButton() {
-    const manualAddressDiv = document.querySelector('.manual-address');
-    if (manualAddressDiv && !document.getElementById('searchAddressBtn')) {
-        const searchBtn = document.createElement('button');
-        searchBtn.id = 'searchAddressBtn';
-        searchBtn.type = 'button';
-        searchBtn.className = 'btn-secondary';
-        searchBtn.style.marginTop = '10px';
-        searchBtn.innerHTML = '🔍 Search Address';
-        searchBtn.onclick = async () => {
-            const addressInput = document.getElementById('address');
-            const address = addressInput?.value;
-            
-            if (!address || !address.trim()) {
-                showAlert('Please enter an address first', 'warning');
+// Coordinates human-readable address (fills the address textarea)
+async function reverseGeocode(lat, lng, statusEl) {
+    try {
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
+        );
+
+        if (!response.ok) {
+            throw new Error(`Nominatim responded with ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data && data.display_name) {
+            document.getElementById('address').value = data.display_name;
+            if (statusEl) statusEl.textContent = '📍 Location captured';
+        } else {
+            if (statusEl) statusEl.textContent = '📍 Location captured (address lookup unavailable — please check the address below)';
+        }
+    } catch (error) {
+        console.error('reverseGeocode error:', error);
+        if (statusEl) statusEl.textContent = '📍 Location captured (address lookup failed — please check the address below)';
+    }
+}
+
+// Address text -> coordinates (fills the hidden lat/lng fields)
+// async function forwardGeocode(query) {
+//     const statusEl = document.getElementById('locationStatus');
+
+//     try {
+//         const response = await fetch(
+//             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
+//         );
+
+//         if (!response.ok) {
+//             throw new Error(`Nominatim responded with ${response.status}`);
+//         }
+
+//         const results = await response.json();
+
+//         if (results && results.length > 0) {
+//             document.getElementById('latitude').value = results[0].lat;
+//             document.getElementById('longitude').value = results[0].lon;
+//             if (statusEl) statusEl.textContent = '📍 Location matched from address';
+//         } else {
+//             // No match — leave whatever lat/lng was there before (or empty).
+//             // The address text itself is still submitted either way.
+//             if (statusEl) statusEl.textContent = '';
+//         }
+//     } catch (error) {
+//         console.error('forwardGeocode error:', error);
+//     }
+// }
+
+//sends request in the bckend
+async function handleRequestSubmit(e) {
+    e.preventDefault();
+
+    const serviceType = document.getElementById('serviceType').value;
+    const vehicleId = document.getElementById('vehicleId').value;
+    const latitude = document.getElementById('latitude').value;
+    const longitude = document.getElementById('longitude').value;
+    const address = document.getElementById('address').value.trim();
+
+    if (!vehicleId) {
+        showAlert('Please select a vehicle.', 'danger');
+        return;
+    }
+
+    if (!latitude && !longitude && !address) {
+        showAlert('Please share your location or enter an address.', 'danger');
+        return;
+    }
+
+    const requestData = {
+        service_type_id: serviceType,
+        vehicle_id: vehicleId,
+        location_lat: latitude ? parseFloat(latitude) : null,
+        location_lng: longitude ? parseFloat(longitude) : null,
+        address: address || null
+    };
+
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Submitting...';
+    submitBtn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/requests`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            document.getElementById('emergencyForm').style.display = 'none';
+            document.getElementById('requestId').textContent = data.request.id;
+            document.getElementById('confirmation').style.display = 'block';
+        } else {
+            showAlert(data.error || 'Failed to submit request', 'danger');
+        }
+    } catch (error) {
+        console.error('Request submission error:', error);
+        showAlert('Network error. Please try again.', 'danger');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+}
+// for the request card
+document.addEventListener('DOMContentLoaded', () => {
+
+    const requestButtons = document.querySelectorAll('.request-srv');
+
+    requestButtons.forEach(button => {
+
+        button.addEventListener('click', () => {
+
+            const serviceId = button.dataset.serviceId;
+
+            if (!serviceId) {
+                console.error('No service ID found on request button.');
                 return;
             }
-            
-            showAlert('Searching for address...', 'info');
-            const coords = await geocodeAddress(address);
-            
-            if (coords) {
-                document.getElementById('latitude').value = coords.lat;
-                document.getElementById('longitude').value = coords.lng;
-                showAlert('Address found! Coordinates saved.', 'success');
-                
-                const locationStatus = document.getElementById('locationStatus');
-                if (locationStatus) {
-                    locationStatus.innerHTML = '✅ Address geocoded successfully!';
-                    locationStatus.style.color = '#28a745';
-                }
-            } else {
-                showAlert('Address not found. Please try a different address.', 'warning');
-            }
-        };
-        
-        manualAddressDiv.appendChild(searchBtn);
-    }
-}
 
-// Show alert message
-function showAlert(message, type) {
-    const alertContainer = document.getElementById('alertContainer');
-    if (!alertContainer) return;
-    
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type}`;
-    alertDiv.textContent = message;
-    alertContainer.appendChild(alertDiv);
-    
-    setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.remove();
-        }
-    }, 3000);
-}
+            // Change this if your request page has a different URL
+            window.location.href = `requestform?service=${serviceId}`;
+        });
 
-// Initialize form when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    const emergencyForm = document.getElementById('emergencyForm');
-    if (emergencyForm) {
-        emergencyForm.addEventListener('submit', handleEmergencyRequest);
-    }
-    
-    const getLocationBtn = document.getElementById('getLocationBtn');
-    if (getLocationBtn) {
-        getLocationBtn.addEventListener('click', getCurrentLocation);
-    }
-    
-    // Add search button for manual address
-    addSearchAddressButton();
+    });
+
 });
+
+

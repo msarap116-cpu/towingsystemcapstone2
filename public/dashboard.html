@@ -1,114 +1,378 @@
+<!-- customer side dashboard.js -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Dashboard - Towing Assistance</title>
     <script>
-        // Redirect if not logged in para ang galing
-        if (!localStorage.getItem('token')) {
+        if (!sessionStorage.getItem('token')) {
             window.location.replace('login');
         }
     </script>
-    
+
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 
 <body>
-    
+
     <nav class="navbar">
-        <div class="container" style="padding: 0; width: 100%;">
-            <a class="navbar-brand" href="index">Tow the Rescue</a>
+        <div class="brand">
+            <div class="brand-icon">🚛</div>
+            <h1>Goodwrench</h1>
         </div>
     </nav>
 
-    
-    <div class="dashboard-main-wrapper">
-        <div class="container">
-          
-            <div class="sidebar">
-                <div class="dashboard-card">
-                    <h3>My Account</h3>
-                    <div class="profile-info">
-                        <div class="profile-icon">
-                            <span id="userInitials">U</span>
-                        </div>
-                        <h4 id="profileName">User Name</h4>
-                        <p id="userType">Customer</p>
+    <div class="dashboard-wrapper">
+        <!-- side bar ni ha!!-->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="profile-card">
+                    <div class="avatar-large profile-avatar-container" id="profileAvatar">
+                        <span id="avatarInitials">AD</span>
+                        <img id="avatarImage" src="" alt="Profile Picture" style="display: none;">
+                        <input type="file" id="profilePictureInput" accept="image/jpeg,image/png,image/webp" hidden>
                     </div>
-                    <hr>
-                   <ul class="sidebar-nav">
-                        <li><a class="active" href="dashboard">Dashboard</a></li>
-                         <li><a href="requestform">Request</a></li>
-                          <!-- <li><a href="vehicles">My Vehicles</a></li> -->
-                            <li><a href="#" id="editAddressSidebarBtn">Edit Address</a></li>
-                             <li><a class="text-danger" id="logoutBtnSidebar" href="#">Logout</a></li>
-</ul>
+                    <!-- Edit button NOW OUTSIDE the container -->
+                    <div class="avatar-edit-icon" id="avatarEditButton">✎</div>
+                    <div class="profile-text">
+                        <h3 id="profileName">User Name</h3>
+                        <p id="userType">⭐ Customer</p>
+                    </div>
                 </div>
+            </div>
+            <!--reuseable locations ni sya-->
+            <div class="saved-pins-section">
+                <div class="section-label"> REUSABLE LOCATIONS</div>
+                <div class="pin-list" id="savedPinsList"></div>
+                <div class="add-pin-btn" id="openSavePinModalBtn">+ Save current location</div>
             </div>
 
-            
-            <div class="main-content">
-               
-                <div class="dashboard-card">
-                    <h3>My Location</h3>
-                    <div id="map" style="height: 600px; border-radius: 10px;"></div>
+            <!-- sidebar selectoring sa mga gwapo nga functions-->
+            <div class="sidebar-nav">
+                <div class="nav-item active" id="dashboardNav">
+                    <span class="nav-icon"></span> Dashboard
                 </div>
-                
+                <div class="nav-item" id="emergencyRequestBtn">
+                    <span class="nav-icon"></span> New Request
+                </div>
+                <div class="nav-item" id="paymentNavBtn">
+                    <span class="nav-icon"></span> Payment
+                </div>
+                <div class="nav-item" id="editAddressNavBtn">
+                    <span class="nav-icon"></span> Edit Address
+                </div>
+                <div class="nav-item" id="receiptNavBtn">
+                    <span class="nav-icon"></span> Receipts
+                </div>
+                <div class="nav-item logout-item" id="logoutBtnSidebar">
+                    <span class="nav-icon"></span> Logout
+                </div>
             </div>
+        </aside>
+
+        <div class="main-panel">
+
+            <!-- Dashboard tab -->
+            <section id="dashboardPanel" class="tab-panel">
+                <div class="request-header-card">
+                    <div class="request-badge">
+                        <span class="tracking-number" id="trackingIdDisplay">#3565432</span>
+                        <span class="status-chip" id="requestStatusBadge">
+                            In Transit
+                        </span>
+                        <span class="eta-box" id="etaDisplay">
+                            ETA 12 min
+                        </span>
+                    </div>
+
+                    <button class="btn-outline" id="refreshTrackingBtn">
+                        ⟳ Refresh
+                    </button>
+                </div>
+
+                <div class="map-card">
+                    <div class="map-header">
+                        <span>Live Tracking — Driver & Your Location</span>
+
+                        <button class="btn-outline" id="recenterMapBtn">
+                            My Location
+                        </button>
+                    </div>
+
+                    <div id="map"></div>
+                </div>
+
+                <div class="recent-mini">
+                    <div class="section-label" style="margin-bottom:8px;">
+                        Recent Activity
+                    </div>
+
+                    <div id="recentHistoryList">
+                        <!-- JavaScript inserts activities here -->
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- Receipts tab -->
+            <section id="receiptPanel" class="tab-panel" hidden>
+                <div class="panel-header">
+                    <h3>My Receipts</h3>
+                </div>
+
+                <div class="panel-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Receipt #</th>
+                                <th>Request</th>
+                                <th>Amount</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="receiptsTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center">
+                                    Loading...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
         </div>
+
     </div>
 
     <!-- Edit Address Modal -->
-<div id="editAddressModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <span id="closeModalBtn" class="close-btn">&times;</span>
-        <h3>Edit Request Address</h3>
+    <div id="editAddressModal" class="modal" style="display:none;">
+        <div class="modal-content">
 
-        <input type="hidden" id="editRequestId">
+            <span id="closeModalBtn" class="close-btn">&times;</span>
 
-        <label for="editAddressInput">New Address:</label>
-        <textarea id="editAddressInput" rows="4" style="width:100%;"></textarea>
+            <h3>Edit Request Address</h3>
 
-        <button type="button" id="saveAddressBtn">Save Changes</button>
+            <input type="hidden" id="editRequestId">
+
+            <label for="editAddressInput">Search Location:</label>
+
+            <div class="location-search-wrapper">
+                <input type="text" id="editAddressInput" placeholder="Search for an address..." autocomplete="off">
+
+                <div id="addressSuggestions" class="address-suggestions"></div>
+            </div>
+
+            <!-- NEW BUTTON -->
+            <button type="button" id="useCurrentEditLocationBtn" class="btn-outline"
+                style="width:100%; margin-top:10px;">
+                Use My Current Location
+            </button>
+
+            <!-- Coordinates -->
+            <input type="hidden" id="editLocationLat">
+            <input type="hidden" id="editLocationLng">
+
+            <div id="selectedLocationInfo" class="selected-location-info">
+                No new location selected
+            </div>
+
+            <button type="button" id="saveAddressBtn" class="btn-primary" style="width:100%; margin-top:15px;">
+                Save Changes
+            </button>
+
+        </div>
     </div>
-</div>
 
-    <!-- Alert Container -->
-    <div id="alertContainer"></div>
+    <!-- SAVE PIN MODAL -->
+    <div id="savePinModal" class="panel-modal">
+        <div class="panel-container">
+            <div class="panel-header">
+                <span>📌 Save Location</span>
+                <button class="close-panel" data-close="savePinModal">✕</button>
+            </div>
+            <input type="text" id="pinNameInput" placeholder="Name (Home, Office, etc)">
+            <textarea id="pinAddressPreview" rows="2" readonly></textarea>
+            <button class="btn-primary" id="confirmSavePinBtn">Save as reusable</button>
+        </div>
+    </div>
+
+    <!-- payment modal -->
+    <div id="paymentModal" class="panel-modal">
+
+        <div class="panel-container payment-modal-container">
+
+            <div class="panel-header">
+
+                <h2> Payment</h2>
+
+                <button type="button" id="closePaymentModal" class="close-panel">
+                    ×
+                </button>
+
+            </div>
+
+            <div class="payment-modal-body">
+
+                <div class="payment-request-info">
+
+                    <h3>Payment for Request</h3>
+
+                    <p>
+                        Request #
+                        <strong id="paymentRequestId">--</strong>
+                    </p>
+
+                    <p class="payment-amount">
+                        Amount Due:
+                        <strong id="paymentAmount">
+                            ₱0.00
+                        </strong>
+                    </p>
+
+                </div>
+
+                <div class="payment-method-section">
+
+                    <h3>Choose Payment Method</h3>
+
+                    <div class="payment-method-grid">
+
+                        <button type="button" class="payment-method-btn" data-method="gcash">
+                            <span class="payment-method-icon">
+                                💚
+                            </span>
+
+                            <span>
+                                <strong>GCash</strong>
+                                <small>Pay online</small>
+                            </span>
+                        </button>
+
+
+                        <button type="button" class="payment-method-btn" data-method="paymaya">
+                            <span class="payment-method-icon">
+
+                            </span>
+
+                            <span>
+                                <strong>PayMaya</strong>
+                                <small>Pay online</small>
+                            </span>
+                        </button>
+
+
+                        <button type="button" class="payment-method-btn" data-method="cash">
+                            <span class="payment-method-icon">
+
+                            </span>
+
+                            <span>
+                                <strong>Cash</strong>
+                                <small>Pay to driver</small>
+                            </span>
+                        </button>
+
+
+                        <button type="button" class="payment-method-btn" data-method="card">
+                            <span class="payment-method-icon">
+
+                            </span>
+
+                            <span>
+                                <strong>Card</strong>
+                                <small>Pay online</small>
+                            </span>
+                        </button>
+
+                    </div>
+                    <!-- GCash Manual Payment Section -->
+                    <div id="gcashPaymentSection" style="display: none;">
+
+                        <h3>Pay with GCash</h3>
+
+                        <div>
+                            <p><strong>Send payment to:</strong></p>
+                            <p>GCash Number: <strong>0917-XXX-XXXX</strong></p>
+                            <p>Account Name: <strong>Your Business Name</strong></p>
+                            <!-- Replace with your actual QR code image -->
+                            <img src="/image/2321600003.png" alt="GCash QR Code" style="max-width: 250px;">
+                        </div>
+
+                        <form id="gcashProofForm">
+
+                            <input type="hidden" id="gcashRequestId" value="">
+
+                            <label for="gcashReferenceNumber">GCash Reference Number</label>
+                            <input type="text" id="gcashReferenceNumber" name="reference_number"
+                                placeholder="e.g. 1234567890123" required>
+
+                            <label for="gcashProofImage">Upload Receipt / Screenshot</label>
+                            <input type="file" id="gcashProofImage" name="proof_image" accept="image/png, image/jpeg"
+                                required>
+
+                            <button type="submit" id="gcashSubmitProofBtn">
+                                Submit Proof of Payment
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                </div>
+
+                <div id="paymentMessage" class="payment-message"></div>
+
+                <div class="payment-actions">
+
+                    <button type="button" class="btn-secondary" id="cancelPaymentBtn">
+                        Cancel
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
 
     <script src="js/app.js"></script>
     <script src="js/dashboard.js"></script>
     <script>
-        // Logout functionality
+        //logout funcky works
         document.getElementById('logoutBtnSidebar')?.addEventListener('click', handleLogout);
 
-        // Load user profile data
-        document.addEventListener('DOMContentLoaded', function() {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (user.name) {
-                const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
-                document.getElementById('userInitials').textContent = initials || 'U';
-                document.getElementById('profileName').textContent = user.name || 'User Name';
-                document.getElementById('userType').textContent = user.role || 'Customer';
-            }
-        });
+        //load user profile data ngaa ara na dre sa html
+        // document.addEventListener('DOMContentLoaded', function () {
+        //     const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+        //     if (user.name) {
+        //         const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+        //         document.getElementById('userInitials').textContent = initials || 'U';
+        //         document.getElementById('profileName').textContent = user.name || 'User Name';
+        //         document.getElementById('userType').textContent = user.role || 'Customer';
+        //     }
+        // });
 
-        // Handle page reload from cache
-        window.addEventListener('pageshow', function(event){
-            if(event.persisted || (window.performance && window.performance.navigation.type === 2)){
-                window.location.reload();
-            }
-        });
-        
-        // Initialize map if the element exists
+        //initials map if the element exist meaning if naa request naay map?
         if (document.getElementById('map')) {
-            // You can add your map initialization code here
-            console.log('Map container ready');
+            //you can add your map initializiation code here for what?
+            console.log('Map Container is ready');
+
         }
+
+
+
     </script>
-    
+
 </body>
+
 </html>

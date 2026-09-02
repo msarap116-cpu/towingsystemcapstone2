@@ -1,310 +1,409 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Towing Assistance</title>
-    
-    <script>
-        const token = localStorage.getItem('token');
-        const userData = JSON.parse(localStorage.getItem('user'));
 
-        if (!token || !userData || userData.role.toLowerCase() !== 'admin') {
-            window.location.replace('login');
-        } else {
-            
-            const adminName = document.getElementById('adminName');
-            const adminEmail = document.getElementById('adminEmail');
-            const userInitials = document.getElementById('userInitials');
+    <!-- Load Leaflet FIRST -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-            if (adminName) adminName.textContent = userData.name;
-            if (adminEmail) adminEmail.textContent = userData.email;
-            if (userInitials) {
-                const initials = userData.name
-                    .split(" ")
-                    .map(word => word[0])
-                    .join("")
-                    .toUpperCase();
-                userInitials.textContent = initials;
-            }
-        }
-    </script>
     <link rel="stylesheet" href="css/admin-dashboard.css">
-
 </head>
+
 <body>
-    <!-- Navigation - Fixed at top -->
+    <!-- ========== NAVBAR ========== -->
     <nav class="navbar">
-        <div class="container nav-container">
-            <a class="navbar-brand" href="home">Tow the Rescue - Admin</a>
-            <ul class="nav-menu">
-                <li><a href="admin-dashboard" class="active">Dashboard</a></li>
-                <!-- <li><a href="home">View Site</a></li> -->
-            </ul>
+        <div class="brand">
+            <div class="brand-icon"></div>
+            <h1>Towing System</h1>
+        </div>
+        <div class="navbar-actions">
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="globalSearch" placeholder="Search requests, customers...">
+            </div>
+            <div class="notification-badge">
+                <span>🔔</span>
+                <div class="badge-dot"></div>
+            </div>
         </div>
     </nav>
-    
-    <!-- Main Layout Wrapper karne -->
-    <div class="app-wrapper">
-        
-        <div class="sidebar">
-            <div class="profile-info">
-                <div class="profile-icon">
-                    <span id="userInitials">U</span>
-                </div>
-                <h4 id="adminName">Admin User</h4>
-                <p id="adminEmail">admin@towrescue.com</p>
-            </div>
-            <hr>
-            <ul class="sidebar-nav">
-                <!-- <li><a href="admin-dashboard" class="active">Dashboard</a></li>
-                <li><a href="admin-requests">All Requests</a></li>
-                <li><a href="admin-users">Manage Users</a></li>
-                <li><a href="admin-services">Services</a></li>
-                <li><a href="admin-reports">Reports</a></li>
-                <li><a href="admin-settings">Settings</a></li> -->
-                <li><a class="text-danger" id="logoutBtn" href="#">Logout</a></li>
-            </ul>
-        </div>
 
-        <!-- Main Content fdgfdsg -->
-        <div class="main-content">
-        
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h2 id="totalRequests">0</h2>
-                    <p>Total Requests</p>
-                </div>
-                <div class="stat-card">
-                    <h2 id="activeRequests">0</h2>
-                    <p>Active Requests</p>
-                </div>
-                <div class="stat-card">
-                    <h2 id="pendingRequests">0</h2>
-                    <p>Pending</p>
-                </div>
-                <div class="stat-card">
-                    <h2 id="totalUsers">0</h2>
-                    <p>Total Users</p>
+    <div class="dashboard-wrapper">
+        <!-- ========== SIDEBAR ========== -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="profile-card">
+                    <div class="avatar-large profile-avatar-container" id="profileAvatar">
+                        <span id="avatarInitials">AD</span>
+                        <img id="avatarImage" src="" alt="Profile Picture" style="display: none;">
+                        <input type="file" id="profilePictureInput" accept="image/jpeg,image/png,image/webp" hidden>
+                    </div>
+                    <!-- Edit button NOW OUTSIDE the container -->
+                    <div class="avatar-edit-icon" id="avatarEditButton">✎</div>
+                    <div class="profile-text">
+                        <h3 id="profileName">Admin User</h3>
+                        <p>Admin</p>
+                    </div>
                 </div>
             </div>
 
-           
+            <div class="sidebar-nav">
+                <div class="nav-item active" data-tab="dashboard">
+                    <span class="nav-icon"></span> Dashboard
+                </div>
+                <div class="nav-item" data-tab="requests">
+                    <span class="nav-icon"></span> Requests
+                </div>
+                <div class="nav-item" data-tab="drivers">
+                    <span class="nav-icon"></span> faculty
+                </div>
+                <div class="nav-item" data-tab="users">
+                    <span class="nav-icon"></span> Customers
+                </div>
+                <div class="nav-item" data-tab="payments">
+                    <span class="nav-icon"></span> Payments
+                </div>
+                <div class="nav-item logout-item" id="logoutBtnSidebar">
+                    <span class="nav-icon"></span> Logout
+                </div>
+            </div>
+        </aside>
 
-            <!-- Loading State -->
-            <div id="loading" class="loading">
-                <div class="spinner"></div>
-                <p>Loading requests...</p>
-            </div>
-     
-            <!-- Users Management -->
-            <div class="action-bar">
-                <h2>Manage Users</h2>
-                <div style="display:flex; gap:10px;">
-                    <input type="text" id="userSearch" class="search-box" placeholder="Search users...">
-                    <button class="btn btn-primary" onclick="openUserModal()">+ Add User</button>
+        <!-- ========== THIS IS THE STARTING TO THE MAIN PANEL HAA! ========== -->
+        <div class="main-panel">
+            <!-- THIS IS THE STARTING POINT OF THE DASHBOARD LAIN ANG PANEL SA DASHBOARD-->
+            <div id="dashboardPanel" class="tab-panel active">
+                <br>
+                <span style="font-weight:600;">available request and etchoss</span>
+                <div class="map-container">
+                    <div id="map">
+
+                    </div>
+                    <div class="legend">
+                        <div>
+                            <span class="legend-dot" style="background:#ef4444;"></span>
+                            Pending Customer
+                        </div>
+
+                        <div>
+                            <span class="legend-dot" style="background:#3b82f6;"></span>
+                            Customer In Progress
+                        </div>
+
+                        <div>
+                            <span class="legend-dot" style="background:#10b981;"></span>
+                            Driver Available
+                        </div>
+
+                        <div>
+                            <span class="legend-dot" style="background:#f59e0b;"></span>
+                            Busy Driver
+                        </div>
+                        <a href="https://www.flaticon.com/free-icons/maps-and-location" title="maps and location icons">
+                            icons created by Vector Stall - Flaticon</a>
+                    </div>
+
+                </div>
+                <div
+                    style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; flex-wrap:wrap; gap:12px;">
+
+                    <button class="btn btn-primary" onclick="refreshMapMarkers()">Refresh locations</button>
                 </div>
             </div>
-            <!-- users table -->
-            <div class="table-container">
-                <table id="usersTable">
-                    <thead>
-                        <th>User ID</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Role</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersTableBody">
-                        <!-- User rows will load here -->       
-                    </tbody>
-                </table>
-            </div>
-            <!-- Action Bar -->
-            <div class="action-bar">
-                <h2>Manage Requests</h2>
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="searchInput" class="search-box" placeholder="Search requests...">
-                    <button class="btn btn-primary" onclick="openAddModal()">+ New Request</button>
+
+            <!-- IN THIS PART IS THE WHERE THE SIDEBAR START sun a ang sidebar sang driver  -->
+            <!-- REQUESTS BUTTON-->
+            <div id="requestsPanel" class="tab-panel">
+                <div class="panel-header-actions">
+                    <h2>Service Requests</h2>
+                    <button class="btn btn-primary" onclick="openRequestModal()"> New Request</button>
                 </div>
-            </div>
-            <!-- Requests Table -->
-            <div id="tableContainer" style="display: none;">
-                <div class="table-container">
-                    <table id="requestsTable">
+                <div class="table-wrapper">
+                    <table class="data-table">
                         <thead>
                             <tr>
                                 <th>ID</th>
                                 <th>Customer</th>
-                                <th>Phone</th>
-                                <!-- <th>Service</th> -->
                                 <th>Location</th>
+                                <th>Driver</th>
                                 <th>Status</th>
-                                <th>Created at</th>
+                                <th>Payment</th>
+                                <th>Date Creted</th>
+                                <!-- <th>Actions</th> -->
+
                             </tr>
                         </thead>
-                        <tbody id="tableBody">
-                            <!-- Table data will be inserted here -->
-                        </tbody>
+                        <tbody id="requestsTable"></tbody>
                     </table>
                 </div>
-
-                <!-- Pagination -->
-                <div class="pagination" id="pagination"></div>
             </div>
 
-            <!-- No Data Message -->
-            <div id="noData" class="loading" style="display: none;">
-                <p>No requests found</p>
+            <!-- DRIVERS TAB-->
+            <div id="driversPanel" class="tab-panel">
+                <div class="panel-header-actions">
+                    <h2>🚛 Faculty</h2>
+                    <!-- GoodWrenchOVERFLOW MENU: Driver + Admin -->
+                    <div class="overflow-menu">
+                        <button class="btn btn-primary overflow-trigger"> Add Someone</button>
+                        <div class="overflow-dropdown">
+                            <button class="dropdown-item" onclick="openDriverModal()">Add Member / Driver</button>
+                            <button class="dropdown-item" onclick="openAdminModal()"> Add Admin</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="driversListContainer"></div>
+            </div>
+
+            <!-- CUSTOMERS TAB-->
+            <div id="usersPanel" class="tab-panel">
+                <div class="panel-header-actions">
+                    <h2>👥 Customer Directory</h2>
+                    <button class="btn btn-primary" onclick="openCustomerModal()">➕ Add Customer</button>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Total Trips</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customersTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PAYMENTS TAB-->
+            <div id="paymentsPanel" class="tab-panel">
+                <div class="panel-header-actions">
+                    <h2>Receipts & Transactions</h2>
+                    <button class="btn btn-primary" onclick="addDemoPayment()">➕ Add Payment</button>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Receipt #</th>
+                                <th>Request ID</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsTable"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-    
-    <!-- Add/Edit Modal -->
+
+    <!-- IN THIS PART IS WHERE THE MODALS ARE -->
+
+    <!-- Request Modal -->
     <div id="requestModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modalTitle">Add New Request</h3>
-                <button onclick="closeModal()">&times;</button>
+                <span>📋 Tow Request Details</span>
+                <button onclick="closeModal('requestModal')">✕</button>
             </div>
             <div class="modal-body">
                 <form id="requestForm">
-                    <input type="hidden" id="requestId">
-                    
-                    <div class="form-group">
-                        <label for="customerName">Customer Name</label>
-                        <input type="text" id="customerName" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="customerPhone">Phone Number</label>
-                        <input type="tel" id="customerPhone" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="serviceType">Service Type</label>
-                        <select id="serviceType" required>
-                            <option value="">Select Service</option>
-                            <option value="towing">Towing</option>
-                            <option value="jumpstart">Jump Start</option>
-                            <option value="tire">Tire Change</option>
-                            <option value="fuel">Fuel Delivery</option>
-                            <option value="lockout">Lockout</option>
+                    <input type="hidden" id="editReqId">
+                    <div class="form-group"><label>Customer Name</label><input id="reqCustomer" required></div>
+                    <div class="form-group"><label>Phone</label><input id="reqPhone"></div>
+                    <div class="form-group"><label>Pickup Location</label><input id="reqLocation" required></div>
+                    <div class="form-group"><label>Service Type</label>
+                        <select id="reqService">
+                            <option>Towing</option>
+                            <option>Jumpstart</option>
+                            <option>Tire Change</option>
+                            <option>Fuel Delivery</option>
                         </select>
                     </div>
-
-                    <div class="form-group">
-                        <label for="location">Location</label>
-                        <input type="text" id="location" placeholder="Enter address" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="status">Status</label>
-                        <select id="status" required>
-                            <option value="pending">Pending</option>
-                            <option value="in progress">in progress</option>
-                            <option value="completed">Completed</option>
-                            <option value="cancelled">Cancelled</option>
+                    <div class="form-group"><label>Status</label>
+                        <select id="reqStatus">
+                            <option>pending</option>
+                            <option>assigned</option>
+                            <option>in progress</option>
+                            <option>completed</option>
                         </select>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn" style="background: #6c757d; color: white;" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-outline" onclick="closeModal('requestModal')">Cancel</button>
                 <button class="btn btn-primary" onclick="saveRequest()">Save Request</button>
             </div>
         </div>
     </div>
 
-    <!-- User Add/Edit Modal -->
-    <div id="userModal" class="modal">
+    <!-- Driver Modal -->
+    <div id="driverModal" class="modal">
         <div class="modal-content">
+
             <div class="modal-header">
-                <h3 id="userModalTitle">Add User</h3>
-                <button onclick="closeUserModal()">&times;</button>
+                <span>🚛 Add Driver</span>
+                <button type="button" onclick="closeModal('driverModal')">✕</button>
             </div>
 
             <div class="modal-body">
-                <form id="userForm">
-                    <input type="hidden" id="userId">
+
+                <form id="driverForm">
+
+                    <input type="hidden" id="editDriverId">
 
                     <div class="form-group">
-                        <label>Name</label>
-                        <input type="text" id="userName" required>
+                        <label>Full Name</label>
+                        <input type="text" id="driverName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="driverEmail" required>
                     </div>
 
                     <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="userEmail" required>
+                        <label>Password</label>
+                        <input type="password" id="driverPassword" required>
                     </div>
 
                     <div class="form-group">
                         <label>Phone</label>
-                        <input type="text" id="userPhone" required>
+                        <input type="text" id="driverPhone">
                     </div>
 
+
+
                     <div class="form-group">
-                        <label>Role</label>
-                        <select id="userRole">
-                            <option value="admin">Admin</option>
-                            <option value="driver">Driver</option>
-                            <option value="customer">Customer</option>
+                        <label>Status</label>
+
+                        <select id="driverStatusSelect">
+                            <option value="offline">Offline</option>
+                            <option value="online">Online</option>
+                            <option value="busy">Busy</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="text" id="password" required>
 
-                    </div>
                 </form>
+
             </div>
 
             <div class="modal-footer">
-                <button class="btn" style="background:#6c757d;color:white;" onclick="closeUserModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveUser()">Save User</button>
+
+                <button type="button" class="btn btn-outline" onclick="closeModal('driverModal')">
+                    Cancel
+                </button>
+
+                <button type="button" class="btn btn-primary" onclick="saveDriver()">
+                    Save
+                </button>
+
             </div>
+
         </div>
     </div>
 
-    <!-- View Modal -->
-    <div id="viewModal" class="modal">
+    <!-- Customer Modal -->
+    <div id="customerModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Request Details</h3>
-                <button onclick="closeViewModal()">&times;</button>
-            </div>
-            <div class="modal-body" id="viewDetails">
-                <!-- Details will be inserted here -->
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" onclick="closeViewModal()">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header" style="background: #dc3545;">
-                <h3>Confirm Delete</h3>
-                <button onclick="closeDeleteModal()">&times;</button>
+                <span>👤 Customer Info</span>
+                <button onclick="closeModal('customerModal')">✕</button>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to delete this request? This action cannot be undone.</p>
+                <form id="customerForm">
+                    <input type="hidden" id="editCustId">
+                    <div class="form-group"><label>Full Name</label><input id="custName" required></div>
+                    <div class="form-group"><label>Phone</label><input id="custPhone" required></div>
+                    <div class="form-group"><label>Email</label><input id="custEmail"></div>
+                </form>
             </div>
             <div class="modal-footer">
-                <button class="btn" style="background: #6c757d; color: white;" onclick="closeDeleteModal()">Cancel</button>
-                <button class="btn btn-delete" id="confirmDeleteBtn">Delete</button>
+                <button class="btn btn-outline" onclick="closeModal('customerModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveCustomer()">Save</button>
             </div>
         </div>
     </div>
+    <div id="adminModal" class="modal">
+        <div class="modal-content">
 
-    <!-- Alert Container -->
-    <div id="alertContainer"></div>
+            <h2 id="adminModalTitle">Add Admin</h2>
+
+            <input type="hidden" id="editAdminId">
+
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="adminName">
+            </div>
+
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="adminPhone">
+            </div>
+
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="adminEmail">
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="adminPassword">
+            </div>
+
+            <button onclick="saveAdmin()">Save Admin</button>
+            <button onclick="closeModal('adminModal')">Cancel</button>
+
+        </div>
+    </div>
+    <div id="assignDriverModal" class="modal">
+
+        <div class="modal-content">
+
+            <h2>Assign Driver</h2>
+
+            <input type="hidden" id="assignRequestId">
+
+            <div class="form-group">
+                <label>Request</label>
+                <input type="text" id="assignRequestDisplay" readonly>
+            </div>
+
+            <div class="form-group">
+                <label>Select Driver</label>
+
+                <select id="assignDriverSelect">
+                    <option value="">Loading drivers...</option>
+                </select>
+            </div>
+
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+
+                <button type="button" class="btn btn-secondary" onclick="closeAssignDriverModal()">
+                    Cancel
+                </button>
+
+                <button type="button" class="btn btn-primary" onclick="confirmAssignDriver()">
+                    Assign Driver
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Load your JS files LAST -->
     <script src="js/app.js"></script>
     <script src="js/admin-dashboard.js"></script>
-    
 </body>
+
 </html>

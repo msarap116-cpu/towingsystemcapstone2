@@ -1,32 +1,62 @@
 
-
+//D:towing_system1/public/js/app.js
 let loggedinUser = null;
 
 const API_BASE_URL = "http://localhost:3000/api";
 // const API_BASE_URL = "https://tow-the-rescue.onrender.com/api";
-const LOCATIONIQ_API_KEY = 'pk.d0c02828c7c455983b75676c45e1f1bd';
 
+async function apiFetch(endpoint, options = {}) {
+    try {
+        const token = sessionStorage.getItem('token');
+        const headers = {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+            ...options.headers,
+        };
 
-// Setup event listeners
-function setupEventListeners() {
-    // Login form
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            ...options,
+            headers,
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Request failed' }));
+
+            if (error.code === 'SESSION_REPLACED' || error.code === 'SESSION_EXPIRED') {
+                sessionStorage.removeItem('token');
+                showAlert('You have been logged out because this account was signed in elsewhere.', 'error');
+                window.location.replace('login');
+                return;
+            }
+
+            throw new Error(error.message || 'API request failed');
+        }
+
+        const text = await response.text();
+        if (!text.trim()) return [];
+        return JSON.parse(text);
+    } catch (error) {
+        console.error('API Error:', error);
+        showAlert(error.message, 'error');
+        throw error;
     }
-    
+}
+
+function setupEventListeners() {
+
     // Emergency request form
     const emergencyForm = document.getElementById('emergencyForm');
     if (emergencyForm) {
         emergencyForm.addEventListener('submit', handleEmergencyRequest);
     }
-    
+
     // Logout button
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleLogout);
     }
-    
+
     // Get location button
     const getLocationBtn = document.getElementById('getLocationBtn');
     if (getLocationBtn) {
@@ -34,95 +64,82 @@ function setupEventListeners() {
     }
 }
 
-async function loginUser(email, password) {
-    const response = await fetch(`${API_BASE_URL}/users/login`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            email,
-            password
-        })
-    });
+// async function loginUser(email, password) {
+//     const response = await fetch(`${API_BASE_URL}/users/login`, {
+//         method: "POST",
+//         headers: {
+//             "Content-Type": "application/json"
+//         },
+//         body: JSON.stringify({
+//             email,
+//             password
+//         })
+//     });
 
-    const data = await response.json();
-    console.log(data);
-}
+//     const data = await response.json();
+//     console.log(data);
+// }
 
 // Load dashboard data
-async function loadDashboardData() {
+async function loadDashboardData(silent = false) {
     if (!loggedinUser) return;
-    
+
     const loadingDiv = document.getElementById('loading');
     const dashboardContent = document.getElementById('dashboardContent');
-    
-    if (loadingDiv) loadingDiv.style.display = 'block';
-    if (dashboardContent) dashboardContent.style.display = 'none';
-    
+
+    // Only show loading screen if NOT silent
+    if (!silent) {
+        if (loadingDiv) loadingDiv.style.display = 'block';
+        if (dashboardContent) dashboardContent.style.display = 'none';
+    }
+
     try {
-        const token = localStorage.getItem('token');
-        
-        // Load user's requests
+        const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_BASE_URL}/requests/my-requests`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+         cache: 'no-store'
+
         if (response.ok) {
             const requests = await response.json();
             displayRequests(requests);
         }
-        
-        // Load user profile
-        const profileResponse = await fetch(`${API_BASE_URL}/users/profile`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        
-        if (profileResponse.ok) {
-            const profile = await profileResponse.json();
-            updateProfileDisplay(profile);
-        }
-        
-        // Return true to indicate success
+        // ... rest of your profile fetch code ...
         return true;
-        
     } catch (error) {
         console.error('Dashboard load error:', error);
-        showAlert('Failed to load dashboard data', 'danger');
-        throw error; // Re-throw to handle in the calling function
     } finally {
-        if (loadingDiv) loadingDiv.style.display = 'none';
-        if (dashboardContent) dashboardContent.style.display = 'block';
+        if (!silent) {
+            if (loadingDiv) loadingDiv.style.display = 'none';
+            if (dashboardContent) dashboardContent.style.display = 'block';
+        }
     }
 }
+
 // changing profile picturefd
 const profileImage = document.getElementById("profileImage");
 const profileUpload = document.getElementById("profileUpload");
 const changePhotoBtn = document.getElementById("changePhotoBtn");
 
-if(profileImage && profileUpload && changePhotoBtn){
+if (profileImage && profileUpload && changePhotoBtn) {
 
     changePhotoBtn.addEventListener("click", () => {
         profileUpload.click();
     });
 
-    profileUpload.addEventListener("change", function(){
+    profileUpload.addEventListener("change", function () {
 
         const file = this.files[0];
 
-        if(file){
+        if (file) {
 
             const reader = new FileReader();
 
-            reader.onload = function(e){
+            reader.onload = function (e) {
 
                 profileImage.src = e.target.result;
 
-                localStorage.setItem("profileImage", e.target.result);
+                sessionStorage.setItem("profileImage", e.target.result);
 
             };
 
@@ -132,9 +149,9 @@ if(profileImage && profileUpload && changePhotoBtn){
 
     });
 
-    const savedImage = localStorage.getItem("profileImage");
+    const savedImage = sessionStorage.getItem("profileImage");
 
-    if(savedImage){
+    if (savedImage) {
         profileImage.src = savedImage;
     }
 
@@ -143,7 +160,7 @@ if(profileImage && profileUpload && changePhotoBtn){
 function displayRequests(requests) {
     const requestsList = document.getElementById('requestsList');
     if (!requestsList) return;
-    
+
     if (requests.length === 0) {
         requestsList.innerHTML = `
             <div class="text-center py-5">
@@ -155,7 +172,7 @@ function displayRequests(requests) {
         `;
         return;
     }
-    
+
     requestsList.innerHTML = requests.map(request => `
         <div class="request-item">
             <div class="d-flex justify-content-between align-items-start">
@@ -183,10 +200,10 @@ function updateUIForLoggedInUser() {
     const loginLinks = document.querySelectorAll('.login-link');
     const logoutLinks = document.querySelectorAll('.logout-link');
     const userInfo = document.querySelectorAll('.user-info');
-    
+
     loginLinks.forEach(link => link.style.display = 'none');
     logoutLinks.forEach(link => link.style.display = 'block');
-    
+
     // Update user info
     userInfo.forEach(element => {
         if (element.id === 'userName') {
@@ -201,52 +218,135 @@ function updateUIForLoggedInUser() {
 function updateUIForLoggedOutUser() {
     const loginLinks = document.querySelectorAll('.login-link');
     const logoutLinks = document.querySelectorAll('.logout-link');
-    
+
     loginLinks.forEach(link => link.style.display = 'block');
     logoutLinks.forEach(link => link.style.display = 'none');
 }
 
 // Handle logout
-function handleLogout() {
-    if (confirm('Are you sure you want to logout?')) {
-        
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+async function handleLogout() {
+
+    if (!confirm('Are you sure you want to logout?')) {
+        return;
+    }
+
+    const token = sessionStorage.getItem('token');
+
+    try {
+
+        if (token) {
+
+            const response = await fetch(
+                `${API_BASE_URL}/users/logout`,
+                {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }, cache: 'no-store'
+                }
+
+            );
+
+            const data = await response.json();
+
+            console.log(
+                'Logout:',
+                response.status,
+                data
+            );
+        }
+
+    } catch (error) {
+
+        console.error(
+            'Logout request failed:',
+            error
+        );
+
+    } finally {
+
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+
         loggedinUser = null;
+
         updateUIForLoggedOutUser();
 
-        window.localStorage.clear();
-        window.sessionStorage.clear();
-        window.location.replace('home');
-        // window.location.href = 'index';
+        sessionStorage.clear();
+
+        window.location.replace('/home');
     }
 }
 
 
 // Show alert message
-function showAlert(message, type) {
-    // Remove existing alerts
-    const existingAlert = document.querySelector('.alert-dismissible');
-    if (existingAlert) {
-        existingAlert.remove();
+function showAlert(msg, type = 'info') {
+    let container = document.getElementById('alertContainer');
+
+    // Create container if it doesn't exist
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'alertContainer';
+        document.body.appendChild(container);
+
+        // Position container at TOP CENTER with margin from the top
+        container.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 90%;
+            max-width: 200px;
+            pointer-events: none;
+        `;
     }
-    
+
     const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    alertDiv.className = `alert alert-${type}`;
+    alertDiv.innerHTML = ` ${msg}`;
+
+    // Alert box styling
+    alertDiv.style.cssText = `
+        padding: 10px 16px;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        font-size: 14px;
+        font-weight: 500;
+        text-align: left;
     `;
-    
-    document.body.appendChild(alertDiv);
-    
-    // Auto remove after 5 seconds
+
+    // Correct colors with good contrast
+    switch (type) {
+        case 'success':
+            alertDiv.style.backgroundColor = '#d4edda';
+            alertDiv.style.color = '#155724';
+            break;
+        case 'danger':
+            alertDiv.style.backgroundColor = '#f8d7da';
+            alertDiv.style.color = '#721c24';
+            break;
+        case 'warning':
+            alertDiv.style.backgroundColor = '#fff3cd';
+            alertDiv.style.color = '#856404';
+            break;
+        default: // info
+            alertDiv.style.backgroundColor = '#e2f3fd';
+            alertDiv.style.color = '#0c5460';
+            break;
+    }
+
+    container.appendChild(alertDiv);
+
+    // Auto remove after 2.8 seconds
     setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.remove();
-        }
-    }, 5000);
+        alertDiv.remove();
+        // Remove container when empty
+        if (container.children.length === 0) container.remove();
+    }, 2800);
 }
 
 // Utility functions
@@ -270,7 +370,7 @@ function updateProfileDisplay(profile) {
     const profileName = document.getElementById('profileName');
     const profileEmail = document.getElementById('profileEmail');
     const profilePhone = document.getElementById('profilePhone');
-    
+
     if (profileName) profileName.textContent = profile.name;
     if (profileEmail) profileEmail.textContent = profile.email;
     if (profilePhone) profilePhone.textContent = profile.phone;
@@ -292,119 +392,372 @@ function getCurrentLocation() {
             document.getElementById('latitude').value = position.coords.latitude;
             document.getElementById('longitude').value = position.coords.longitude;
 
-            status.textContent = "Location captured ✅";
+            status.textContent = "Location captured  ";
         },
         () => {
-            status.textContent = "Failed to get location ❌";
+            status.textContent = "Failed to get location ";
         }
     );
 }
-// // usermap in dashboard
-// async function loadUserMap() {
-//     try {
-//         const token = localStorage.getItem('token');
-//         console.log("Token from loadUserMap:",token);
 
-//         console.log(JSON.stringify(localStorage));
-//         // or loop through it:
-//           for (let i = 0; i < localStorage.length; i++) {
-//           const key = localStorage.key(i);
-//              console.log(key, ":", localStorage.getItem(key));
-//             }
+//here is the Modal opening and closing functionnnnnnnnnn!!!!
 
-//         if (!token) {
-//             console.error("No token found. User might not be logged in.");
-//              return;
-//                }
+//open any modal by its ID
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'flex';
+}
 
-//         const response = await fetch(`${API_BASE_URL}/requests/latest`, {
-//             headers: {
-//                 'Authorization': `Bearer ${token}`
-//             }
-            
-//         });
-
-//         // console.log("API_BASE_URL:", API_BASE_URL); // Add this temporarily
-       
-//         if (!response.ok) {
-//              const errBody = await response.text(); // or response.json()
-//                 throw new Error(`Failed to fetch location: ${response.status} - ${errBody}`);
-//         }
-
-//         const data = await response.json();
-
-//         //  No data case
-//         if (!data || !data.location_lat || !data.location_lng) {
-//             console.log("No location data found");
-//             return;
-//         }
-        
-//         const lat = parseFloat(data.location_lat);
-//         const lng = parseFloat(data.location_lng);
-
-//         //  Initialize map
-//         const map = L.map('map').setView([lat, lng], 15);
-
-//         //  LocationIQ tiles
-//         L.tileLayer(`https://tiles.locationiq.com/v3/streets/r/{z}/{x}/{y}.png?key=${LOCATIONIQ_API_KEY}`, {
-//             attribution: '&copy; OpenStreetMap contributors'
-//         }).addTo(map);
-
-//         // Marker (user request location)
-//         L.marker([lat, lng])
-//             .addTo(map)
-//             .bindPopup(data.address || "Request Location")
-//             .openPopup();
-       
-    
-//         } catch (error) {
-//         console.error('Map load error:', error);
-//     }
+//close any modal by its ID
+// function hideModal(modalId){
+//     const modal = document.getElementById(modalId);
+//     if(hideModal) modal.style.display = 'none';
 // }
 
+function hideModal(modalId) {
+    console.log('modalId:', modalId);
 
-// //  DOMContentLoaded
-// document.addEventListener('DOMContentLoaded', function () {
-//     // checkAuthStatus();
-//     setupEventListeners();
+    const modal = document.getElementById(modalId);
 
-//     if (
-//         window.location.pathname.includes('dashboard') ||
-//         window.location.pathname.includes('admin-dashboard') 
-//     ) {
-//         // First load dashboard data, THEN load the map
-//         loadDashboardData().then(() => {
-//             displayUserInfo(); // show username in sidebar
-            
-//             // if (document.getElementById('map'));
-//             if (document.getElementById('map') && !window.location.pathname.includes('driver-dashboard')) {
-//                 loadUserMap();
-                
-//             }
-//         }).catch(error => {
-//             console.error('Failed to load dashboard:', error);
-//         });
-//     }
-// });
+    console.log("modal:", modal);
 
-// how it works modal
-const howBtn = document.getElementById("howItWorksBtn");
-const modal = document.getElementById("howItWorksModal");
-const closeBtn = document.querySelector(".close-btn");
+    // if(modal){
+    //     modal.classList.remove('show');
 
-if (howBtn && modal && closeBtn) {
-    howBtn.onclick = function () {
-        modal.style.display = "block";
-    };
+    // }else{
+    //     console.error('modal not found:',modaId);
+    // }
 
-    closeBtn.onclick = function () {
-        modal.style.display = "none";
-    };
-
-    window.onclick = function (event) {
-        if (event.target === modal) {
-            modal.style.display = "none";
-        }
-    };
+    if (!modal) return;
+    modal.classList.remove('show');
+    modal.style.display = 'none';
 }
+
+//Optional dw ni kung gusto mo lang e reuse tong existing code mow
+function closeModal(modalId) {
+    hideModal(modalId);
+}
+
+const howBtn = document.getElementById('howItWorksNav');
+const closeBtn = document.getElementById('closeModalBtn');
+if (howBtn) {
+    howBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        showModal('howModal');
+    })
+}
+if (closeBtn) {
+    closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeModal('howModal');
+    })
+}
+
+
+function showToast(message, isError = false) {
+    const toast = document.getElementById('toastMsg');
+    if (!toast) return;
+    toast.style.backgroundColor = isError ? '#b91c1c' : '#0f5c6e';
+    toast.textContent = message;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 2800);
+}
+
+const emergencyNav = document.getElementById('emergencyNavBtn');
+if (emergencyNav) {
+    emergencyNav.addEventListener('click', (e) => {
+        e.preventDefault();
+        showToast('🆘 24/7 emergency towing: our nearest driver is being located. Please share your location for immediate dispatch.');
+    });
+}
+
+const heroDesc = document.querySelector('.hero-description');
+if (heroDesc) {
+    heroDesc.innerHTML = 'Colossians 3:23 –<strong> "Whatever you do, work at it with all your heart, as working for the Lord, not for human masters".</strong>.';
+}
+
+// smooth scroll for
+document.querySelectorAll('a[href="#"]').forEach(anchor => {
+    anchor.addEventListener('click', (e) => {
+        if (anchor.getAttribute('href') === '#') {
+            if (anchor.innerText.includes('Services') || anchor.innerText.includes('services')) {
+                e.preventDefault();
+                document.getElementById('servicesSection')?.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    });
+});
+
+(function setupSessionProtection() {
+
+    const originalFetch = window.fetch;
+
+    window.fetch = async function (...args) {
+
+        const response = await originalFetch.apply(this, args);
+
+        if (response.status !== 401) {
+            return response;
+        }
+
+        try {
+
+            const data = await response.clone().json();
+
+            // ONLY handle another-login situation
+            if (data.code === 'SESSION_REPLACED') {
+
+                console.warn(
+                    'Session replaced by another login.'
+                );
+
+                if (
+                    !sessionStorage.getItem('sessionRedirecting')
+                ) {
+
+                    sessionStorage.setItem(
+                        'sessionRedirecting',
+                        'true'
+                    );
+
+                    sessionStorage.removeItem('token');
+                    sessionStorage.removeItem('user');
+
+                    window.dispatchEvent(
+                        new CustomEvent('sessionReplaced')
+                    );
+
+                    alert(
+                        'Your account was logged in on another browser or device. You have been logged out.'
+                    );
+
+                    window.location.href = '/login';
+                }
+            }
+
+        } catch (error) {
+
+            console.warn(
+                'Could not read authentication response:',
+                error
+            );
+        }
+
+        return response;
+    };
+
+
+})();
+
+//uploading the pictuere
+window.uploadProfilePicture = async function(file) {
+
+    const token = sessionStorage.getItem('token');
+
+    if (!token) {
+        alert('You are not logged in.');
+        return;
+    }
+
+    const formData = new FormData();
+
+    formData.append('profile_picture', file);
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/users/profile-picture`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || 'Failed to upload profile picture.'
+            );
+        }
+
+        console.log('Profile picture uploaded:', data);
+
+        const avatarImage =
+            document.getElementById('avatarImage');
+
+        const avatarInitials =
+            document.getElementById('avatarInitials');
+
+        if (data.profile_picture) {
+
+            avatarImage.src =
+                `${API_BASE_URL.replace('/api', '')}/${data.profile_picture}`;
+
+            avatarImage.style.display = 'block';
+            avatarInitials.style.display = 'none';
+        }
+
+        alert('Profile picture updated successfully.');
+
+    } catch (error) {
+
+        console.error(
+            'Profile picture upload error:',
+            error
+        );
+
+        alert(error.message);
+    }
+};
+window.initializeProfilePicture = function() {
+
+    const avatarEditButton =
+        document.getElementById('avatarEditButton');
+
+    const profilePictureInput =
+        document.getElementById('profilePictureInput');
+
+    const profileAvatar =
+        document.getElementById('profileAvatar');
+
+    if (
+        !avatarEditButton ||
+        !profilePictureInput ||
+        !profileAvatar
+    ) {
+        return;
+    }
+
+    avatarEditButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        profilePictureInput.click();
+    });
+
+    profileAvatar.addEventListener('click', () => {
+        profilePictureInput.click();
+    });
+
+    profilePictureInput.addEventListener('change', async () => {
+
+        const file = profilePictureInput.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        const allowedTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/webp'
+        ];
+
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please select a JPG, PNG, or WEBP image.');
+            profilePictureInput.value = '';
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image must be smaller than 5 MB.');
+            profilePictureInput.value = '';
+            return;
+        }
+
+        await window.uploadProfilePicture(file);
+
+        profilePictureInput.value = '';
+    });
+};
+window.loadUserProfile = async function () {
+
+    try {
+
+        const user = await apiFetch('/users/profile');
+
+        console.log('👤 Loaded user profile:', user);
+
+        const nameElement =
+            document.getElementById('profileName');
+
+        const avatarImage =
+            document.getElementById('avatarImage');
+
+        const avatarInitials =
+            document.getElementById('avatarInitials');
+
+
+        // NAME
+
+
+        if (nameElement && user.name) {
+            nameElement.textContent = user.name;
+        }
+
+
+        // PROFILE PICTURE
+
+
+        if (avatarImage && avatarInitials) {
+
+            if (user.profile_picture) {
+
+                const imageUrl =
+                    `${API_BASE_URL.replace('/api', '')}/${user.profile_picture}`;
+
+                console.log(
+                    '🖼️ Profile picture URL:',
+                    imageUrl
+                );
+
+                avatarImage.src = imageUrl;
+
+                avatarImage.style.display = 'block';
+                avatarInitials.style.display = 'none';
+
+            } else {
+
+                avatarImage.style.display = 'none';
+                avatarInitials.style.display = 'block';
+
+                avatarInitials.textContent =
+                    getInitials(user.name);
+            }
+        }
+
+    } catch (error) {
+
+        console.error(
+            '❌ Error loading user profile:',
+            error
+        );
+    }
+};
+function getInitials(name) {
+
+    if (!name) {
+        return 'AD';
+    }
+
+    return name
+        .split(' ')
+        .map(word => word.charAt(0))
+        .join('')
+        .substring(0, 2)
+        .toUpperCase();
+}
+document.addEventListener('DOMContentLoaded', () => {
+
+    const token = sessionStorage.getItem('token');
+
+    // Only initialize profile features when logged in
+    if (token) {
+        loadUserProfile();
+        initializeProfilePicture();
+    }
+
+});
 

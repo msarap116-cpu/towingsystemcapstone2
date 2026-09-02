@@ -1,69 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Towing Assistance</title>
+    <title>Login - GoodWrench</title>
 
     <script>
-        if(localStorage.getItem('token')){
+        if (sessionStorage.getItem('token')) {
             window.location.replace('dashboard');
         }
     </script>
 
+    <!-- <script>
+        document.addEventListener('contextmenu', event => event.preventDefault());
+    </script>
+    <script>
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F12') e.preventDefault();
+            if (e.ctrlKey && e.key === 'u') e.preventDefault();
+        })
+    </script> -->
+
     <link rel="stylesheet" href="css/login.css">
 
+    <style>
+
+    </style>
+
 </head>
+
+
 <body>
- 
+    <!-- ===== NAVBAR (GoodWrench style) ===== -->
     <nav class="navbar">
         <div class="nav-container">
-            <a class="navbar-brand" href="home">Tow Assist</a>
+            <a class="navbar-brand" href="home">
+                <span class="brand-icon"></span>
+                <span class="brand-text">GoodWrench</span>
+            </a>
             <ul class="navbar-nav">
-                <li class="nav-item"><a class="nav-link" href="home">Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="register">Register</a></li>
+                <li class="nav-item">
+                    <a class="nav-link" href="home"> Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="register">Register</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="requestform">Request</a>
+                </li>
             </ul>
         </div>
     </nav>
 
-    <main class="main-content">
-        <div class="login-card">
-            <h2 class="text-center">Login to Your Account</h2>
-            
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" class="custom-input" required>
-                </div>
-                
-               <div class="form-group">
-                    <label for="password">Password</label>
-                         <div class="password-wrapper">
-                             <input type="password" id="password" class="custom-input" required>
-                            <button type="button" class="toggle-password" aria-label="Show password">
-                      <span class="eye-icon">👁️</span>
-                     <span class="eye-slash-icon" style="display: none;">🙈</span>
-                        </button>
-                    </div>
-                </div>
-                <!-- <div class="form-check">
-                    <input type="checkbox" id="rememberMe">
-                    <label for="rememberMe">Remember me</label>
-                </div> -->
-                
-                <button type="submit" id="loginBtn" class="btn-submit">Login</button>
-            </form>
-            
-            <div class="form-footer">
-                <p>Don't have an account? <a href="register">Register here</a></p>
-                <!-- <p><a href="#">Forgot password?</a></p> -->
-            </div>
-        </div>
-    </main>
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="page-wrapper">
 
-    <div id="alertContainer"></div>
+        <!-- ===== LOGIN FORM ===== -->
+        <main class="main-content">
+            <div class="login-card">
+                <div class="login-header">
+                    <span class="login-icon"></span>
+                    <h2>Welcome Back</h2>
+                    <p>Sign in to your account</p>
+                </div>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" class="custom-input" placeholder="Enter your email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" class="custom-input" placeholder="Enter your password"
+                                required>
+                            <button type="button" class="toggle-password" aria-label="Show password">
+                                <!-- PNG icons instead of emojis -->
+                                <img src="image/eye-crossed.png" alt="Show password" class="icon eye-icon">
+                                <img src="image/eye.png" alt="Hide password" class="icon eye-slash-icon"
+                                    style="display: none;">
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="loginBtn" class="btn-submit">Login</button>
+                </form>
+
+                <div class="form-footer">
+                    <p>Don't have an account? <a href="register">Register here</a></p>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <script src="js/app.js"></script>
     <script src="js/login.js"></script>
 </body>
+
 </html>

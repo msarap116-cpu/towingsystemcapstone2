@@ -1,19 +1,31 @@
+// userroutes.js
+
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const authMiddleware = require('../middleware/authMiddleware');
+const uploadProfilePicture = require('../middleware/uploadProfilePicture');
 // const authenticateToken = require('../middleware/authMiddleware');
 
 // Public routes
 router.post('/register', userController.register);
+
 router.post('/login', userController.login);
 
-router.post('/', authMiddleware, userController.createUser); 
+router.post('/check-email', userController.checkEmailAvailability);
+
+
+router.post('/', authMiddleware, userController.createUser);
 
 router.get('/profile', authMiddleware, userController.getProfile);
+
 // router.put('/profile', authMiddleware, userController.updateProfile);
+
 // router.get('/drivers', authMiddleware, userController.getAllDrivers);
 
+router.post('/logout',authMiddleware, userController.logout);
+
+router.put('/profile-picture',authMiddleware,uploadProfilePicture.single('profile_picture'), userController.updateProfilePicture);
 //get all the users
 router.get('/',authMiddleware,userController.getAllUsers);
 // get single user
@@ -24,6 +36,8 @@ router.put('/:id', authMiddleware, userController.updateUser);
 
 // delete user
 router.delete('/:id', authMiddleware, userController.deleteUser);
+
+
 
 // Temporarily add this in userroutes
 router.get('/test', (req, res) => {

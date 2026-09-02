@@ -1,68 +1,92 @@
-
 // src/database/database.js
- 
-const mysql = require("mysql2/promise");
-require('dotenv').config();
 
-// Create the connection pool
+const mysql = require("mysql2/promise");
+require("dotenv").config();
+
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 3306,
+    port: Number(process.env.DB_PORT) || 3306,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
+
     waitForConnections: true,
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 0,
     connectionLimit: 10,
-    ssl: process.env.DB_SSL === 'true' ? {
-        rejectUnauthorized: false  // Changed this
-    } : false
+    queueLimit: 0,
+
+    connectTimeout: 10000,
+
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
+
+    supportBigNumbers: true,
+    nestTables: false,
+    typeCast: true,
+
+    ssl: process.env.DB_SSL === "true"
+        ? {
+            rejectUnauthorized: false
+        }
+        : undefined
 });
 
 
 async function testConnection() {
+    let connection;
+
     try {
-        const connection = await pool.getConnection();
-        console.log('Successfully connected to MySQL database');
-        
-        const [rows] = await connection.query('SELECT 1 + 1 AS solution');
-        console.log('Database query test successful');
-        
-        connection.release();
+        connection = await pool.getConnection();
+
+        const [rows] = await connection.execute(
+            "SELECT 1 AS test"
+        );
+
+        console.log("GoodWrenchDatabase connection is alive:", rows);
+
         return true;
+
     } catch (error) {
-        console.error('Failed to connect to database:', error.message);
-        if (error.code === 'ER_ACCESS_DENIED_ERROR') {
-            console.error('Check your username and password');
-        } else if (error.code === 'ENOTFOUND') {
-            console.error('Check your host name');
-        } else if (error.code === 'ECONNREFUSED') {
-            console.log('Check your port number');
-        } else if (error.message.includes('SSL')) {
-            console.log('SSL certificate issue');
-        }
+        console.error("Database connection test failed:");
+        console.error("Code:", error.code);
+        console.error("Message:", error.message);
+
         return false;
+
+    } finally {
+        if (connection) {
+            connection.release();
+        }
     }
 }
 
-// Query function
-async function query(sql, params) {
+
+async function query(sql, params = []) {
     try {
-        const [result] = await pool.execute(sql, params || []);
+        const [result] = await pool.execute(sql, params);
+
         return result;
+
     } catch (error) {
-        console.error('Database query error:', error);
-        console.error('SQL:', sql);
-        console.error('Params:', params);
+
+        console.error("Database query error");
+        console.error("Code:", error.code);
+        console.error("Message:", error.message);
+        console.error("SQL:", sql);
+        console.error("Params:", params);
+
         throw error;
     }
 }
 
-// Export functions
+
+async function getConnection() {
+    return await pool.getConnection();
+}
+
+
 module.exports = {
     query,
-    getConnection: async () => await pool.getConnection(),
+    getConnection,
     testConnection,
     pool
 };

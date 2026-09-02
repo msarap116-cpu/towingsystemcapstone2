@@ -1,124 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driver Dashboard - Towing System</title>
-    <script>
-        // Redirect if not logged in
-        if (!localStorage.getItem('token')) {
-            window.location.replace('login');
-        }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <title>Driver Dashboard – Tow the Rescue</title>
+
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/driver-dashboard.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
     </script>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="css/dashboard.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-    
 </head>
 
 <body>
-    
+
+    <!-- ========== NAVBAR ========== -->
     <nav class="navbar">
-        <div class="container" style="padding: 0; width: 100%;">
-            <a class="navbar-brand" href="home">Tow the Rescue</a>
+        <a class="navbar-brand" href="#"> Towing <span> system </span></a>
+        <div class="navbar-right">
+            <span><span class="online-dot"></span> Online</span>
+            <span id="currentTime" style="font-weight:400;">--:--</span>
         </div>
     </nav>
 
+    <!-- ========== DASHBOARD WRAPPER ========== -->
+    <div class="dashboard-wrapper">
 
-    <div class="dashboard-main-wrapper">
-        <div class="container">
-            
-            <div class="sidebar">
-                <div class="dashboard-card">
-                    <h3>My Account</h3>
-                    <div class="profile-info">
-                        <div class="profile-icon">
-                            <span id="userInitials">U</span>
+        <!-- ========== SIDEBAR (Logout inside) ========== -->
+        <aside class="sidebar">
+            <div class="profile-card">
+                <div class="avatar-large profile-avatar-container" id="profileAvatar">
+                    <span id="avatarInitials">AD</span>
+                    <img id="avatarImage" src="" alt="Profile Picture" style="display: none;">
+                    <input type="file" id="profilePictureInput" accept="image/jpeg,image/png,image/webp" hidden>
+                </div>
+                <!-- Edit button NOW OUTSIDE the container -->
+                <div class="avatar-edit-icon" id="avatarEditButton">✎</div>
+                <div>
+                    <div class="profile-name" id="profileName">Mike Towing</div>
+                    <span class="profile-role" id="userType">🚛 Driver</span>
+                </div>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-item active" data-tab="dashboard">
+                    <span class="nav-icon"></span> Dashboard
+                </div>
+                <div class="nav-item" data-tab="tracking">
+                    <span class="nav-icon"></span> Live Tracking
+                </div>
+                <div class="nav-item" data-tab="trips">
+                    <span class="nav-icon"></span> My Trips
+                </div>
+                <div class="nav-item" data-tab="earnings">
+                    <span class="nav-icon"></span> Earnings
+                </div>
+                <!-- LOGOUT inside sidebar-nav -->
+                <div class="nav-item logout-item" id="logoutBtnSidebar">
+                    <span class="nav-icon"></span> Logout
+                </div>
+            </div>
+        </aside>
+
+        <!-- ========== MAIN CONTENT ========== -->
+        <div class="main-content">
+
+
+            <!-- ===== DASHBOARD TAB ===== -->
+            <div id="tab-dashboard" class="tab-pane active" style="display:flex; flex-direction:column; gap:24px;">
+
+                <!-- Top Bar -->
+                <div class="top-bar">
+                    <h1>Driver Dashboard</h1>
+                    <div class="search-wrapper">
+                        <span class="search-icon"></span>
+                        <input type="text" id="dashboardSearch" class="search-input"
+                            placeholder="Search available requests.." />
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Available Jobs</div>
+                        <div class="stat-number" id="statAvailable">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">My Active Trips</div>
+                        <div class="stat-number" id="statActiveTrips">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Completed Today</div>
+                        <div class="stat-number" id="statCompleted">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Today's Earnings</div>
+                        <div class="stat-number" id="statEarnings">$0</div>
+                    </div>
+                </div>
+
+                <!-- Two Columns (no map) -->
+                <div class="two-col">
+                    <!-- Left: Available Requests -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span>Available Requests</span>
+                            <span class="badge-count" id="pendingCount">0</span>
                         </div>
-                        <h4 id="profileName">Driver Name</h4>
-                        <p id="userType">Driver</p>
+                        <div id="availableRequestsList">
+                            <div class="empty-state">Loading requests…</div>
+                        </div>
                     </div>
-                    <hr>
-                    <ul class="sidebar-nav">
-                        <li><a class="active" href="driver-dashboard">Dashboard</a></li>
-                        <!-- <li><a href="my-requests">My Requests</a></li> -->
-                        <!-- <li><a href="vehicles">My Vehicles</a></li> -->
-                        <!-- <li><a href="profile">Profile Settings</a></li> -->
-                        <li><a class="text-danger" id="logoutBtnSidebar" href="#">Logout</a></li>
-                    </ul>
+
+                    <!-- Right: My Active Trips -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span>My Active Trips</span>
+                            <span class="badge-count" id="activeCount">0</span>
+                        </div>
+                        <div id="myTripsList">
+                            <div class="empty-state">No active trips</div>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /tab-dashboard -->
+
+            <!-- ===== LIVE TRACKING TAB ===== -->
+            <div id="tab-tracking" class="tab-pane" style="display:none; flex-direction:column; gap:24px;">
+                <div class="top-bar">
+                    <h1>📍 Live Tracking</h1>
+                    <button class="btn btn-outline btn-sm" onclick="refreshMap()">⟳ Refresh</button>
+                </div>
+                <div class="map-card">
+                    <div id="map"></div> <!-- Your existing map container -->
+                    <div class="map-legend">
+                        <div><span class="legend-dot" style="background:#d85a30;"></span> Customer pickup</div>
+                        <div><span class="legend-dot" style="background:#1d9e75;"></span> Your location</div>
+                        <div><span class="legend-dot" style="background:#f59e0b;"></span> Other drivers</div>
+                        <div><span class="legend-dot" style="background:#3b82f6;"></span> Route</div>
+                    </div>
+                </div>
+                <!-- Optional: add job info here if needed -->
+                <div id="tracking-job-info"
+                    style="background:#fff; border-radius:22px; padding:16px 20px; border:1px solid #e9edf4;">
+                    <p id="trackingStatus">No active job – tracking idle.</p>
+                </div>
+            </div>
+            <div id="tab-trips" class="tab-pane" style="display:none; flex-direction:column; gap:24px;">
+                <div class="top-bar">
+                    <h1>My Trips</h1>
+                </div>
+                <div class="card">
+                    <div class="card-header"><span>All Trips</span></div>
+                    <div id="allTripsList">
+                        <div class="empty-state">No trips yet</div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Main Content - ONLY THIS SECTION SCROLLS -->
-            <div class="main-content">
-                <!-- Quick Actions / Stats -->
-                <!-- <div class="quick-actions">
-               
-                    <div class="dashboard-card text-center">
-                        <h3>Active Requests</h3>
-                        <h1 id="activeRequestsCount">0</h1>
-                        <p>Currently active</p>
+            <div id="tab-earnings" class="tab-pane" style="display:none; flex-direction:column; gap:24px;">
+                <div class="top-bar">
+                    <h1>Earnings</h1>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Trips</div>
+                        <div class="stat-number" id="totalTripsCount">0</div>
                     </div>
-                    <div class="dashboard-card text-center">
-                        <h3>Total Requests</h3>
-                        <h1 id="totalRequestsCount">0</h1>
-                        <p>All time</p>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Revenue</div>
+                        <div class="stat-number" id="totalEarnings">$0</div>
                     </div>
-                </div> -->
-
-                <!-- Driver Map and Job Actions -->
-                <div class="dashboard-card">
-                    <h3>Driver Map</h3>
-                    <div id="map" style="height:600px;"></div>
-                    
-                    <div id="job-actions" style="margin-top: 1rem; display: none;">
-                        <p id="job-info" style="margin-bottom: 0.5rem;"></p>
-                        <button id="complete-btn" onclick="completeJob()" style="   
-                            background: #1D9E75; color: white; border: none;
-                            padding: 10px 24px; border-radius: 8px;
-                            font-size: 15px; cursor: pointer; width:20%;">Complete Job</button> 
+                </div>
+                <div class="card">
+                    <div class="card-header"><span>🧾 Payment History</span></div>
+                    <div id="paymentHistory">
+                        <div class="empty-state">No payments yet</div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Alert Container -->
-    <div id="alertContainer"></div>
-   
-    <script src="js/app.js"></script>
+
+
+
+
+
+
+        </div><!-- /main-content -->
+    </div><!-- /dashboard-wrapper -->
+
+    <script src="js/app.js"> </script>
+
     <script src="js/driver-dashboard.js"></script>
     <script>
-        // Set profile info from localStorage
-        document.addEventListener('DOMContentLoaded', function() {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (user.name) {
-                const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
-                document.getElementById('userInitials').textContent = initials || 'U';
-                document.getElementById('profileName').textContent = user.name || 'Driver Name';
-                document.getElementById('userType').textContent = user.role || 'Driver';
-            }
-        });
-
-        // Logout handler
         document.getElementById('logoutBtnSidebar')?.addEventListener('click', handleLogout);
-
-        // Handle page reload from cache
-        window.addEventListener('pageshow', function(event){
-            if(event.persisted || (window.performance && window.performance.navigation.type === 2)){
-                window.location.reload();
-            }
-        });
-        
-        // Profile image handling
-        const savedImage = localStorage.getItem("profileImage");
-        if(savedImage){
-            const profileImg = document.getElementById("profileImage");
-            if(profileImg) {
-                profileImg.src = savedImage;
-            }
-        }
     </script>
+
+
 </body>
+
 </html>

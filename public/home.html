@@ -1,90 +1,263 @@
-<!-- home page -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Professional towing and roadside assistance – Fast, safe, and reliable 24/7 service with guaranteed quality and insurance coverage.">
+  <title>GD Services</title>
 
 <!-- Mobile Meta -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0066cc">
+<meta name="theme-color" content="#0046a8">
 <meta name="mobile-web-app-capable" content="yes">
 
 <link rel="apple-touch-icon" href="assets/icons/icon-152x152.png">
 <!-- <link rel="manifest" href="manifest.json"> -->
+<link rel="stylesheet" href="css/style.css">
 
 <title>Towing Assistance Roadside Help</title>
 
-<link rel="stylesheet" href="css/style.css">
+<style>
+</style>
 
+<script>
+  document.addEventListener('contextmenu', event => event.preventDefault());
+</script>
 </head>
 
 <body>
 
-<!--navigation-->
-<nav class="navbar">
-    <div class="nav-container">
-
-        <a class="navbar-brand" href="home">welcome</a>
-
-        <ul class="nav-menu">
-            <!-- <li><a href="#services" >Services</a></li>  -->
-            <li><a href="#" id="howItWorksBtn">How It Works</a></li>
-            <!-- <li><a href="login">Login</a></li> -->
-        </ul>
-
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="container">
+    <div class="contact-hours">
+      <span>📞 +63 9107515937</span>
+      <span>🕒 Mon-Fri: 9:00 AM – 8:00 PM </span>
     </div>
-</nav>
-
-<!-- HERO by enrici eglisias -->
-<section class="hero">
-
-    <h1>Tow the Rescue</h1>
-    <p>Help is just a click away</p>
-
-    <a href="requestform" class="btn-danger pulse">
-        REQUEST HELP NOW
-    </a>
-
-    <div class="hero-register">
-        <a href="register" class="btn-outline">
-            Register
-        </a>
-    </div>
-
-    <div class="hero-login">
-        <a href="login" class="btn-outline1">
-             login 
-        </a>
-    </div>
-
-</section>
-
-<div id="howItWorksModal" class="modal">
-    <div class="modal-content">
-        <span class="close-btn">&times;</span>
-        <h2>How towing assistance Works</h2>
-        <ol>
-            <li>User request towing service.</li>
-            <li>The user access the system  and enable location</li>
-            <li>or write the location</li>
-            <li>system get the location and assign mechanic or driver</li>
-            <li>The driver navigates the user location</li>
-            <li>The assist the situation and assses if completed or failed</li>
-        </ol>
-    </div>
-
+    <div>With the great power, comes with a great responsibility</div>
+  </div>
 </div>
 
+<!-- NAVIGATION -->
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="#" class="logo"><span>GoodWrench</span></a>
+    <ul class="nav-links">
+      <li><a href="#">About</a></li>
+      <li><a href="#">Services</a></li>
+      <li><a href="#">Fleet</a></li>
+      <li><a href="#">Reviews</a></li>
+      <li><a href="#">Contacts</a></li>
+      <li><a href="#" id="howItWorksNav">How it works</a></li>
+      <li><a href="requestform" class="nav-cta"> Request help</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero-truck">
+  <div class="container hero-grid">
+    <div class="hero-content">
+      <div class="hero-badge">✦ PANG BARYO2X LANG KAG PUROK ANAY</div>
+      <h1>HINDI LANG PANG RESCUE <span>AT PANG HAWLING PA</span> SDFDSAF</h1>
+      <p class="hero-description">Colossians 3:23 – "Whatever you do, work at it with all your heart, as working for the Lord, not for human masters.</p>
+      <ul class="checklist">
+        <li>Own fleet + 24/7 dispatching center</li>
+        <li>Fufdsf</li>
+        <li>Rates lower than competitors — price match guarantee</li>
+      </ul>
+      <div class="btn-group">
+        <a href="login" class="btn-primary" id="toLoginPage">Login</a>
+        <a href="register" class="btn-outline-dark" id="toRegisterPage">Register</a>
+      </div>
+    </div>
+    <!-- <div class="hero-image"></div> -->
+  </div>
+</section>
+
+<!-- FEATURE BANNER -->
+<div class="feature-strip">
+  <div class="container features-row">
+    <div class="feature-item">
+      <div class="feature-icon"></div>
+      <h4>Own truck fleet & storage</h4>
+      <p>100+ modern tractors & tow trucks</p>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon"></div>
+      <h4>Full cargo & vehicle insurance</h4>
+      <p>Up to $2M liability coverage</p>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon"></div>
+      <h4>Prices lower than competitors</h4>
+      <p>Direct fleet → savings for you</p>
+    </div>
+  </div>
+</div>
+
+<!-- SERVICES -->
+<section class="services-showcase" id="servicesSection">
+    <div class="container">
+
+        <div class="section-header">
+            <h2>Our towing & roadside services</h2>
+            <p>Instant assistance, transparent pricing, professional equipment</p>
+        </div>
+
+        <div class="card-grid">
+
+            <div class="service-card">
+                <div class="service-emoji">🚛</div>
+                <h3>Heavy towing</h3>
+                <p>Trucks, buses, construction machinery — 24/7 heavy wrecker</p>
+                <div class="price-tag">150</div>
+
+                <button
+                    class="card-btn request-srv"
+                    data-service-id="1">
+                    Request now →
+                </button>
+            </div>
 
 
+            <div class="service-card">
+                <div class="service-emoji">⚡</div>
+                <h3>Jump start</h3>
+                <p>Battery boost & emergency start, arrive within 30 min</p>
+                <div class="price-tag">150</div>
 
-<!-- CAPACITOR (KEEP) -->
-<!-- <script src="https://unpkg.com/@capacitor/core/dist/capacitor.js"></script> -->
+                <button
+                    class="card-btn request-srv"
+                    data-service-id="3">
+                    Request now →
+                </button>
+            </div>
 
-<!-- YOUR JAVASCRIPT -->
+
+            <div class="service-card">
+                <div class="service-emoji">🛞</div>
+                <h3>Flat tire change</h3>
+                <p>Roadside tire replacement, spare mounting & inflation</p>
+                <div class="price-tag">150</div>
+
+                <button
+                    class="card-btn request-srv"
+                    data-service-id="2">
+                    Request now →
+                </button>
+            </div>
+
+
+            <div class="service-card">
+                <div class="service-emoji">⛽</div>
+                <h3>Fuel delivery</h3>
+                <p>Out of gas? We bring diesel or gasoline directly to you</p>
+                <div class="price-tag">150 + 20</div>
+
+                <button
+                    class="card-btn request-srv"
+                    data-service-id="4">
+                    Request now →
+                </button>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- TESTIMONIAL -->
+<!-- <section class="testimonial">
+  <div class="container">
+    <div class="quote">
+      “Fast, professional, and fully insured. They delivered sensitive cargo from NY to Chicago ahead of schedule. Highly recommend the team at GoodWrench.”
+      <br><br>— toto cobra
+    </div>
+  </div>
+</section> -->
+
+<!-- MODAL: how it works -->
+<div id="howModal" class="modal">
+  <div class="modal-card">
+    <span class="close-modal" id="closeModalBtn">&times;</span>
+    <h3>concepts</h3>
+    <ol>
+      <li>You request service via call or online form.</li>
+       <li>State concern about your vehicle.</li>
+       <li>Setup your location anywhere in Koronadal or near Barangay.</li>
+      <li>The Mangement will assist the problem.</li>
+      <li>A Recuer will navigate your location.</li>
+      <li>Upon Arriving the recuer will assist the situation of the vehicle.</li>
+      <li>Digital confirmation & guaranteed invoice.</li>
+    </ol>
+    <p style="margin-top:20px; font-size:14px;">We are pleased that you choose us</p>
+  </div>
+</div>
+
+<!-- ===== NATIVE DIALOG MODAL ===== -->
+<dialog id="emergencyModal">
+  <div class="modal-box">
+    <button class="modal-close" data-modal-close aria-label="Close modal">&times;</button>
+    <section class="emergency-section">
+      <h2 class="page-title">Request Roadside Assistance</h2>
+      <div class="form-container">
+        <div class="alert-container" id="alertContainer"></div>
+        <form id="emergencyModalForm">
+          <div class="form-group">
+            <label>Service Needed:</label>
+            <select id="serviceType" required>
+              <option value="">Select Service</option>
+              <option value="towing">Towing Service</option>
+              <option value="flat_tire">Flat Tire Change</option>
+              <option value="jump_start">Jump Start</option>
+              <option value="fuel">Fuel Delivery</option>
+              <option value="lockout">Lockout Service</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Vehicle Type:</label>
+            <input type="text" id="vehicleType" placeholder="e.g., Sedan, SUV, Truck" required />
+          </div>
+          <div class="form-group">
+            <label>License Plate:</label>
+            <input type="text" id="licensePlate" required />
+          </div>
+          <div class="form-group">
+            <label>Your Location:</label>
+            <button type="button" class="btn-secondary" id="getLocationBtn">📍 Use Current Location</button>
+            <div id="locationStatus" class="location-status"></div>
+            <input type="hidden" id="latitude" />
+            <input type="hidden" id="longitude" />
+            <div class="manual-address">
+              <label>Or Enter Address:</label>
+              <textarea id="address" rows="2" placeholder="Enter your full address (e.g., 123 Main St, City, Province)"></textarea>
+            </div>
+          </div>
+          <button type="submit" class="btn-danger btn-submit">Request Assistance</button>
+        </form>
+        <div id="confirmation" class="confirmation-box">
+          <h4>GoodWrenchRequest Submitted!</h4>
+          <p>Your request ID: <strong id="requestId"></strong></p>
+          <p>Estimated arrival time: <strong>25–40 minutes</strong></p>
+          <p>You can track your request in the dashboard.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</dialog>
+
+<div id="toastMsg" style="position: fixed; bottom: 30px; left: 20px; background: #1e2f3a; color: white; padding: 12px 24px; border-radius: 60px; font-weight: 500; z-index: 1100; display: none; backdrop-filter: blur(8px); box-shadow: 0 4px 12px rgba(0,0,0,0.2);"></div>
+
+<footer>
+  <div class="container">
+    <p>© 2025 HaulSafe — International Freight & Towing Assistance. Fully licensed & insured carrier.</p>
+    <p style="margin-top:8px;">📞 24/7 Emergency: +1 (800) 456-7890 | ✉️ dispatch@haulsafe.com</p>
+    <p href="https://www.flaticon.com/free-icons/maps-and-location" title="maps and location icons">Maps and location icons created by Vector Stall - Flaticon</p>
+  </div>
+</footer>
+
 <script src="js/app.js"></script>
-
+<script src="js/requestform.js"></script>
 </body>
 </html>

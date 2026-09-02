@@ -19,6 +19,9 @@ const userroutes = require('./src/routes/userroutes');
 const requestsRoute = require('./src/routes/requestRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const driverRoutes = require('./src/routes/driverRoutes');
+const paymentRoutes = require('./src/routes/paymentRoutes');
+const vehicleRoutes = require('./src/routes/vehicleRoutes');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -35,6 +38,8 @@ app.use('/api/users/', userroutes);
 app.use('/api/requests', requestsRoute);
 app.use('/api/admin', adminRoutes);
 app.use('/api/driver', driverRoutes);
+app.use('/api/payments',paymentRoutes);
+app.use('/api/vehicles', vehicleRoutes);
 
 // HTML page routes
 app.get(['/', '/home'], (req, res) => {
@@ -65,59 +70,65 @@ app.get('/requestform', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'requestform.html'));
 });
 
+app.get('/myvehicles', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'myvehicles.html'));
+});
+
+app.use('/uploads',express.static(path.join(__dirname, 'uploads')));
+
 app.post('/users/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        
+
         console.log('Login attempt for:', email);
-        
+
         if (!email || !password) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Email and password are required' 
+            return res.status(400).json({
+                success: false,
+                message: 'Email and password are required'
             });
         }
-        
+
         // Find user by email
         const user = await User.findByEmail(email);
-        
+
         if (!user) {
-            return res.status(401).json({ 
-                success: false, 
-                message: 'Invalid email or password' 
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid email or password'
             });
         }
-        
+
         // Verify password
         const isMatch = await bcrypt.compare(password, user.password);
-        
+
         if (!isMatch) {
-            return res.status(401).json({ 
-                success: false, 
-                message: 'Invalid email or password' 
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid email or password'
             });
         }
-        
+
         // Generate token using the function from userController
         const token = generateToken(user.id, user.role);
-        
-        
+
+
         const { password: _, ...userWithoutPassword } = user;
-        
+
         console.log('Login successful for:', email);
-        
-        res.json({ 
-            success: true, 
+
+        res.json({
+            success: true,
             message: 'Login successful',
             token: token,
-            user: userWithoutPassword 
+            user: userWithoutPassword
         });
-        
+
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Server error: ' + error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Server error: ' + error.message
         });
     }
 });
@@ -140,7 +151,7 @@ async function startServer() {
             console.log(`   Register: http://localhost:${PORT}/register`);
             console.log(`   Dashboard: http://localhost:${PORT}/dashboard`);
         });
-        
+
     } catch (error) {
         console.error('Failed to start server:', error);
         process.exit(1);

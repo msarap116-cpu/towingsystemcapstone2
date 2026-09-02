@@ -96,7 +96,8 @@ android {
 buildTypes {
     debug {
         signingConfig signingConfigs.debug
-        debuggable true
+        debuggable true //true na ngayon
+        
     }
     release {
         signingConfig signingConfigs.debug
@@ -106,7 +107,7 @@ buildTypes {
 }
 }
 dependencies {
-    // The version of react-native is set by the React Native Gradle Plugin
+    // The version of react-native is set by the React Native Gradle Plugin talaga ba
     implementation("com.facebook.react:react-android")
 
     if (hermesEnabled.toBoolean()) {

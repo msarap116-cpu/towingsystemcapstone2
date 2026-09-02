@@ -626,7 +626,7 @@ var __BUNDLE_START_TIME__=globalThis.nativePerformanceNow?nativePerformanceNow()
    * LICENSE file in the root directory of this source tree.
    *
    * @format
-   * 
+   *
    * @nolint
    * @polyfill
    */
@@ -4198,7 +4198,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
    * LICENSE file in the root directory of this source tree.
    *
    * @format
-   * 
+   *
    */
 
   /* eslint no-bitwise: 0 */
@@ -9262,7 +9262,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
    * This source code is licensed under the MIT license found in the
    * LICENSE file in the root directory of this source tree.
    *
-   * 
+   *
    * @nolint
    * @preventMunge
    * @generated SignedSource<<e7f6759bcc8955193867c6ab42bd07ad>>
@@ -31336,7 +31336,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         var EventEmitter = /*#__PURE__*/function () {
           function EventEmitter() {
@@ -31414,7 +31414,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         var CHROME_WEBSTORE_EXTENSION_ID = 'fmkadmapgofadopljbjfkapdkoienihi';
         var INTERNAL_EXTENSION_ID = 'dnjnjgbfilfphmojnmhliehogmojhclc';
@@ -31697,7 +31697,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // -----------------------------------------------------------------------------
         // Land or remove (zero effort)
@@ -31911,7 +31911,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // ATTENTION
         // When adding new symbols to this file,
@@ -31958,7 +31958,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         /**
@@ -31968,7 +31968,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * Be mindful of backwards compatibility when making changes.
          */
         // WARNING
-        // The values below are referenced by ComponentFilters (which are saved via localStorage).
+        // The values below are referenced by ComponentFilters (which are saved via sessionStorage).
         // Do not change them or it will break previously saved user customizations.
         // If new element types are added, use new numbers rather than re-ordering existing ones.
         //
@@ -31994,7 +31994,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
         // or to enable/disable certain functionality.
 
         // WARNING
-        // The values below are referenced by ComponentFilters (which are saved via localStorage).
+        // The values below are referenced by ComponentFilters (which are saved via sessionStorage).
         // Do not change them or it will break previously saved user customizations.
         // If new filter types are added, use new numbers rather than re-ordering existing ones.
         var ComponentFilterElementType = 1;
@@ -32021,7 +32021,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         var isArray = Array.isArray;
         /* harmony default export */
@@ -32118,7 +32118,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         // $FlowFixMe[method-unbinding]
@@ -32331,7 +32331,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
         }
         function getSavedComponentFilters() {
           try {
-            var raw = localStorageGetItem(LOCAL_STORAGE_COMPONENT_FILTER_PREFERENCES_KEY);
+            var raw = sessionStorageGetItem(LOCAL_STORAGE_COMPONENT_FILTER_PREFERENCES_KEY);
             if (raw != null) {
               var parsedFilters = JSON.parse(raw);
               return filterOutLocationComponentFilters(parsedFilters);
@@ -32340,7 +32340,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
           return getDefaultComponentFilters();
         }
         function setSavedComponentFilters(componentFilters) {
-          localStorageSetItem(LOCAL_STORAGE_COMPONENT_FILTER_PREFERENCES_KEY, JSON.stringify(filterOutLocationComponentFilters(componentFilters)));
+          sessionStorageSetItem(LOCAL_STORAGE_COMPONENT_FILTER_PREFERENCES_KEY, JSON.stringify(filterOutLocationComponentFilters(componentFilters)));
         } // Following __debugSource removal from Fiber, the new approach for finding the source location
         // of a component, represented by the Fiber, is based on lazily generating and parsing component stack frames
         // To find the original location, React DevTools will perform symbolication, source maps are required for that.
@@ -32362,7 +32362,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
         }
         function getOpenInEditorURL() {
           try {
-            var raw = localStorageGetItem(LOCAL_STORAGE_OPEN_IN_EDITOR_URL);
+            var raw = sessionStorageGetItem(LOCAL_STORAGE_OPEN_IN_EDITOR_URL);
             if (raw != null) {
               return JSON.parse(raw);
             }
@@ -32924,11 +32924,11 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
           }
         }
         function getIsReloadAndProfileSupported() {
-          // Notify the frontend if the backend supports the Storage API (e.g. localStorage).
+          // Notify the frontend if the backend supports the Storage API (e.g. sessionStorage).
           // If not, features like reload-and-profile will not work correctly and must be disabled.
           var isBackendStorageAPISupported = false;
           try {
-            localStorage.getItem('test');
+            sessionStorage.getItem('test');
             isBackendStorageAPISupported = true;
           } catch (error) {}
           return isBackendStorageAPISupported && isSynchronousXHRSupported();
@@ -33016,7 +33016,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         var meta = {
@@ -33486,7 +33486,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         var isArrayImpl = Array.isArray;
         function isArray_isArray(a) {
@@ -33502,7 +33502,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // This is a DevTools fork of shared/ReactOwnerStackFrames.
         function formatOwnerStack(error) {
@@ -33704,7 +33704,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         // TODO: update this to the first React version that has a corresponding DevTools backend
@@ -34120,7 +34120,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // Get the window object for the document that a node belongs to,
         // or return null if it cannot be found (node not attached to DOM,
@@ -34268,7 +34268,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         var Overlay_assign = Object.assign; // Note that the Overlay components are not affected by the active Theme,
@@ -34527,7 +34527,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         var SHOW_DURATION = 2000;
@@ -34573,7 +34573,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         // This plug-in provides in-page highlighting of the selected element.
@@ -34761,7 +34761,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // Note these colors are in sync with DevTools Profiler chart colors.
 
@@ -34952,7 +34952,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         // How long the rect should be shown for?
@@ -35192,7 +35192,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // This message specifies the version of the DevTools protocol currently supported by the backend,
         // as well as the earliest NPM version (e.g. "4.13.0") that protocol is supported by on the frontend.
@@ -35403,23 +35403,23 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
-        function storage_localStorageGetItem(key) {
+        function storage_sessionStorageGetItem(key) {
           try {
-            return localStorage.getItem(key);
+            return sessionStorage.getItem(key);
           } catch (error) {
             return null;
           }
         }
-        function localStorageRemoveItem(key) {
+        function sessionStorageRemoveItem(key) {
           try {
-            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
           } catch (error) {}
         }
-        function storage_localStorageSetItem(key, value) {
+        function storage_sessionStorageSetItem(key, value) {
           try {
-            return localStorage.setItem(key, value);
+            return sessionStorage.setItem(key, value);
           } catch (error) {}
         }
         function storage_sessionStorageGetItem(key) {
@@ -35545,7 +35545,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         var debug = function debug(methodName) {
@@ -36290,7 +36290,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // This is a DevTools fork of shared/ConsolePatchingDev.
         // The shared console patching code is DEV-only.
@@ -36446,7 +36446,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // This is a DevTools fork of ReactComponentStackFrame.
         // This fork enables DevTools to use the same "native" component stack format,
@@ -36685,7 +36685,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // This is a DevTools fork of ReactComponentInfoStack.
         // This fork enables DevTools to use the same "native" component stack format,
@@ -36729,7 +36729,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // This keeps track of Server Component logs which may come from.
         // This is in a shared module because Server Component logs don't come from a specific renderer
@@ -36773,7 +36773,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         function supportsConsoleTasks(componentInfo) {
@@ -36949,7 +36949,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // This list should be kept updated to reflect additions to 'shared/ReactSymbols'.
         // DevTools can't import symbols from 'shared/ReactSymbols' directly for two reasons:
@@ -36999,7 +36999,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         /************************************************************************
@@ -37024,7 +37024,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         /**
@@ -37047,7 +37047,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // $FlowFixMe[method-unbinding]
         var hasOwnProperty_hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -37060,7 +37060,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // This is a DevTools fork of ReactFiberComponentStack.
         // This fork enables DevTools to use the same "native" component stack format,
@@ -37239,7 +37239,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         var cachedStyleNameToValueMap = new Map();
@@ -37663,7 +37663,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         var REACT_TOTAL_NUM_LANES = 31; // Increment this number any time a backwards breaking change is made to the profiler metadata.
@@ -37739,7 +37739,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         // Add padding to the start/stop time of the profile.
@@ -38642,7 +38642,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         // $FlowFixMe[method-unbinding]
@@ -39694,7 +39694,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
               }
             });
           } // The renderer interface can't read saved component filters directly,
-          // because they are stored in localStorage within the context of the extension.
+          // because they are stored in sessionStorage within the context of the extension.
           // Instead it relies on the extension to pass filters through.
 
           if (window.__REACT_DEVTOOLS_COMPONENT_FILTERS__ != null) {
@@ -43190,7 +43190,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         function decorate(object, attr, fn) {
           var old = object[attr]; // $FlowFixMe[missing-this-annot] webpack config needs to be updated to allow `this` type annotations
@@ -43283,7 +43283,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         function getData(internalInstance) {
@@ -44159,7 +44159,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         // this is the backend that is compatible with all older React versions
@@ -44260,7 +44260,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
         // Do not add / import anything to this file.
         // This function could be used from multiple places, including hook.
@@ -44411,7 +44411,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * That's why we still inline the whole event emitter implementation,
          * the string format implementation, and part of the console implementation here.
          *
-         * 
+         *
          */
 
         // React's custom built component stack strings match "\s{4}in"
@@ -44961,7 +44961,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         function initBackend(hook, agent, global, isReloadAndProfileSupported) {
@@ -45028,7 +45028,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         /**
@@ -45139,7 +45139,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         function setupNativeStyleEditor(bridge, agent, resolveNativeStyle, validAttributes) {
@@ -45387,7 +45387,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
          * This source code is licensed under the MIT license found in the
          * LICENSE file in the root directory of this source tree.
          *
-         * 
+         *
          */
 
         var savedComponentFilters = getDefaultComponentFilters();
@@ -45497,7 +45497,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
               // We'll lose these in between backend reloads but that can't be helped.
               savedComponentFilters = componentFilters;
             }); // The renderer interface doesn't read saved component filters directly,
-            // because they are generally stored in localStorage within the context of the extension.
+            // because they are generally stored in sessionStorage within the context of the extension.
             // Because of this it relies on the extension to pass filters.
             // In the case of the standalone DevTools being used with a website,
             // saved filters are injected along with the backend script tag so we shouldn't override them here.
@@ -71871,7 +71871,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
    * This source code is licensed under the MIT license found in the
    * LICENSE file in the root directory of this source tree.
    *
-   * 
+   *
    * @nolint
    * @preventMunge
    * @generated SignedSource<<8d29d23a1c540d7502dd188e691eb725>>
@@ -78159,7 +78159,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
    * This source code is licensed under the MIT license found in the
    * LICENSE file in the root directory of this source tree.
    *
-   * 
+   *
    * @nolint
    * @preventMunge
    * @generated SignedSource<<22737380b5e4280ce3563ac009164f56>>
@@ -88488,7 +88488,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
    * This source code is licensed under the MIT license found in the
    * LICENSE file in the root directory of this source tree.
    *
-   * 
+   *
    * @nolint
    * @preventMunge
    * @generated SignedSource<<232209f5a157745637191195f25907c7>>
@@ -100920,7 +100920,7 @@ If none of these fix the issue, please open an issue on the GitHub repository: h
   /**
    * `AsyncStorage` is a simple, unencrypted, asynchronous, persistent, key-value
    * storage system that is global to the app. It should be used instead of
-   * LocalStorage.
+   * sessionStorage.
    *
    * See https://react-native-async-storage.github.io/async-storage/docs/api
    */
@@ -101211,16 +101211,16 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
   // TurboModuleRegistry falls back to NativeModules so we don't have to try go
   // assign NativeModules' counterparts if TurboModuleRegistry would resolve
   // with undefined.
-  var RCTAsyncStorage = _reactNative.TurboModuleRegistry ? _reactNative.TurboModuleRegistry.get("PlatformLocalStorage") ||
+  var RCTAsyncStorage = _reactNative.TurboModuleRegistry ? _reactNative.TurboModuleRegistry.get("PlatformsessionStorage") ||
   // Support for external modules, like react-native-windows
-  _reactNative.TurboModuleRegistry.get("RNC_AsyncSQLiteDBStorage") || _reactNative.TurboModuleRegistry.get("RNCAsyncStorage") : _reactNative.NativeModules["PlatformLocalStorage"] ||
+  _reactNative.TurboModuleRegistry.get("RNC_AsyncSQLiteDBStorage") || _reactNative.TurboModuleRegistry.get("RNCAsyncStorage") : _reactNative.NativeModules["PlatformsessionStorage"] ||
   // Support for external modules, like react-native-windows
   _reactNative.NativeModules["RNC_AsyncSQLiteDBStorage"] || _reactNative.NativeModules["RNCAsyncStorage"];
   if (!RCTAsyncStorage && (0, _$$_REQUIRE(_dependencyMap[1], "./shouldFallbackToLegacyNativeModule").shouldFallbackToLegacyNativeModule)()) {
     if (_reactNative.TurboModuleRegistry) {
-      RCTAsyncStorage = _reactNative.TurboModuleRegistry.get("AsyncSQLiteDBStorage") || _reactNative.TurboModuleRegistry.get("AsyncLocalStorage");
+      RCTAsyncStorage = _reactNative.TurboModuleRegistry.get("AsyncSQLiteDBStorage") || _reactNative.TurboModuleRegistry.get("AsyncsessionStorage");
     } else {
-      RCTAsyncStorage = _reactNative.NativeModules["AsyncSQLiteDBStorage"] || _reactNative.NativeModules["AsyncLocalStorage"];
+      RCTAsyncStorage = _reactNative.NativeModules["AsyncSQLiteDBStorage"] || _reactNative.NativeModules["AsyncsessionStorage"];
     }
   }
   var _default = exports.default = RCTAsyncStorage;
@@ -101327,7 +101327,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
   var _asyncStorage = _interopRequireDefault(_$$_REQUIRE(_dependencyMap[5], "@react-native-async-storage/async-storage"));
   var _config = _interopRequireDefault(_$$_REQUIRE(_dependencyMap[6], "../config"));
   var _jsxRuntime = _$$_REQUIRE(_dependencyMap[7], "react/jsx-runtime");
-  var _jsxFileName = "D:\\towing_system1\\TowTheRescueNative\\src\\screens\\LoginScreen.js"; // ✅
+  var _jsxFileName = "D:\\towing_system1\\TowTheRescueNative\\src\\screens\\LoginScreen.js"; //
   // const API_BASE_URL = 'http://192.168.0.104:3000/api/login'; // Change to your computer's IP
   function _interopRequireWildcard(e, t) { if ("function" == typeof WeakMap) var r = new WeakMap(), n = new WeakMap(); return (_interopRequireWildcard = function (e, t) { if (!t && e && e.__esModule) return e; var o, i, f = { __proto__: null, default: e }; if (null === e || "object" != typeof e && "function" != typeof e) return f; if (o = t ? n : r) { if (o.has(e)) return o.get(e); o.set(e, f); } for (var _t in e) "default" !== _t && {}.hasOwnProperty.call(e, _t) && ((i = (o = Object.defineProperty) && Object.getOwnPropertyDescriptor(e, _t)) && (i.get || i.set) ? o(f, _t, i) : f[_t] = e[_t]); return f; })(e, t); }
   var LoginScreen = ({
@@ -101768,7 +101768,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
   var _asyncStorage = _interopRequireDefault(_$$_REQUIRE(_dependencyMap[5], "@react-native-async-storage/async-storage"));
   var _config = _interopRequireDefault(_$$_REQUIRE(_dependencyMap[6], "../config"));
   var _jsxRuntime = _$$_REQUIRE(_dependencyMap[7], "react/jsx-runtime");
-  var _jsxFileName = "D:\\towing_system1\\TowTheRescueNative\\src\\screens\\RegisterScreen.js"; // ✅
+  var _jsxFileName = "D:\\towing_system1\\TowTheRescueNative\\src\\screens\\RegisterScreen.js"; //
   // const API_BASE_URL = 'http://192.168.0.104:3000'; // Change to your computer's IP
   function _interopRequireWildcard(e, t) { if ("function" == typeof WeakMap) var r = new WeakMap(), n = new WeakMap(); return (_interopRequireWildcard = function (e, t) { if (!t && e && e.__esModule) return e; var o, i, f = { __proto__: null, default: e }; if (null === e || "object" != typeof e && "function" != typeof e) return f; if (o = t ? n : r) { if (o.has(e)) return o.get(e); o.set(e, f); } for (var _t in e) "default" !== _t && {}.hasOwnProperty.call(e, _t) && ((i = (o = Object.defineProperty) && Object.getOwnPropertyDescriptor(e, _t)) && (i.get || i.set) ? o(f, _t, i) : f[_t] = e[_t]); return f; })(e, t); }
   var RegisterScreen = ({
@@ -102746,7 +102746,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
   var _asyncStorage = _interopRequireDefault(_$$_REQUIRE(_dependencyMap[5], "@react-native-async-storage/async-storage"));
   var _config = _interopRequireDefault(_$$_REQUIRE(_dependencyMap[6], "../config"));
   var _jsxRuntime = _$$_REQUIRE(_dependencyMap[7], "react/jsx-runtime");
-  var _jsxFileName = "D:\\towing_system1\\TowTheRescueNative\\src\\screens\\DashboardScreen.js"; // ✅
+  var _jsxFileName = "D:\\towing_system1\\TowTheRescueNative\\src\\screens\\DashboardScreen.js"; //
   function _interopRequireWildcard(e, t) { if ("function" == typeof WeakMap) var r = new WeakMap(), n = new WeakMap(); return (_interopRequireWildcard = function (e, t) { if (!t && e && e.__esModule) return e; var o, i, f = { __proto__: null, default: e }; if (null === e || "object" != typeof e && "function" != typeof e) return f; if (o = t ? n : r) { if (o.has(e)) return o.get(e); o.set(e, f); } for (var _t in e) "default" !== _t && {}.hasOwnProperty.call(e, _t) && ((i = (o = Object.defineProperty) && Object.getOwnPropertyDescriptor(e, _t)) && (i.get || i.set) ? o(f, _t, i) : f[_t] = e[_t]); return f; })(e, t); }
   var _Dimensions$get = _reactNative.Dimensions.get('window'),
     width = _Dimensions$get.width;
@@ -102939,7 +102939,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
             <body>
                 <div id="map"></div>
                 <div id="info-panel" class="info-panel"></div>
-                
+
                 <script>
                     const API_BASE_URL = '${_config.default}';
                     const POLL_INTERVAL_MS = ${POLL_INTERVAL_MS};
@@ -102948,7 +102948,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
                     const requestLat = ${requestData.location_lat};
                     const requestLng = ${requestData.location_lng};
                     const requestAddress = '${(requestData.address || 'Your requested location').replace(/'/g, "\\'")}';
-                    
+
                     const customerIcon = L.divIcon({
                         className: '',
                         html: '<div style="background:#D85A30;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)">📍</div>',
@@ -102956,7 +102956,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
                         iconAnchor: [18, 36],
                         popupAnchor: [0, -36]
                     });
-                    
+
                     const driverIcon = L.divIcon({
                         className: '',
                         html: '<div style="background:#1D9E75;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)">🚗</div>',
@@ -102964,30 +102964,30 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
                         iconAnchor: [18, 18],
                         popupAnchor: [0, -20]
                     });
-                    
+
                     function initMap() {
                         map = L.map('map').setView([requestLat, requestLng], 14);
-                        
+
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                             attribution: '© OpenStreetMap',
                             maxZoom: 19
                         }).addTo(map);
-                        
+
                         customerMarker = L.marker([requestLat, requestLng], { icon: customerIcon })
                             .addTo(map)
                             .bindPopup('<strong>📍 Your Location</strong><br>' + requestAddress)
                             .openPopup();
                     }
-                    
+
                     async function checkDriverLocation() {
                         if (!token) return;
-                        
+
                         try {
                             const res = await fetch(API_BASE_URL + '/requests/latest', {
                                 headers: { 'Authorization': 'Bearer ' + token }
                             });
                             const data = await res.json();
-                            
+
                             if (data?.driver_lat && data?.driver_lng) {
                                 const driverLat = parseFloat(data.driver_lat);
                                 const driverLng = parseFloat(data.driver_lng);
@@ -102997,37 +102997,37 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
                             console.error('Poll error:', err);
                         }
                     }
-                    
+
                     async function updateDriver(driverLat, driverLng) {
                         if (!driverMarker) {
                             driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
                                 .addTo(map)
                                 .bindPopup('<strong>🚗 Driver on the way</strong>');
-                            
+
                             const bounds = L.latLngBounds([driverLat, driverLng], [requestLat, requestLng]);
                             map.fitBounds(bounds, { padding: [60, 60] });
                         } else {
                             driverMarker.setLatLng([driverLat, driverLng]);
                         }
-                        
+
                         await drawRoute(driverLat, driverLng, requestLat, requestLng);
                     }
-                    
+
                     async function drawRoute(fromLat, fromLng, toLat, toLng) {
                         try {
                             const url = 'https://router.project-osrm.org/route/v1/driving/' + fromLng + ',' + fromLat + ';' + toLng + ',' + toLat + '?overview=full&geometries=geojson';
                             const res = await fetch(url);
                             const data = await res.json();
-                            
+
                             if (data.code === 'Ok') {
                                 const coords = data.routes[0].geometry.coordinates;
                                 const latLngs = coords.map(c => [c[1], c[0]]);
                                 if (routeLayer) map.removeLayer(routeLayer);
                                 routeLayer = L.polyline(latLngs, { color: '#1D9E75', weight: 5 }).addTo(map);
-                                
+
                                 const distance = (data.routes[0].distance / 1000).toFixed(1);
                                 const duration = Math.ceil(data.routes[0].duration / 60);
-                                
+
                                 const panel = document.getElementById('info-panel');
                                 panel.innerHTML = '<strong>🚗 Driver Status</strong><br>Distance: ' + distance + ' km<br>ETA: ' + duration + ' min';
                             }
@@ -103035,7 +103035,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
                             console.error('Route error:', err);
                         }
                     }
-                    
+
                     initMap();
                     checkDriverLocation();
                     pollingInterval = setInterval(checkDriverLocation, POLL_INTERVAL_MS);
@@ -104152,7 +104152,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
   var _asyncStorage = _interopRequireDefault(_$$_REQUIRE(_dependencyMap[6], "@react-native-async-storage/async-storage"));
   var _config = _interopRequireDefault(_$$_REQUIRE(_dependencyMap[7], "../config"));
   var _jsxRuntime = _$$_REQUIRE(_dependencyMap[8], "react/jsx-runtime");
-  var _jsxFileName = "D:\\towing_system1\\TowTheRescueNative\\src\\screens\\DriverDashboardScreen.js"; // ✅
+  var _jsxFileName = "D:\\towing_system1\\TowTheRescueNative\\src\\screens\\DriverDashboardScreen.js"; //
   function _interopRequireWildcard(e, t) { if ("function" == typeof WeakMap) var r = new WeakMap(), n = new WeakMap(); return (_interopRequireWildcard = function (e, t) { if (!t && e && e.__esModule) return e; var o, i, f = { __proto__: null, default: e }; if (null === e || "object" != typeof e && "function" != typeof e) return f; if (o = t ? n : r) { if (o.has(e)) return o.get(e); o.set(e, f); } for (var _t in e) "default" !== _t && {}.hasOwnProperty.call(e, _t) && ((i = (o = Object.defineProperty) && Object.getOwnPropertyDescriptor(e, _t)) && (i.get || i.set) ? o(f, _t, i) : f[_t] = e[_t]); return f; })(e, t); }
   var _Dimensions$get = _reactNative.Dimensions.get('window'),
     width = _Dimensions$get.width;
@@ -104587,18 +104587,18 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
             <body>
                 <div id="map"></div>
                 <div id="info-panel" class="info-panel">Loading map...</div>
-                
+
                 <script>
                     let map, driverMarker, customerMarker, routeLayer;
                     let currentDriverLat = null;
                     let currentDriverLng = null;
-                    
+
                     const customerLat = ${requestData.location_lat};
                     const customerLng = ${requestData.location_lng};
                     const customerAddress = '${(requestData.address || 'Customer location').replace(/'/g, "\\'")}';
                     const serviceType = '${requestData.service_type || 'Service'}';
                     const vehicleType = '${requestData.vehicle_type || 'Vehicle'}';
-                    
+
                     const driverIcon = L.divIcon({
                         className: '',
                         html: '<div style="background:#1D9E75;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)">🚗</div>',
@@ -104606,7 +104606,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
                         iconAnchor: [18, 18],
                         popupAnchor: [0, -20]
                     });
-                    
+
                     const customerIcon = L.divIcon({
                         className: '',
                         html: '<div style="background:#D85A30;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)">📍</div>',
@@ -104614,60 +104614,60 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
                         iconAnchor: [18, 36],
                         popupAnchor: [0, -36]
                     });
-                    
+
                     function initMap() {
                         map = L.map('map').setView([customerLat, customerLng], 14);
-                        
+
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                             attribution: '© OpenStreetMap',
                             maxZoom: 19
                         }).addTo(map);
-                        
+
                         customerMarker = L.marker([customerLat, customerLng], { icon: customerIcon })
                             .addTo(map)
                             .bindPopup('<strong>📍 Customer Location</strong><br>' + customerAddress + '<br>Service: ' + serviceType + '<br>Vehicle: ' + vehicleType)
                             .openPopup();
-                        
+
                         const panel = document.getElementById('info-panel');
                         panel.innerHTML = '<strong>🚗 Job Info</strong><br>Service: ' + serviceType + '<br>Vehicle: ' + vehicleType + '<br>Waiting for GPS...';
                     }
-                    
+
                     window.updateDriverLocation = function(lat, lng) {
                         currentDriverLat = lat;
                         currentDriverLng = lng;
-                        
+
                         if (!driverMarker) {
                             driverMarker = L.marker([lat, lng], { icon: driverIcon })
                                 .addTo(map)
                                 .bindPopup('<strong>🚗 You (Driver)</strong>');
-                            
+
                             const bounds = L.latLngBounds([lat, lng], [customerLat, customerLng]);
                             map.fitBounds(bounds, { padding: [60, 60] });
                         } else {
                             driverMarker.setLatLng([lat, lng]);
                         }
-                        
+
                         drawRoute(lat, lng, customerLat, customerLng);
                     };
-                    
+
                     async function drawRoute(fromLat, fromLng, toLat, toLng) {
                         try {
                             const url = 'https://router.project-osrm.org/route/v1/driving/' + fromLng + ',' + fromLat + ';' + toLng + ',' + toLat + '?overview=full&geometries=geojson';
                             const res = await fetch(url);
                             const data = await res.json();
-                            
+
                             if (data.code === 'Ok') {
                                 const coords = data.routes[0].geometry.coordinates;
                                 const latLngs = coords.map(c => [c[1], c[0]]);
                                 if (routeLayer) map.removeLayer(routeLayer);
                                 routeLayer = L.polyline(latLngs, { color: '#1D9E75', weight: 5 }).addTo(map);
-                                
+
                                 const distance = (data.routes[0].distance / 1000).toFixed(1);
                                 const duration = Math.ceil(data.routes[0].duration / 60);
-                                
+
                                 const panel = document.getElementById('info-panel');
                                 panel.innerHTML = '<strong>🚗 To Customer</strong><br>Distance: ' + distance + ' km<br>ETA: ' + duration + ' min<br>Service: ' + serviceType;
-                                
+
                                 if (driverMarker) {
                                     driverMarker.setPopupContent('<strong>🚗 You (Driver)</strong><br>Distance: ' + distance + ' km<br>ETA: ' + duration + ' min');
                                 }
@@ -104676,7 +104676,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
                             console.error('Route error:', err);
                         }
                     }
-                    
+
                     initMap();
                 </script>
             </body>
@@ -105398,7 +105398,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
   var _config = _interopRequireDefault(_$$_REQUIRE(_dependencyMap[7], "../config"));
   var _jsxRuntime = _$$_REQUIRE(_dependencyMap[8], "react/jsx-runtime");
   var _jsxFileName = "D:\\towing_system1\\TowTheRescueNative\\src\\screens\\RequestFormScreen.js"; // screens/RequestFormScreen.js
-  // ✅
+  //
   // const API_BASE_URL = 'http://192.168.1.100:3000'; // Change to your computer's IP
   function _interopRequireWildcard(e, t) { if ("function" == typeof WeakMap) var r = new WeakMap(), n = new WeakMap(); return (_interopRequireWildcard = function (e, t) { if (!t && e && e.__esModule) return e; var o, i, f = { __proto__: null, default: e }; if (null === e || "object" != typeof e && "function" != typeof e) return f; if (o = t ? n : r) { if (o.has(e)) return o.get(e); o.set(e, f); } for (var _t in e) "default" !== _t && {}.hasOwnProperty.call(e, _t) && ((i = (o = Object.defineProperty) && Object.getOwnPropertyDescriptor(e, _t)) && (i.get || i.set) ? o(f, _t, i) : f[_t] = e[_t]); return f; })(e, t); }
   var RequestFormScreen = ({

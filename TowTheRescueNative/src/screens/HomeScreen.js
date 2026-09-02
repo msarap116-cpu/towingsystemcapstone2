@@ -61,7 +61,7 @@ const HomeScreen = ({ navigation }) => {
             {/* Header/Navigation */}
             <View style={styles.navbar}>
                 <View style={styles.navContainer}>
-                    <Text style={styles.navbarBrand}>Tow The Rescue</Text>
+                    <Text style={styles.navbarBrand}>fadfdf</Text>
                     
                     <View style={styles.navMenu}>
                         <TouchableOpacity onPress={() => {
