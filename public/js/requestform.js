@@ -38,12 +38,14 @@ const DRAFT_KEY = 'draftRequest';
 
 document.addEventListener("DOMContentLoaded", () => {
 
+    // Bail out entirely if this page doesn't have the request form
+    const emergencyForm = document.getElementById('emergencyForm');
+    if (!emergencyForm) return;
+
     addressSuggestions = document.getElementById('addressSuggestions');
 
-    // Restore any draft saved before a login/register redirect
     restoreRequestDraft();
 
-    // Load vehicles only if logged in; otherwise show guest state
     const token = sessionStorage.getItem('token');
     if (token) {
         loadVehiclesForRequest();
@@ -51,13 +53,9 @@ document.addEventListener("DOMContentLoaded", () => {
         showGuestState();
     }
 
-    // Automatically select service from URL
     setServiceFromURL();
 
-    const emergencyForm = document.getElementById('emergencyForm');
-    if (emergencyForm) {
-        emergencyForm.addEventListener('submit', handleRequestSubmit);
-    }
+    emergencyForm.addEventListener('submit', handleRequestSubmit);
 
     const addressField = document.getElementById('address');
     if (addressField) {
@@ -75,7 +73,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function showGuestState() {
+       console.log('showGuestState running on:', window.location.pathname);
     const select = document.getElementById('vehicleId');
+    console.log('select found?', select);
     const guestNotice = document.getElementById('guestNotice');
     const submitBtn = document.getElementById('submitBtn');
 
