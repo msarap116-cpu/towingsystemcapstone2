@@ -532,6 +532,10 @@
             z-index: 2000;
         }
 
+        .modal.active {
+            display: flex;
+        }
+
         .modal-content {
             background: #fff;
             border-radius: 32px;

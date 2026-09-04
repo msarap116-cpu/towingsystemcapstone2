@@ -5,13 +5,14 @@ const requestController = require('../controllers/requestController');
 const authenticateToken = require('../middleware/authMiddleware');
 const Request = require('../models/requestModel');
 const db = require('../database/database');
+const Notification = require('../models/notificationModel');
 
 router.use((req, res, next) => {
     // console.log('requestRoutes hit:', req.method, req.path);
     next();
 });
 
-// === Specific Routes (Order matters!) ===
+// === Specific Routes (Order matters!) === why?
 
 // GET /latest - This MUST come before GET /:id
 router.get('/latest', authenticateToken, async (req, res) => {
@@ -38,7 +39,10 @@ router.get('/latest', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /pending – all unassigned pending requests (for drivers) - This MUST come before GET /:id
+
+
+
+// GET /pending all unassigned pending requests for drivers This MUST come before GET /:id
 router.get('/pending', authenticateToken, async (req, res) => {
     const role = req.user.role;
     if (role !== 'driver') {
@@ -147,13 +151,15 @@ router.put('/:id/accept', authenticateToken, async (req, res) => {
         // Get request
         const result = await db.query(
             `SELECT
-                request_id,
-                status,
-                driver_id
-             FROM service_requests
-             WHERE request_id = ?`,
+        request_id,
+        status,
+        driver_id,
+        user_id
+     FROM service_requests
+     WHERE request_id = ?`,
             [id]
         );
+
 
         console.log('Accept request query result:', result);
 
@@ -199,28 +205,47 @@ router.put('/:id/accept', authenticateToken, async (req, res) => {
              AND status = 'pending'`,
             [driver_id, id]
         );
+        try {
+            await Notification.create({
+                userId: request.user_id,
+                requestId: id,
+                type: 'order',
+                message: `A driver has accepted your service request #${id}.`
+            });
+        } catch (notifErr) {
+            console.error('Notification failed (non-fatal):', notifErr);
+        }
 
         console.log('Accept update result:', updateResult);
 
-        // Check whether the update actually happened
-        const affectedRows = updateResult.affectedRows;
+const affectedRows = updateResult.affectedRows;
 
-        if (affectedRows === 0) {
-            return res.status(409).json({
-                error: 'Request was already accepted or assigned by another user.'
-            });
-        }
+if (affectedRows === 0) {
+    return res.status(409).json({
+        error: 'Request was already accepted or assigned by another user.'
+    });
+}
 
-        console.log(
-            `Driver ${driver_id} successfully accepted request ${id}`
-        );
+// Only notify on confirmed success
+try {
+    await Notification.create({
+        userId: request.user_id,
+        requestId: id,
+        type: 'order',
+        message: `A driver has accepted your service request #${id}.`
+    });
+} catch (notifErr) {
+    console.error('Notification failed (non-fatal):', notifErr);
+}
 
-        return res.json({
-            success: true,
-            message: 'Request accepted',
-            request_id: Number(id),
-            driver_id: Number(driver_id)
-        });
+console.log(`Driver ${driver_id} successfully accepted request ${id}`);
+
+return res.json({
+    success: true,
+    message: 'Request accepted',
+    request_id: Number(id),
+    driver_id: Number(driver_id)
+});
 
     } catch (err) {
 
@@ -308,6 +333,16 @@ router.put('/:id/cancel', authenticateToken, async (req, res) => {
         );
 
         res.json({ success: true, message: 'Trip cancelled' });
+
+        const notifyUserId = userRole === 'driver' ? request.user_id : request.driver_id;
+        if (notifyUserId) {
+            await Notification.create({
+                userId: notifyUserId,
+                requestId: id,
+                type: 'order',
+                message: `Request #${id} was cancelled by the ${userRole}.${reason ? ' Reason: ' + reason : ''}`
+            });
+        }
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

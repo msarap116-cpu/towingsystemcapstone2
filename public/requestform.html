@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Check login status — matches your auth system
   function isLoggedIn() {
     // If you store login data in localStorage/sessionStorage — this works perfectly
-    return !!(localStorage.getItem('userToken') || sessionStorage.getItem('userData'));
+    return !!(sessionStorage.getItem('userToken') || sessionStorage.getItem('userData'));
   }
 
   const loggedIn = isLoggedIn();
@@ -146,7 +146,9 @@ document.addEventListener('DOMContentLoaded', function () {
   link.addEventListener('click', function (e) {
     if (!loggedIn) {
       e.preventDefault();
-      window.location.href = 'home';
+      window.location.href = 'dashboard';
+    }else{
+        window.location.href = 'home'
     }
   });
 });

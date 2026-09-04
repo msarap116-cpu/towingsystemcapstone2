@@ -11,6 +11,7 @@ const Payment = require('../models/paymentModel');
 
 const upload = require('../middleware/upload');
 
+const Notification = require('../models/notificationModel');
 
 router.get('/:paymentId/receipt', authenticateToken, paymentController.downloadReceipt);
 //03:21-082726
@@ -172,6 +173,12 @@ router.post(
                     proofImagePath: req.file.path
                 });
 
+                await Notification.createForRole('admin', {
+  requestId: request_id,
+  type: 'payment',
+  message: `New GCash payment proof submitted for request #${request_id}, awaiting verification.`
+});
+
             if (result.affectedRows === 0) {
                 return res.status(409).json({
                     success: false,
@@ -279,11 +286,20 @@ router.put(
                 receiptNumber
             );
 
+            await Notification.create({
+  userId: payment.user_id,
+  requestId: payment.request_id,
+  type: 'payment',
+  message: `Your payment of ₱${payment.amount} has been approved. Receipt: ${receiptNumber}`
+});
+
             return res.json({
                 success: true,
                 message: 'Payment approved successfully.',
                 receipt_number: receiptNumber
             });
+
+
 
         } catch (error) {
 

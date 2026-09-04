@@ -7,6 +7,8 @@ const authenticateToken = require('../middleware/authMiddleware');
 const Payment = require('../models/paymentModel');
 const requireAdmin = require('../middleware/adminMiddleware');
 
+
+
 router.get('/customers', authenticateToken, adminController.getCustomers);
 
 router.get('/drivers', authenticateToken, adminController.getDrivers);
@@ -18,7 +20,6 @@ router.get('/payments', authenticateToken, adminController.getPayments);
 router.get('/statistics', authenticateToken, adminController.getStatistics);
 
 router.put('/requests/:id', authenticateToken, adminController.updateRequest);
-
 
 router.post('/requests', authenticateToken, adminController.createRequest);
 
@@ -35,7 +36,26 @@ router.patch('/payments/:id/mark-paid', authenticateToken, adminController.markP
 router.delete('/requests/:id', authenticateToken, adminController.deleteRequest);
 
 router.delete('/customers/:id',authenticateToken,adminController.deleteCustomer);
+router.delete(
+    '/customers/:id',
+    authenticateToken,
+    adminController.deleteCustomer
+);
 
+// Service Types / Prices
+router.get(
+    '/service-types',
+    authenticateToken,
+    requireAdmin,
+    adminController.getServiceTypes
+);
+
+router.put(
+    '/service-types/:id/price',
+    authenticateToken,
+    requireAdmin,
+    adminController.updateServicePrice
+);
 router.put(
     '/requests/:id/assign-driver',
     authenticateToken,
@@ -94,6 +114,12 @@ console.log('🔐 USER ROLE:', req.user?.role);
                 paymentId,
                 receiptNumber
             );
+            await Notification.create({
+  userId: payment.user_id,
+  requestId: payment.request_id,
+  type: 'payment',
+  message: `Your payment of ₱${payment.amount} has been approved. Receipt: ${receiptNumber}`
+});
 
             res.json({
                 success: true,
@@ -154,7 +180,12 @@ router.put(
             await Payment.rejectPayment(
                 paymentId,
                 reason || 'Payment proof was rejected.'
-            );
+            );await Notification.create({
+  userId: payment.user_id,
+  requestId: payment.request_id,
+  type: 'payment',
+  message: `Your payment proof was rejected. Reason: ${reason || 'Payment proof was rejected.'}`
+});
 
             res.json({
                 success: true,
@@ -176,5 +207,7 @@ router.put(
         }
     }
 );
+
+
 router.get('/map-data', authenticateToken, adminController.getMapData);//the getMapData is not declare in the adminRoute just yet
 module.exports = router;

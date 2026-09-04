@@ -10,6 +10,9 @@ let pollingInterval = null;
 let latestRequestId = null;
 let latestRequestData = null;
 
+let addressSearchTimeout = null;
+let addressSearchController = null;
+
 const MAP_CONFIG = {
     bounds: {
         southWest: { lat: 6.0, lng: 124.4 },
@@ -113,37 +116,37 @@ async function loadUserMap() {
         }
 
 
-      if (
-    request.status === 'completed' ||
-    request.status === 'cancelled'
-) {
-    console.log(`Request #${request.request_id} is ${request.status}. Clearing live tracking.`);
+        if (
+            request.status === 'completed' ||
+            request.status === 'cancelled'
+        ) {
+            console.log(`Request #${request.request_id} is ${request.status}. Clearing live tracking.`);
 
-    if (pollingInterval) {
-        clearInterval(pollingInterval);
-        pollingInterval = null;
-    }
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
 
-    latestRequestId = request.request_id;
-    // Keep latestRequestData populated for completed requests so payment still works.
-    // Only null it out when there's truly nothing left to act on.
-    if (request.status === 'cancelled') {
-        latestRequestData = null;
-    } else {
-        latestRequestData = request;
-    }
+            latestRequestId = request.request_id;
+            // Keep latestRequestData populated for completed requests so payment still works.
+            // Only null it out when there's truly nothing left to act on.
+            if (request.status === 'cancelled') {
+                latestRequestData = null;
+            } else {
+                latestRequestData = request;
+            }
 
-    if (map) {
-        map.remove();
-        map = null;
-    }
+            if (map) {
+                map.remove();
+                map = null;
+            }
 
-    customerMarker = null;
-    driverMarker = null;
-    routeLayer = null;
+            customerMarker = null;
+            driverMarker = null;
+            routeLayer = null;
 
-    return;
-}
+            return;
+        }
         // Store the latest request, not the entire array
         latestRequestId = request.request_id;
         latestRequestData = request;
@@ -554,7 +557,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 //======================================== declarations getElementById ==========================================================
-const editAddressModal = document.getElementById('editAddressModal');
+const editAddressSection = document.getElementById('editAddressSection');
 const editAddressSidebarBtn = document.getElementById('editAddressNavBtn');
 const closeEditModalBtn = document.getElementById('closeModalBtn');
 const saveEditAddressBtn = document.getElementById('saveAddressBtn');
@@ -572,8 +575,7 @@ const selectedLocationInfo = document.getElementById('selectedLocationInfo');
 
 const useCurrentEditLocationBtn = document.getElementById('useCurrentEditLocationBtn');
 
-let addressSearchTimeout = null;
-let addressSearchController = null;
+
 
 //payments
 const paymentNavBtn = document.getElementById('paymentNavBtn');
@@ -976,322 +978,175 @@ async function startCardPayment(requestId) {
 }
 
 //================================================================address section =====================================================
-//using current address
 async function useCurrentEditLocation() {
-
     console.log("📍 Getting current location...");
 
+    const useCurrentEditLocationBtn = document.getElementById('useCurrentEditLocationBtn');
+    const editLocationLat = document.getElementById('editLocationLat');
+    const editLocationLng = document.getElementById('editLocationLng');
+    const editAddressInput = document.getElementById('editAddressInput');
+    const selectedLocationInfo = document.getElementById('selectedLocationInfo');
+
     if (!navigator.geolocation) {
-
-        alert(
-            "Your browser does not support location services."
-        );
-
+        alert("Your browser does not support location services.");
         return;
     }
 
-    // Show loading state
     useCurrentEditLocationBtn.disabled = true;
-
-    useCurrentEditLocationBtn.textContent =
-        "📍 Getting your location...";
-
-    selectedLocationInfo.innerHTML =
-        "📡 Getting your GPS location...";
+    useCurrentEditLocationBtn.textContent = "📍 Getting your location...";
+    selectedLocationInfo.innerHTML = "📡 Getting your GPS location...";
 
     navigator.geolocation.getCurrentPosition(
-
         async (position) => {
-
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
+            console.log("Current GPS location:", { lat, lng });
 
-            console.log("Current GPS location:", {
-                lat,
-                lng
-            });
-
-            // Save coordinates
             editLocationLat.value = lat;
             editLocationLng.value = lng;
 
             try {
+                selectedLocationInfo.innerHTML = "🔍 Finding your address...";
 
-                selectedLocationInfo.innerHTML =
-                    "🔍 Finding your address...";
-
-                /*
-                 * Reverse geocoding:
-                 * Coordinates -> readable address
-                 */
-
+                // ✅ FIXED: Proper URL + required headers
                 const response = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse` +
-                    `?lat=${lat}` +
-                    `&lon=${lng}` +
-                    `&format=json` +
-                    `&addressdetails=1`
+                    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+                    {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    }
                 );
 
-                if (!response.ok) {
-                    throw new Error(
-                        `Reverse geocoding failed: ${response.status}`
-                    );
-                }
-
+                if (!response.ok) throw new Error(`Reverse geocoding failed: ${response.status}`);
                 const data = await response.json();
+                console.log("✅ Reverse geocoding result:", data);
 
-                console.log(
-                    "Reverse geocoding result:",
-                    data
-                );
-
-                const address =
-                    data.display_name ||
-                    `${lat}, ${lng}`;
-
-                // Put address into input
+                const address = data.display_name || `${lat}, ${lng}`;
                 editAddressInput.value = address;
 
-                // Show selected location
                 selectedLocationInfo.innerHTML = `
-                    📍 <strong>Current location selected</strong><br>
-                    ${escapeHtml(address)}<br>
-                    <small>
-                        Lat: ${lat.toFixed(6)}
-                        &nbsp;
-                        Lng: ${lng.toFixed(6)}
-                    </small>
-                `;
-
+          📍 <strong>Current location selected</strong><br>
+          ${escapeHtml(address)}<br>
+          <small>Lat: ${lat.toFixed(6)} &nbsp; Lng: ${lng.toFixed(6)}</small>
+        `;
             } catch (error) {
-
-                console.error(
-                    "Reverse geocoding error:",
-                    error
-                );
-
-                /*
-                 * GPS still worked even if
-                 * address lookup failed.
-                 */
-
-                editAddressInput.value =
-                    `${lat}, ${lng}`;
-
+                console.error("❌ Reverse geocoding error:", error);
+                editAddressInput.value = `${lat}, ${lng}`;
                 selectedLocationInfo.innerHTML = `
-                    📍 <strong>GPS location selected</strong><br>
-                    Lat: ${lat.toFixed(6)}<br>
-                    Lng: ${lng.toFixed(6)}
-                `;
-
+          📍 <strong>GPS location selected</strong><br>
+          Lat: ${lat.toFixed(6)}<br>
+          Lng: ${lng.toFixed(6)}
+        `;
             } finally {
-
                 useCurrentEditLocationBtn.disabled = false;
-
-                useCurrentEditLocationBtn.textContent =
-                    "📍 Use My Current Location";
+                useCurrentEditLocationBtn.textContent = "📍 Use My Current Location";
             }
-
         },
-
         (error) => {
-
-            console.error(
-                "Geolocation error:",
-                error
-            );
-
+            console.error("❌ Geolocation error:", error);
             useCurrentEditLocationBtn.disabled = false;
-
-            useCurrentEditLocationBtn.textContent =
-                "📍 Use My Current Location";
-
-            selectedLocationInfo.innerHTML =
-                "Unable to get your current location.";
+            useCurrentEditLocationBtn.textContent = "📍 Use My Current Location";
+            selectedLocationInfo.innerHTML = "Unable to get your current location.";
 
             switch (error.code) {
-
                 case error.PERMISSION_DENIED:
-
-                    alert(
-                        "Location permission was denied. " +
-                        "Please allow location access in your browser."
-                    );
-
-                    break;
-
+                    alert("Location permission was denied. Please allow location access."); break;
                 case error.POSITION_UNAVAILABLE:
-
-                    alert(
-                        "Your current location is unavailable."
-                    );
-
-                    break;
-
+                    alert("Your current location is unavailable."); break;
                 case error.TIMEOUT:
-
-                    alert(
-                        "Getting your location took too long. " +
-                        "Please try again."
-                    );
-
-                    break;
-
+                    alert("Getting your location took too long. Please try again."); break;
                 default:
-
-                    alert(
-                        "Unable to determine your current location."
-                    );
+                    alert("Unable to determine your current location.");
             }
-
         },
-
-        {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0
-        }
-
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
 }
-if (useCurrentEditLocationBtn) {
 
-    useCurrentEditLocationBtn.addEventListener(
-        'click',
-        useCurrentEditLocation
-    );
-
-}
-
-//search addresss
+// ========== SEARCH ADDRESS ==========
 async function searchAddressLocations(query) {
-
+    const addressSuggestions = document.getElementById('addressSuggestions');
     if (!query || query.trim().length < 3) {
         addressSuggestions.innerHTML = '';
         addressSuggestions.classList.remove('show');
         return;
     }
 
-    // Cancel previous request
-    if (addressSearchController) {
-        addressSearchController.abort();
-    }
-
+    if (addressSearchController) addressSearchController.abort();
     addressSearchController = new AbortController();
 
-    addressSuggestions.innerHTML = `
-        <div class="address-loading">
-            🔍 Searching locations...
-        </div>
-    `;
-
+    addressSuggestions.innerHTML = `<div class="address-loading">🔍 Searching locations...</div>`;
     addressSuggestions.classList.add('show');
 
     try {
+        const encodedQuery = encodeURIComponent(`${query}, Philippines`);
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodedQuery}&format=json&addressdetails=1&limit=5&countrycodes=ph`;
 
-        const encodedQuery = encodeURIComponent(
-            `${query}, Philippines`
-        );
-
-        const url =
-            `https://nominatim.openstreetmap.org/search` +
-            `?q=${encodedQuery}` +
-            `&format=json` +
-            `&addressdetails=1` +
-            `&limit=5` +
-            `&countrycodes=ph`;
-
-        const response = await fetch(url, {
-            signal: addressSearchController.signal
-        });
-
-        if (!response.ok) {
-            throw new Error(`Search failed: ${response.status}`);
-        }
-
+        const response = await fetch(url, { signal: addressSearchController.signal });
+        if (!response.ok) throw new Error(`Search failed: ${response.status}`);
         const results = await response.json();
 
         if (!results || results.length === 0) {
-
-            addressSuggestions.innerHTML = `
-                <div class="address-no-results">
-                    No locations found.
-                </div>
-            `;
-
+            addressSuggestions.innerHTML = `<div class="address-no-results">No locations found.</div>`;
             return;
         }
 
         addressSuggestions.innerHTML = '';
-
         results.forEach(result => {
-
             const item = document.createElement('div');
-
             item.className = 'address-suggestion';
-
             item.innerHTML = `
-                <strong>📍 ${escapeHtml(result.display_name.split(',')[0])}</strong>
-                <small>${escapeHtml(result.display_name)}</small>
-            `;
-
-            item.addEventListener('click', () => {
-
-                selectAddressResult(result);
-
-            });
-
+        <strong>📍 ${escapeHtml(result.display_name.split(',')[0])}</strong>
+        <small>${escapeHtml(result.display_name)}</small>
+      `;
+            item.addEventListener('click', () => selectAddressResult(result));
             addressSuggestions.appendChild(item);
         });
-
     } catch (error) {
-
-        if (error.name === 'AbortError') {
-            return;
-        }
-
-        console.error('Address search error:', error);
-
-        addressSuggestions.innerHTML = `
-            <div class="address-no-results">
-                ⚠️ Unable to search locations.
-            </div>
-        `;
+        if (error.name === 'AbortError') return;
+        console.error('❌ Address search error:', error);
+        addressSuggestions.innerHTML = `<div class="address-no-results">⚠️ Unable to search locations.</div>`;
     }
 }
 
-//sorting the address
+// ========== SELECT ADDRESS RESULT ==========
 function selectAddressResult(result) {
+    const editAddressInput = document.getElementById('editAddressInput');
+    const editLocationLat = document.getElementById('editLocationLat');
+    const editLocationLng = document.getElementById('editLocationLng');
+    const selectedLocationInfo = document.getElementById('selectedLocationInfo');
+    const addressSuggestions = document.getElementById('addressSuggestions');
 
     const lat = parseFloat(result.lat);
     const lng = parseFloat(result.lon);
-
     const address = result.display_name;
 
-    // Put selected address into input
     editAddressInput.value = address;
-
-    // Store coordinates
     editLocationLat.value = lat;
     editLocationLng.value = lng;
 
-    // Show selected location
     selectedLocationInfo.innerHTML = `
-        📍 <strong>Location selected</strong><br>
-        Latitude: ${lat}<br>
-        Longitude: ${lng}
-    `;
+    📍 <strong>Location selected</strong><br>
+    Latitude: ${lat}<br>
+    Longitude: ${lng}
+  `;
 
-    // Hide suggestions
     addressSuggestions.innerHTML = '';
     addressSuggestions.classList.remove('show');
+    console.log('✅ Selected address:', { address, lat, lng });
+}
 
-    console.log('Selected address:', {
-        address,
-        lat,
-        lng
-    });
+// ========== GEOCODE ADDRESS (manual input) ==========
+async function geocodeAddress(address) {
+    try {
+        const encoded = encodeURIComponent(`${address}, Philippines`);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1&countrycodes=ph`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data || !data.length) return null;
+        return { lat: data[0].lat, lng: data[0].lon };
+    } catch { return null; }
 }
 
 function escapeHtml(value) {
@@ -1343,308 +1198,17 @@ if (emergencyBtn) {
     });
 });
 
-if (editAddressSidebarBtn) {
 
-    editAddressSidebarBtn.addEventListener('click', (e) => {
 
-        console.log('editAddressSidebarBtn is clicked');
 
-        if (!latestRequestData) {
-            alert("No active request found.");
-            return;
-        }
-
-        // Load current address
-        editAddressInput.value = latestRequestData.address || '';
-
-        // Load current coordinates
-        editLocationLat.value =
-            latestRequestData.location_lat || '';
-
-        editLocationLng.value =
-            latestRequestData.location_lng || '';
-
-        // Show current location information
-        if (
-            latestRequestData.location_lat &&
-            latestRequestData.location_lng
-        ) {
-
-            selectedLocationInfo.innerHTML = `
-            📍 <strong>Current request location</strong><br>
-            Latitude: ${latestRequestData.location_lat}<br>
-            Longitude: ${latestRequestData.location_lng}
-        `;
-
-        } else {
-
-            selectedLocationInfo.innerHTML =
-                `📍 No location coordinates available`;
-
-        }
-
-        // Clear old suggestions
-        addressSuggestions.innerHTML = '';
-        addressSuggestions.classList.remove('show');
-
-        // Open modal
-        editAddressModal.style.display = 'flex';
-
-    });
-}
-
-if (closeEditModalBtn) {
-    closeEditModalBtn.onclick = () => {
-        editAddressModal.style.display = 'none';
-    };
-}
-
-window.addEventListener('click', function (event) {
-    if (event.target == editAddressModal) {
-        editAddressModal.style.display = 'none';
-    }
+//  Close button handler — return to Dashboard
+document.getElementById('closeEditAddressSection')?.addEventListener('click', () => {
+    showPanel(dashboardPanel, dashboardNav);
 });
 
-if (saveEditAddressBtn) {
-
-    saveEditAddressBtn.onclick = async (e) => {
-
-        e.preventDefault();
-
-        const newAddress = editAddressInput.value.trim();
-
-        if (!newAddress) {
-            alert("Please search and select an address.");
-            return;
-        }
-
-        // GET SELECTED COORDINATES
-
-        let lat = parseFloat(editLocationLat.value);
-        let lng = parseFloat(editLocationLng.value);
-
-        /*
-         * If the user typed an address manually without
-         * selecting a search result, geocode it.
-         */
-        if (
-            !Number.isFinite(lat) ||
-            !Number.isFinite(lng)
-        ) {
-
-            console.log(
-                "No selected coordinates. Geocoding address..."
-            );
-
-            const geo =
-                await geocodeAddress(newAddress);
-
-            if (!geo) {
-
-                alert(
-                    "Please select a location from the search results."
-                );
-
-                return;
-            }
-
-            lat = parseFloat(geo.lat);
-            lng = parseFloat(geo.lng);
-        }
-
-        // Make absolutely sure coordinates are valid
-        if (
-            !Number.isFinite(lat) ||
-            !Number.isFinite(lng)
-        ) {
-
-            alert("Invalid location coordinates.");
-            return;
-        }
-
-        try {
-
-            const token =
-                sessionStorage.getItem('token');
-
-            // UPDATE DATABASE
-            const res = await fetch(
-                `${API_BASE_URL}/requests/${latestRequestId}/address`,
-                {
-                    method: 'PUT',
-
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-
-                    body: JSON.stringify({
-                        address: newAddress,
-                        location_lat: lat,
-                        location_lng: lng
-                    })
-                }
-            );
-
-            const result = await res.json();
-
-            if (!res.ok) {
-
-                alert(
-                    result.error ||
-                    "Failed to update address"
-                );
-
-                return;
-            }
-
-            console.log(
-                "Address update successful:",
-                result
-            );
-
-            // CLOSE MODAL
-
-            editAddressModal.style.display = 'none';
-
-            // UPDATE LOCAL REQUEST DATA
-
-            latestRequestData.address =
-                newAddress;
-
-            latestRequestData.location_lat =
-                lat;
-
-            latestRequestData.location_lng =
-                lng;
-
-            console.log(
-                "========== UPDATING MAP AFTER ADDRESS =========="
-            );
-
-            console.log(
-                "Customer:",
-                lat,
-                lng
-            );
-
-            console.log(
-                "Driver:",
-                latestRequestData.driver_lat,
-                latestRequestData.driver_lng
-            );
-
-            // UPDATE CUSTOMER MARKER
-
-            if (customerMarker) {
-
-                console.log(
-                    "📍 Updating existing customer marker"
-                );
-
-                customerMarker.setLatLng([
-                    lat,
-                    lng
-                ]);
-
-                customerMarker.setPopupContent(
-                    `<strong>📍 Your Location</strong><br>
-                     ${newAddress}`
-                );
-
-            } else {
-
-                console.warn(
-                    "Customer marker doesn't exist. Creating it."
-                );
-
-                customerMarker = L.marker(
-                    [lat, lng],
-                    { icon: customerIcon })
-                    .addTo(map)
-                    .bindPopup(
-                        `<strong>📍 Your Location</strong><br>
-                     ${newAddress}`);
-            }
-
-            // GET DRIVER LOCATION
-            const driverLat =
-                parseFloat(
-                    latestRequestData.driver_lat
-                );
-
-            const driverLng =
-                parseFloat(
-                    latestRequestData.driver_lng
-                );
-
-            console.log(
-                "🚗 Driver coordinates:",
-                driverLat,
-                driverLng
-            );
-            // UPDATE DRIVER + ROUTE
-            if (
-                Number.isFinite(driverLat) &&
-                Number.isFinite(driverLng)
-            ) {
-                console.log(
-                    "🚗 Driver still exists"
-                );
-                await showDriverOnMap(
-                    driverLat,
-                    driverLng,
-                    lat,
-                    lng
-                );
-            } else {
-                console.warn(
-                    "Driver coordinates missing."
-                );
-            }
-            // FIT MAP TO BOTH LOCATIONS
-            if (
-                Number.isFinite(driverLat) &&
-                Number.isFinite(driverLng)
-            ) {
-                const bounds =
-                    L.latLngBounds(
-                        [lat, lng],
-                        [driverLat, driverLng]
-                    );
-                map.fitBounds(
-                    bounds,
-                    {
-                        padding: [60, 60]
-                    }
-                );
-            } else {
-                map.setView(
-                    [lat, lng],
-                    15
-                );
-            }
-            if (addressSuggestions) {
-
-                addressSuggestions.innerHTML = '';
-
-                addressSuggestions.classList.remove(
-                    'show'
-                );
-            }
-            alert(
-                result.message ||
-                "Address updated successfully"
-            );
-        } catch (err) {
-            console.error(
-                'Failed to update address:',
-                err
-            );
-            alert("Failed to update address.");
-        }
-    };
-}
+// ==============================================
+// SAVE ADDRESS — Full updated logic (Section mode)
+// ==============================================
 
 // base line sang popular people
 window.addEventListener('beforeunload', () => {
@@ -1657,8 +1221,217 @@ document.addEventListener('DOMContentLoaded', function () {
     displayUserInfo();
 
     loadUserMap();
+
+    // Clock
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('currentTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    updateClock();
+    setInterval(updateClock, 10000);
 });
 //=================================================================download receipt==================================================
+
+//sidebar nav button functions
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('✅ DOM Ready');
+
+    // ========== DECLARE ALL ELEMENTS ==========
+    const dashboardNav = document.getElementById('dashboardNav');
+    const receiptNavBtn = document.getElementById('receiptNavBtn');
+    const recentNavBtn = document.getElementById('recentNavBtn');
+    const paymentNavBtn = document.getElementById('paymentNavBtn');
+    const editAddressSidebarBtn = document.getElementById('editAddressNavBtn');
+    const dashboardPanel = document.getElementById('dashboardPanel');
+    const receiptPanel = document.getElementById('receiptPanel');
+    const recentPanel = document.getElementById('recent-panel');
+    const paymentSection = document.getElementById('paymentSection');
+    const editAddressSection = document.getElementById('editAddressSection');
+    const useCurrentEditLocationBtn = document.getElementById('useCurrentEditLocationBtn');
+    const editAddressInput = document.getElementById('editAddressInput');
+    const addressSuggestions = document.getElementById('addressSuggestions');
+    const saveEditAddressBtn = document.getElementById('saveAddressBtn');
+
+    // ========== showPanel() ==========
+    function showPanel(panel, navItem) {
+        dashboardPanel.hidden = true;
+        receiptPanel.hidden = true;
+        recentPanel.hidden = true;
+        if (paymentSection) paymentSection.hidden = true;
+        if (editAddressSection) editAddressSection.hidden = true;
+
+        dashboardNav.classList.remove('active');
+        receiptNavBtn.classList.remove('active');
+        recentNavBtn.classList.remove('active');
+        if (paymentNavBtn) paymentNavBtn.classList.remove('active');
+        if (editAddressSidebarBtn) editAddressSidebarBtn.classList.remove('active');
+
+        panel.hidden = false;
+        if (navItem) navItem.classList.add('active');
+    }
+
+    // ========== DASHBOARD ==========
+    dashboardNav?.addEventListener('click', () => showPanel(dashboardPanel, dashboardNav));
+
+    // ========== RECEIPTS ==========
+    receiptNavBtn?.addEventListener('click', async () => {
+        showPanel(receiptPanel, receiptNavBtn);
+        console.log('receipt clicked');
+        await loadMyReceipts();
+    });
+
+    // ========== RECENT ==========
+    recentNavBtn?.addEventListener('click', () => showPanel(recentPanel, recentNavBtn));
+
+    // ========== PAYMENT ==========
+    paymentNavBtn?.addEventListener('click', () => showPanel(paymentSection, paymentNavBtn));
+    document.getElementById('closePaymentSection')?.addEventListener('click', () => showPanel(dashboardPanel, dashboardNav));
+    document.getElementById('cancelPaymentBtn')?.addEventListener('click', () => showPanel(dashboardPanel, dashboardNav));
+
+    // ==============================================
+    // ✅ EDIT ADDRESS NAV BUTTON — NOW WORKS!
+    // ==============================================
+    if (editAddressSidebarBtn) {
+        editAddressSidebarBtn.addEventListener('click', (e) => {
+            console.log('🔵 Edit Address button CLICKED!');
+
+            if (!latestRequestData) {
+                alert("No active request found.");
+                return;
+            }
+
+            const editAddressInput = document.getElementById('editAddressInput');
+            const editLocationLat = document.getElementById('editLocationLat');
+            const editLocationLng = document.getElementById('editLocationLng');
+            const selectedLocationInfo = document.getElementById('selectedLocationInfo');
+            const addressSuggestions = document.getElementById('addressSuggestions');
+
+            editAddressInput.value = latestRequestData.address || '';
+            editLocationLat.value = latestRequestData.location_lat || '';
+            editLocationLng.value = latestRequestData.location_lng || '';
+
+            if (latestRequestData.location_lat && latestRequestData.location_lng) {
+                selectedLocationInfo.innerHTML = `
+          📍 <strong>Current request location</strong><br>
+          Latitude: ${latestRequestData.location_lat}<br>
+          Longitude: ${latestRequestData.location_lng}
+        `;
+            } else {
+                selectedLocationInfo.innerHTML = `📍 No location coordinates available`;
+            }
+
+            addressSuggestions.innerHTML = '';
+            addressSuggestions.classList.remove('show');
+
+            showPanel(editAddressSection, editAddressSidebarBtn);
+        });
+    } else {
+        console.log('❌ editAddressNavBtn NOT FOUND — check your HTML ID!');
+    }
+
+    // ========== CLOSE EDIT ADDRESS ==========
+    document.getElementById('closeEditAddressSection')?.addEventListener('click', () => {
+        showPanel(dashboardPanel, dashboardNav);
+    });
+
+    // ========== USE CURRENT LOCATION BUTTON ==========
+    useCurrentEditLocationBtn?.addEventListener('click', useCurrentEditLocation);
+
+    // ========== ADDRESS SEARCH INPUT ==========
+    editAddressInput?.addEventListener('input', () => {
+        const query = editAddressInput.value.trim();
+        const editLocationLat = document.getElementById('editLocationLat');
+        const editLocationLng = document.getElementById('editLocationLng');
+        const selectedLocationInfo = document.getElementById('selectedLocationInfo');
+
+        editLocationLat.value = '';
+        editLocationLng.value = '';
+        selectedLocationInfo.innerHTML = `📍 Searching for a new location...`;
+
+        clearTimeout(addressSearchTimeout);
+        addressSearchTimeout = setTimeout(() => searchAddressLocations(query), 500);
+    });
+
+    // ========== SAVE ADDRESS ==========
+    saveEditAddressBtn?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const editAddressInput = document.getElementById('editAddressInput');
+        const editLocationLat = document.getElementById('editLocationLat');
+        const editLocationLng = document.getElementById('editLocationLng');
+        const addressSuggestions = document.getElementById('addressSuggestions');
+        const newAddress = editAddressInput.value.trim();
+
+        if (!newAddress) {
+            alert("Please search and select an address.");
+            return;
+        }
+
+        let lat = parseFloat(editLocationLat.value);
+        let lng = parseFloat(editLocationLng.value);
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            console.log("No coordinates — geocoding...");
+            const geo = await geocodeAddress(newAddress);
+            if (!geo) { alert("Please select a location from search results."); return; }
+            lat = parseFloat(geo.lat);
+            lng = parseFloat(geo.lng);
+        }
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            alert("Invalid location coordinates.");
+            return;
+        }
+
+        try {
+            const token = sessionStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/requests/${latestRequestId}/address`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ address: newAddress, location_lat: lat, location_lng: lng })
+            });
+
+            const result = await res.json();
+            if (!res.ok) { alert(result.error || "Failed to update address"); return; }
+            console.log("✅ Address updated:", result);
+
+            showPanel(dashboardPanel, dashboardNav);
+
+            latestRequestData.address = newAddress;
+            latestRequestData.location_lat = lat;
+            latestRequestData.location_lng = lng;
+
+            // Update map marker
+            if (customerMarker) {
+                customerMarker.setLatLng([lat, lng]);
+                customerMarker.setPopupContent(`<strong>📍 Your Location</strong><br>${newAddress}`);
+            }
+
+            // Update driver & route
+            const driverLat = parseFloat(latestRequestData.driver_lat);
+            const driverLng = parseFloat(latestRequestData.driver_lng);
+            if (Number.isFinite(driverLat) && Number.isFinite(driverLng)) {
+                await showDriverOnMap(driverLat, driverLng, lat, lng);
+            }
+
+            // Fit map
+            if (Number.isFinite(driverLat) && Number.isFinite(driverLng)) {
+                map.fitBounds(L.latLngBounds([lat, lng], [driverLat, driverLng]), { padding: [60, 60] });
+            } else {
+                map.setView([lat, lng], 15);
+            }
+
+            addressSuggestions.innerHTML = '';
+            addressSuggestions.classList.remove('show');
+            alert(result.message || "✅ Address updated successfully");
+
+        } catch (err) {
+            console.error('❌ Save error:', err);
+            alert("Failed to update address.");
+        }
+    });
+
+}); // ✅ END DOMContentLoaded
+
 window.downloadReceipt = async function (paymentId) {
     const token = sessionStorage.getItem('token');
 
@@ -1699,39 +1472,6 @@ window.downloadReceipt = async function (paymentId) {
         alert(error.message);
     }
 };
-
-document.addEventListener('DOMContentLoaded', () => {
-    const dashboardNav = document.getElementById('dashboardNav');
-    const receiptNavBtn = document.getElementById('receiptNavBtn');
-
-    const dashboardPanel = document.getElementById('dashboardPanel');
-    const receiptPanel = document.getElementById('receiptPanel');
-
-    function showPanel(panel, navItem) {
-        dashboardPanel.hidden = true;
-        receiptPanel.hidden = true;
-
-        dashboardNav.classList.remove('active');
-        receiptNavBtn.classList.remove('active');
-
-        panel.hidden = false;
-        navItem.classList.add('active');
-    }
-
-    dashboardNav.addEventListener('click', () => {
-        showPanel(dashboardPanel, dashboardNav);
-    });
-
-    receiptNavBtn.addEventListener('click', async () => {
-        showPanel(receiptPanel, receiptNavBtn);
-
-        console.log('receipt is clicked');
-
-        await loadMyReceipts();
-    });
-});
-
-
 async function loadMyReceipts() {
     const tbody = document.getElementById('receiptsTableBody');
 
@@ -1790,13 +1530,12 @@ function renderReceipts(receipts) {
             </td>
 
             <td>
-                ${
-                    receipt.payment_date
-                        ? new Date(
-                            receipt.payment_date
-                        ).toLocaleDateString()
-                        : '—'
-                }
+                ${receipt.payment_date
+            ? new Date(
+                receipt.payment_date
+            ).toLocaleDateString()
+            : '—'
+        }
             </td>
 
             <td>
@@ -1806,19 +1545,18 @@ function renderReceipts(receipts) {
             </td>
 
             <td>
-                ${
-                    receipt.status === 'completed'
-                        ? `
+                ${receipt.status === 'completed'
+            ? `
                             <button
                                 class="btn btn-sm"
                                 onclick="downloadReceipt(${receipt.payment_id})">
                                 Generate Receipt
                             </button>
                           `
-                        : `
+            : `
                             <span>—</span>
                           `
-                }
+        }
             </td>
         </tr>
     `).join('');

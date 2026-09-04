@@ -227,6 +227,32 @@ const Admin = {
 
     return rows;
 },
+// Get all service types
+async getServiceTypes() {
+    const rows = await db.query(`
+        SELECT
+            service_type_id,
+            name,
+            description,
+            is_active,
+            base_price,
+            created_at
+        FROM service_types
+        ORDER BY service_type_id ASC
+    `);
+
+    return rows;
+},
+
+// Update service base price
+async updateServicePrice(serviceTypeId, basePrice) {
+const result = await db.query(`
+    UPDATE service_types
+    SET base_price = ?
+    WHERE service_type_id = ?
+`, [basePrice, serviceTypeId]);
+    return result;
+}
 
 
 

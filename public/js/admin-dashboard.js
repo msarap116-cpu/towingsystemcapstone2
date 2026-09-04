@@ -8,8 +8,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let payments = [];
     let map, markersList = [];
 
-    let customerMarkers = [];
-    let driverMarkers = [];
+    // let customerMarkers = [];
+    // let driverMarkers = [];
 
 
     // ========== LOAD DATA FUNCTIONS ==========
@@ -45,26 +45,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
     //     }
     // }
-window.loadRequests = async function() {
-    try {
-        const data = await apiFetch("/admin/requests");
 
-        requests = Array.isArray(data)
-            ? data
-            : data.requests || [];
 
-        console.log("Admin fetched fresh requests:", requests);
 
-        renderRequests(requests);
+    window.loadRequests = async function () {
+        try {
+            const data = await apiFetch("/admin/requests");
 
-        if (map) {
-            updateMapMarkers();
+            requests = Array.isArray(data)
+                ? data
+                : data.requests || [];
+
+            console.log("Admin fetched fresh requests:", requests);
+
+            renderRequests(requests);
+
+            if (map) {
+                updateMapMarkers();
+            }
+
+        } catch (err) {
+            console.error("Failed to load requests:", err);
         }
-
-    } catch (err) {
-        console.error("Failed to load requests:", err);
-    }
-};
+    };
 
 
     async function loadDrivers() {
@@ -175,103 +178,103 @@ window.loadRequests = async function() {
     }
 
 
-function updateMapMarkers() {
-    if (!map) return;
-    markersList.forEach(m => map.removeLayer(m));
-    markersList = [];
-    const bounds = [];
+    function updateMapMarkers() {
+        if (!map) return;
+        markersList.forEach(m => map.removeLayer(m));
+        markersList = [];
+        const bounds = [];
 
-    // SEPARATE mappings for REQUESTS vs DRIVERS to avoid confusion
-    const getRequestIconUrl = (status) => {
-        switch (status) {
-            case 'pending':      return 'image/waypoint-red.png';    // Pending Customer
-            case 'assigned':     return 'image/waypoint-blue.png';   // Customer In Progress
-            case 'in progress':  return 'image/waypoint-blue.png';   // Customer In Progress
-            default:             return 'image/waypoint-red.png';
-        }
-    };
+        // SEPARATE mappings for REQUESTS vs DRIVERS to avoid confusion
+        const getRequestIconUrl = (status) => {
+            switch (status) {
+                case 'pending': return 'image/waypoint-red.png';    // Pending Customer
+                case 'assigned': return 'image/waypoint-blue.png';   // Customer In Progress
+                case 'in progress': return 'image/waypoint-blue.png';   // Customer In Progress
+                default: return 'image/waypoint-red.png';
+            }
+        };
 
-    const getDriverIconUrl = (map_status) => {
-        switch (map_status) {
-            case 'online':       return 'image/waypoint-green.png';  // Driver Available
-            case 'busy':         return 'image/waypoint-yellow.png'; // Busy Driver
-            default:             return 'image/waypoint-green.png';
-        }
-    };
+        const getDriverIconUrl = (map_status) => {
+            switch (map_status) {
+                case 'online': return 'image/waypoint-green.png';  // Driver Available
+                case 'busy': return 'image/waypoint-yellow.png'; // Busy Driver
+                default: return 'image/waypoint-green.png';
+            }
+        };
 
-    const ICON_SIZE = [24, 24];
+        const ICON_SIZE = [24, 24];
 
 
-    // REQUESTS (Customers)
+        // REQUESTS (Customers)
 
-    requests
-        .filter(req => ['pending', 'assigned', 'in progress'].includes(req.status))
-        .forEach(req => {
-            const lat = Number(req.location_lat);
-            const lng = Number(req.location_lng);
-            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        requests
+            .filter(req => ['pending', 'assigned', 'in progress'].includes(req.status))
+            .forEach(req => {
+                const lat = Number(req.location_lat);
+                const lng = Number(req.location_lng);
+                if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-            const iconUrl = getRequestIconUrl(req.status);
+                const iconUrl = getRequestIconUrl(req.status);
 
-            const markerIcon = L.icon({
-                iconUrl: iconUrl,
-                iconSize: ICON_SIZE,
-                iconAnchor: [12, 24],
-                popupAnchor: [0, -24]
-            });
+                const markerIcon = L.icon({
+                    iconUrl: iconUrl,
+                    iconSize: ICON_SIZE,
+                    iconAnchor: [12, 24],
+                    popupAnchor: [0, -24]
+                });
 
-            const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
-            marker.bindPopup(`
+                const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+                marker.bindPopup(`
                 <b>${req.status === 'pending' ? 'Pending Request' : 'Service Request'}</b>
                 <br>Request ID: ${req.request_id}
                 <br>Customer: ${req.customer_name || 'Unknown'}
                 <br>Status: ${req.status}
             `);
-            markersList.push(marker);
-            bounds.push([lat, lng]);
-        });
-
-
-    // DRIVERS
-
-    drivers
-        .filter(d => ['online', 'busy'].includes(d.map_status))
-        .forEach(d => {
-            const lat = Number(d.lat ?? d.latitude ?? d.driver_lat);
-            const lng = Number(d.lng ?? d.longitude ?? d.driver_lng);
-            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-            const iconUrl = getDriverIconUrl(d.map_status); // SEPARATE function!
-
-            const markerIcon = L.icon({
-                iconUrl: iconUrl,
-                iconSize: ICON_SIZE,
-                iconAnchor: [12, 24],
-                popupAnchor: [0, -24]
+                markersList.push(marker);
+                bounds.push([lat, lng]);
             });
 
-            const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
-            marker.bindPopup(`
+
+        // DRIVERS
+
+        drivers
+            .filter(d => ['online', 'busy'].includes(d.map_status))
+            .forEach(d => {
+                const lat = Number(d.lat ?? d.latitude ?? d.driver_lat);
+                const lng = Number(d.lng ?? d.longitude ?? d.driver_lng);
+                if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+                const iconUrl = getDriverIconUrl(d.map_status); // SEPARATE function!
+
+                const markerIcon = L.icon({
+                    iconUrl: iconUrl,
+                    iconSize: ICON_SIZE,
+                    iconAnchor: [12, 24],
+                    popupAnchor: [0, -24]
+                });
+
+                const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+                marker.bindPopup(`
                 <b>🚛 ${d.name || 'Driver'}</b>
                 <br>Vehicle: ${d.vehicle || 'N/A'}
                 <br>Status: ${d.status}
                 <br>Rating: ${d.rating || 'N/A'} ⭐
             `);
-            markersList.push(marker);
-            bounds.push([lat, lng]);
-        });
+                markersList.push(marker);
+                bounds.push([lat, lng]);
+            });
 
 
-    // Map View
+        // Map View
 
-    const KORONADAL = [6.4215, 124.7859];
-    if (bounds.length > 0) {
-        bounds.push(KORONADAL);
-        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
-    } else {
-        map.setView(KORONADAL, 12);
+        const KORONADAL = [6.4215, 124.7859];
+        if (bounds.length > 0) {
+            bounds.push(KORONADAL);
+            map.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
+        } else {
+            map.setView(KORONADAL, 12);
+        }
     }
-}
 
     function refreshMapMarkers() {
         // In production, this would update with real location data
@@ -574,14 +577,13 @@ function updateMapMarkers() {
 
         <div class="overflow-dropdown">
 
-            ${
-                !r.driver_id && r.status === 'pending'
-                    ? `<button
+            ${!r.driver_id && r.status === 'pending'
+                ? `<button
                         class="dropdown-item"
                         onclick="openAssignDriverModal(${r.request_id})">
                         🚛 Assign Driver
                     </button>`
-                    : ''
+                : ''
             }
 
             <button
@@ -923,39 +925,67 @@ function updateMapMarkers() {
         }
     }
 
+    // // ========== UI NAVIGATION ==========
     // ========== UI NAVIGATION ==========
     function switchPanel(panelId, title) {
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+        // Hide all panels
+        document.querySelectorAll('.tab-panel')
+            .forEach(p => p.classList.remove('active'));
+
+        // Show selected panel
         const panel = document.getElementById(panelId);
-        if (panel) panel.classList.add('active');
 
-        document.querySelectorAll('.nav-item').forEach(link => link.classList.remove('active'));
-        const navLink = document.querySelector(`.nav-item[data-tab="${panelId.replace('Panel', '').toLowerCase()}"]`);
-        if (navLink) navLink.classList.add('active');
-
-        if (panelId === 'dashboardPanel') {
-            if (map) setTimeout(() => map.invalidateSize(), 100);
-            updateMapMarkers();
-            // loadDashboardStats();
+        if (panel) {
+            panel.classList.add('active');
         }
 
-        document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
-            item.addEventListener('click', function () {
-                const tabId = this.getAttribute('data-tab');
-                // ... hide/show tabs ...
-                if (tabId === 'tracking') {
-                    // Give the browser time to show the tab, then init the map
-                    setTimeout(() => {
-                        initDriverMap();
-                    }, 150);
-                }
-            });
-        });
+        // Update active sidebar item
+        document.querySelectorAll('.nav-item')
+            .forEach(link => link.classList.remove('active'));
 
-        if (panelId === 'requestsPanel') loadRequests();
-        if (panelId === 'driversPanel') loadDrivers();
-        if (panelId === 'usersPanel') loadCustomers();
-        if (panelId === 'paymentsPanel') loadPayments();
+        const navLink = document.querySelector(
+            `.nav-item[data-tab="${panelId.replace('Panel', '').toLowerCase()}"]`
+        );
+
+        if (navLink) {
+            navLink.classList.add('active');
+        }
+
+        // Dashboard
+        if (panelId === 'dashboardPanel') {
+
+            if (map) {
+                setTimeout(() => map.invalidateSize(), 100);
+            }
+
+            updateMapMarkers();
+        }
+
+        // Requests
+        if (panelId === 'requestsPanel') {
+            loadRequests();
+        }
+
+        // Drivers
+        if (panelId === 'driversPanel') {
+            loadDrivers();
+        }
+
+        // Customers
+        if (panelId === 'usersPanel') {
+            loadCustomers();
+        }
+
+        // Payments
+        if (panelId === 'paymentsPanel') {
+            loadPayments();
+        }
+
+        // Service Prices
+        if (panelId === 'servicePricesPanel') {
+            loadServicePrices();
+        }
     }
 
 
@@ -1019,15 +1049,34 @@ function updateMapMarkers() {
 
     // ========== EVENT LISTENERS ==========
     function setupNavigation() {
+
         document.querySelectorAll('.nav-item[data-tab]').forEach(link => {
+
             link.addEventListener('click', function (e) {
-                let tab = this.getAttribute('data-tab');
-                if (tab === 'dashboard') switchPanel('dashboardPanel', 'Dashboard');
-                else if (tab === 'requests') switchPanel('requestsPanel', 'Service Requests');
-                else if (tab === 'drivers') switchPanel('driversPanel', 'Tow Drivers');
-                else if (tab === 'users') switchPanel('usersPanel', 'Customers');
-                else if (tab === 'payments') switchPanel('paymentsPanel', 'Payments & Receipts');
+
+                const tab = this.getAttribute('data-tab');
+
+                if (tab === 'dashboard') {
+                    switchPanel('dashboardPanel', 'Dashboard');
+
+                } else if (tab === 'requests') {
+                    switchPanel('requestsPanel', 'Service Requests');
+
+                } else if (tab === 'drivers') {
+                    switchPanel('driversPanel', 'Tow Drivers');
+
+                } else if (tab === 'users') {
+                    switchPanel('usersPanel', 'Customers');
+
+                } else if (tab === 'payments') {
+                    switchPanel('paymentsPanel', 'Payments & Receipts');
+
+                } else if (tab === 'serviceprices') {
+                    switchPanel('servicePricesPanel', 'Service Prices');
+                }
+
             });
+
         });
     }
 
@@ -1385,7 +1434,7 @@ window.rejectPayment = async function (paymentId) {
     }
 };
 
-window.openAssignDriverModal = async function(requestId) {
+window.openAssignDriverModal = async function (requestId) {
 
     const modal = document.getElementById('assignDriverModal');
     const requestInput = document.getElementById('assignRequestId');
@@ -1448,7 +1497,7 @@ window.openAssignDriverModal = async function(requestId) {
         `;
     }
 };
-window.closeAssignDriverModal = function() {
+window.closeAssignDriverModal = function () {
 
     const modal = document.getElementById('assignDriverModal');
 
@@ -1456,7 +1505,7 @@ window.closeAssignDriverModal = function() {
         modal.style.display = 'none';
     }
 };
-window.confirmAssignDriver = async function() {
+window.confirmAssignDriver = async function () {
 
     const requestId =
         document.getElementById('assignRequestId').value;
@@ -1507,6 +1556,193 @@ window.confirmAssignDriver = async function() {
         alert(
             err.message ||
             'Failed to assign driver.'
+        );
+    }
+};
+function escapeHtml(value) {
+
+    const div = document.createElement('div');
+
+    div.textContent = value ?? '';
+
+    return div.innerHTML;
+}
+async function loadServicePrices() {
+
+    const tbody = document.getElementById('servicePricesTableBody');
+
+    if (!tbody) {
+        console.error('servicePricesTableBody not found');
+        return;
+    }
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="5">Loading services...</td>
+        </tr>
+    `;
+
+    try {
+
+        const data = await apiFetch('/admin/service-types');
+
+        console.log('🔎 Service Types API response:', data);
+        console.log('🔎 data.services:', data.services);
+
+        const services = Array.isArray(data.services)
+            ? data.services
+            : [];
+
+        if (services.length === 0) {
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5">
+                        No service types found.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        tbody.innerHTML = services.map(service => {
+
+            const price = Number(service.base_price || 0);
+
+            return `
+                <tr>
+
+                    <td>
+                        <strong>
+                            ${escapeHtml(service.name)}
+                        </strong>
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                service.description || 'No description'
+            )}
+                    </td>
+
+                    <td>
+                        <strong>
+                            ₱${price.toLocaleString('en-PH', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })}
+                        </strong>
+                    </td>
+
+                    <td>
+                        ${Number(service.is_active) === 1
+                    ? '<span class="status active">Active</span>'
+                    : '<span class="status inactive">Inactive</span>'
+                }
+                    </td>
+
+                    <td>
+
+                        <button
+                            class="btn btn-primary"
+                            onclick='openServicePriceModal(${JSON.stringify(service)})'>
+                            Edit Price
+                        </button>
+
+                    </td>
+
+                </tr>
+            `;
+
+        }).join('');
+
+    } catch (error) {
+
+        console.error(
+            'Load service prices error:',
+            error
+        );
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    Failed to load service prices.
+                </td>
+            </tr>
+        `;
+    }
+};
+
+function openServicePriceModal(service) {
+
+    document.getElementById('editServiceTypeId').value =
+        service.service_type_id;
+
+    document.getElementById('editServiceName').value =
+        service.name || '';
+
+    document.getElementById('editServiceDescription').value =
+        service.description || '';
+
+    document.getElementById('editServicePrice').value =
+        Number(service.base_price || 0).toFixed(2);
+
+    document.getElementById('servicePriceModal').classList.add('active');
+};
+
+async function saveServicePrice() {
+
+    const serviceTypeId =
+        document.getElementById('editServiceTypeId').value;
+
+    const priceInput =
+        document.getElementById('editServicePrice');
+
+    const basePrice = Number(priceInput.value);
+
+    if (!serviceTypeId) {
+        alert('Invalid service type.');
+        return;
+    }
+
+    if (!Number.isFinite(basePrice) || basePrice < 0) {
+        alert('Please enter a valid price.');
+        priceInput.focus();
+        return;
+    }
+
+    try {
+
+        const data = await apiFetch(
+            `/admin/service-types/${serviceTypeId}/price`,
+            {
+                method: 'PUT',
+
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+                    base_price: basePrice
+                })
+            }
+        );
+
+        console.log('Price updated:', data);
+
+        closeModal('servicePriceModal');
+
+        await loadServicePrices();
+
+        alert('Service price updated successfully.');
+
+    } catch (error) {
+
+        console.error('Save service price error:', error);
+
+        alert(
+            error.message ||
+            'Failed to update service price.'
         );
     }
 };

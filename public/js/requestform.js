@@ -58,22 +58,24 @@ document.addEventListener("DOMContentLoaded", () => {
     emergencyForm.addEventListener('submit', handleRequestSubmit);
 
     const addressField = document.getElementById('address');
-    if (addressField) {
-        addressField.addEventListener('input', () => {
-            clearTimeout(addressField._geocodeTimer);
-            const value = addressField.value.trim();
-            addressField._geocodeTimer = setTimeout(() => {
-                if (value.length >= 5) {
-                    forwardGeocode(value);
-                }
-            }, 1000);
-        });
-    }
+
+if (addressField) {
+    addressField.addEventListener('input', () => {
+
+        clearTimeout(addressField._searchTimer);
+
+        const query = addressField.value.trim();
+
+        addressField._searchTimer = setTimeout(() => {
+            searchAddressLocations(query);
+        }, 1000);
+    });
+}
 
 });
 
 function showGuestState() {
-       console.log('showGuestState running on:', window.location.pathname);
+    console.log('showGuestState running on:', window.location.pathname);
     const select = document.getElementById('vehicleId');
     console.log('select found?', select);
     const guestNotice = document.getElementById('guestNotice');
@@ -325,14 +327,14 @@ async function searchAddressLocations(query) {
             item.innerHTML = `
                 <strong>
                     📍 ${escapeHtml(
-                        result.display_name.split(',')[0]
-                    )}
+                result.display_name.split(',')[0]
+            )}
                 </strong>
 
                 <small>
                     ${escapeHtml(
-                        result.display_name
-                    )}
+                result.display_name
+            )}
                 </small>
             `;
 

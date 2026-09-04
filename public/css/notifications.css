@@ -1,0 +1,62 @@
+.notification-panel {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e2e2e2;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 1000;
+}
+.notif-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid #eee;
+  font-weight: 600;
+}
+.notif-panel-header button {
+  font-size: 12px;
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+}
+.notif-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f2f2f2;
+  cursor: pointer;
+  position: relative;
+  padding-left: 28px; /* room for the dot */
+}
+.notif-item:hover { background: #f9f9f9; }
+.notif-item.unread { background: #eef4ff; }
+.notif-item p { margin: 0 0 4px; font-size: 13px; }
+.notif-item small { color: #888; font-size: 11px; }
+.notif-empty { padding: 16px; text-align: center; color: #999; font-size: 13px; }
+
+.notification-badge .badge-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  background: #ef4444;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  display: none; /* JS toggles this to 'block' when count > 0 */
+}
+
+.unread-dot {
+  position: absolute;
+  left: 12px;
+  top: 16px;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+}

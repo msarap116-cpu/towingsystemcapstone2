@@ -45,18 +45,18 @@ exports.getRequests = async (req, res) => {
 };
 
 
-exports.getStatistics = async(req,res)=>{
+exports.getStatistics = async (req, res) => {
 
-    try{
+    try {
 
         const stats = await Admin.getStatistics();
 
         res.json(stats[0]);
 
-    }catch(err){
+    } catch (err) {
 
         res.status(500).json({
-            message:err.message
+            message: err.message
         });
 
     }
@@ -69,63 +69,63 @@ exports.getStatistics = async(req,res)=>{
 
 // Create new request
 exports.createRequest = async (req, res) => {
-  try {
-    const { customer_name, customer_phone, location, service_type, status } = req.body;
+    try {
+        const { customer_name, customer_phone, location, service_type, status } = req.body;
 
-    // Find existing customer by phone
-    const [existing] = await db.query(
-      `SELECT user_id FROM users WHERE phone = ? AND role = 'customer' LIMIT 1`,
-      [customer_phone]
-    );
+        // Find existing customer by phone
+        const [existing] = await db.query(
+            `SELECT user_id FROM users WHERE phone = ? AND role = 'customer' LIMIT 1`,
+            [customer_phone]
+        );
 
-    let userId;
-    if (existing.length > 0) {
-      userId = existing[0].user_id;
-      await db.query(`UPDATE users SET name = ? WHERE user_id = ?`, [customer_name, userId]);
-    } else {
-      // Create new customer
-      const [newUser] = await db.query(
-        `INSERT INTO users (name, phone, role, created_at) VALUES (?, ?, 'customer', NOW())`,
-        [customer_name, customer_phone]
-      );
-      userId = newUser.insertId;
-    }
+        let userId;
+        if (existing.length > 0) {
+            userId = existing[0].user_id;
+            await db.query(`UPDATE users SET name = ? WHERE user_id = ?`, [customer_name, userId]);
+        } else {
+            // Create new customer
+            const [newUser] = await db.query(
+                `INSERT INTO users (name, phone, role, created_at) VALUES (?, ?, 'customer', NOW())`,
+                [customer_name, customer_phone]
+            );
+            userId = newUser.insertId;
+        }
 
-    const [service] = await db.query(
-      `SELECT service_type_id FROM service_types WHERE name = ? LIMIT 1`,
-      [service_type]
-    );
-    const serviceId = service[0]?.service_type_id || null;
+        const [service] = await db.query(
+            `SELECT service_type_id FROM service_types WHERE name = ? LIMIT 1`,
+            [service_type]
+        );
+        const serviceId = service[0]?.service_type_id || null;
 
-    const [result] = await db.query(
-      `INSERT INTO service_requests (user_id, address, service_type_id, status, created_at)
+        const [result] = await db.query(
+            `INSERT INTO service_requests (user_id, address, service_type_id, status, created_at)
        VALUES (?, ?, ?, ?, NOW())`,
-      [userId, location, serviceId, status]
-    );
+            [userId, location, serviceId, status]
+        );
 
-    res.status(201).json({ id: result.insertId, message: "Request saved" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to create request" });
-  }
+        res.status(201).json({ id: result.insertId, message: "Request saved" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to create request" });
+    }
 };
 
 // Update existing request
 exports.updateRequest = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { customer_name, customer_phone, location, service_type, status } = req.body;
-    const sql = `
+    try {
+        const { id } = req.params;
+        const { customer_name, customer_phone, location, service_type, status } = req.body;
+        const sql = `
       UPDATE service_requests
       SET address = ?, service_type_id = (SELECT service_type_id FROM service_types WHERE name = ?), status = ?
       WHERE request_id = ?
     `;
-    await db.query(sql, [location, service_type, status, id]);
-    res.json({ message: "Request updated" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to update request" });
-  }
+        await db.query(sql, [location, service_type, status, id]);
+        res.json({ message: "Request updated" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to update request" });
+    }
 };
 
 // Create new driver
@@ -373,47 +373,47 @@ exports.updateDriver = async (req, res) => {
 };
 // Create customer
 exports.createCustomer = async (req, res) => {
-  try {
-    const { name, phone, email } = req.body;
-    const sql = `
+    try {
+        const { name, phone, email } = req.body;
+        const sql = `
       INSERT INTO users (name, phone, email, role, created_at)
       VALUES (?, ?, ?, 'customer', NOW())
     `;
-    const [result] = await db.query(sql, [name, phone, email]);
-    res.status(201).json({ id: result.insertId, message: "Customer added" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to add customer" });
-  }
+        const [result] = await db.query(sql, [name, phone, email]);
+        res.status(201).json({ id: result.insertId, message: "Customer added" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to add customer" });
+    }
 };
 
 // Update customer
 exports.updateCustomer = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, phone, email } = req.body;
-    await db.query(`
+    try {
+        const { id } = req.params;
+        const { name, phone, email } = req.body;
+        await db.query(`
       UPDATE users SET name = ?, phone = ?, email = ? WHERE user_id = ?
     `, [name, phone, email, id]);
-    res.json({ message: "Customer updated" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to update customer" });
-  }
+        res.json({ message: "Customer updated" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to update customer" });
+    }
 };
 
 // Mark payment as paid
 exports.markPaymentPaid = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await db.query(`
+    try {
+        const { id } = req.params;
+        await db.query(`
       UPDATE payments SET status = 'paid', paid_at = NOW() WHERE request_id = ?
     `, [id]);
-    res.json({ message: "Payment marked as paid" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to update payment" });
-  }
+        res.json({ message: "Payment marked as paid" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to update payment" });
+    }
 };
 // Delete request
 exports.deleteRequest = async (req, res) => {
@@ -882,6 +882,19 @@ exports.assignDriver = async (req, res) => {
 
         console.log('Driver assignment successful.');
 
+        await Notification.create({
+  userId: driverId,
+  requestId,
+  type: 'order',
+  message: `You've been assigned to service request #${requestId}.`
+});
+await Notification.create({
+  userId: customerId,
+  requestId,
+  type: 'order',
+  message: `A driver has been assigned to your request #${requestId}.`
+});
+
         res.json({
             success: true,
             message: 'Driver assigned successfully',
@@ -920,6 +933,69 @@ exports.getAvailableDrivers = async (req, res) => {
 
         res.status(500).json({
             error: 'Failed to fetch available drivers'
+        });
+    }
+};
+
+exports.getServiceTypes = async (req, res) => {
+
+    try {
+
+        const services = await Admin.getServiceTypes();
+
+        console.log('🔎 Controller services:', services);
+        console.log('🔎 Is array:', Array.isArray(services));
+        console.log('🔎 Count:', services.length);
+
+        res.json({
+            services: services
+        });
+
+    } catch (error) {
+
+        console.error('Get service types error:', error);
+
+        res.status(500).json({
+            message: 'Failed to load service types'
+        });
+    }
+};
+
+exports.updateServicePrice = async (req, res) => {
+    try {
+
+        const serviceTypeId = req.params.id;
+        const { base_price } = req.body;
+
+        const price = Number(base_price);
+
+        if (!Number.isFinite(price) || price < 0) {
+            return res.status(400).json({
+                message: 'Invalid price'
+            });
+        }
+
+        const result = await Admin.updateServicePrice(
+            serviceTypeId,
+            price
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                message: 'Service type not found'
+            });
+        }
+
+        res.json({
+            message: 'Service price updated successfully'
+        });
+
+    } catch (error) {
+
+        console.error('Update service price error:', error);
+
+        res.status(500).json({
+            message: 'Failed to update service price'
         });
     }
 };
