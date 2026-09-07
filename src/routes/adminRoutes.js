@@ -6,7 +6,7 @@ const adminController = require('../controllers/adminController');
 const authenticateToken = require('../middleware/authMiddleware');
 const Payment = require('../models/paymentModel');
 const requireAdmin = require('../middleware/adminMiddleware');
-
+const Notification = require('../models/notificationModel');
 
 
 router.get('/customers', authenticateToken, adminController.getCustomers);

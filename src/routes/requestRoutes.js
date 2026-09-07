@@ -205,16 +205,6 @@ router.put('/:id/accept', authenticateToken, async (req, res) => {
              AND status = 'pending'`,
             [driver_id, id]
         );
-        try {
-            await Notification.create({
-                userId: request.user_id,
-                requestId: id,
-                type: 'order',
-                message: `A driver has accepted your service request #${id}.`
-            });
-        } catch (notifErr) {
-            console.error('Notification failed (non-fatal):', notifErr);
-        }
 
         console.log('Accept update result:', updateResult);
 

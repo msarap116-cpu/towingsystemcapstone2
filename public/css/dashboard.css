@@ -715,6 +715,117 @@
        border-bottom: none;
    }
 
+   /* === ADD THESE RULES === */
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.85rem;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;          /* ✅ Controls vertical + horizontal spacing */
+  text-align: left;            /* ✅ Align text evenly */
+  border-bottom: 1px solid #f0f2f5;
+  white-space: nowrap;         /* ✅ Prevents text wrapping mess */
+}
+
+.table th {
+  font-weight: 600;
+  background: #fafafa;
+}
+
+/* Optional: align Amount column to ₱ look clean */
+.table td:nth-child(3) {
+  text-align: right;
+}
+
+/* Button sizing fix */
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* Your existing CSS — keep this */
+.receipt-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f2f5;
+  font-size: 0.85rem;
+}
+.receipt-item:last-child {
+  border-bottom: none;
+}
+/* ===== FINAL CLEAN TABLE CSS — NO DUPLICATES ===== */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto; /* ✅ Auto-fit content naturally — NO awkward widths */
+  font-size: 0.85rem;
+}
+
+/* ===== BALANCED COLUMN WIDTHS — total 100% ===== */
+.table th:nth-child(1),
+.table td:nth-child(1) { width: 28%; } /* Receipt # — widest */
+
+.table th:nth-child(2),
+.table td:nth-child(2) { width: 12%; } /* Request */
+
+.table th:nth-child(3),
+.table td:nth-child(3) {
+  width: 15%;
+  text-align: right; /* ✅ Amount aligned right */
+}
+
+.table th:nth-child(4),
+.table td:nth-child(4) { width: 12%; } /* Date */
+
+.table th:nth-child(5),
+.table td:nth-child(5) { width: 15%; } /* Status */
+
+.table th:nth-child(6),
+.table td:nth-child(6) {
+  width: 18%;
+  text-align: center; /* ✅ Button centered, not stretched */
+}
+
+/* ===== CELL SPACING — clean & consistent ===== */
+.table th,
+.table td {
+  padding: 12px 16px; /* ← Adjust here: vertical horizontal */
+  border-bottom: 1px solid #f0f2f5;
+  white-space: nowrap;
+}
+
+/* ===== HEADER STYLES ===== */
+.table th {
+  padding: 14px 16px;
+  font-weight: 600;
+  background: #fafafa;
+}
+
+/* ===== BUTTON SIZING ===== */
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* Keep your original receipt-item CSS UNCHANGED */
+.receipt-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f2f5;
+  font-size: 0.85rem;
+}
+.receipt-item:last-child {
+  border-bottom: none;
+}
+
    .toast-msg {
        position: fixed;
        bottom: 24px;

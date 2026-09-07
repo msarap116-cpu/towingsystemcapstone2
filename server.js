@@ -22,6 +22,7 @@ const driverRoutes = require('./src/routes/driverRoutes');
 const paymentRoutes = require('./src/routes/paymentRoutes');
 const vehicleRoutes = require('./src/routes/vehicleRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
+const earningsRoutes = require('./src/routes/earningsRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,6 +43,7 @@ app.use('/api/driver', driverRoutes);
 app.use('/api/payments',paymentRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/earnings',earningsRoutes);
 
 // HTML page routes
 app.get(['/', '/home'], (req, res) => {

@@ -182,50 +182,69 @@ const userController = {
 
 
     login: async (req, res) => {
-        try {
-            const { email, password } = req.body;
+    try {
+        const { email, password } = req.body;
 
-            const user = await User.findByEmail(email);
-            if (!user) {
-                return res.status(400).json({ error: 'Invalid credentials' });
-            }
-
-            const isMatch = await User.verificationPassword(password, user.password);
-            if (!isMatch) {
-                return res.status(400).json({ error: 'Invalid credentials' });
-            }
-
-            const actualUserId = user.id || user.user_id || user._id || user.ID;
-
-            // No more existingSession check / 409 block.
-            // Just overwrite the session — this naturally invalidates
-            // any old token via the sessionId mismatch in authenticateToken.
-            const sessionId = uuidv4();
-            await User.updateSessionId(actualUserId, sessionId);
-
-            const token = jwt.sign(
-                { id: actualUserId, role: user.role, sessionId },
-                process.env.JWT_SECRET,
-                { expiresIn: '2d' }
-            );
-
-            res.json({
-                message: 'Login successful',
-                token,
-                user: {
-                    id: actualUserId,
-                    name: user.name,
-                    email: user.email,
-                    phone: user.phone,
-                    role: user.role
-                }
-            });
-
-        } catch (error) {
-            console.error('Login error:', error);
-            res.status(500).json({ error: 'Server error' });
+        const user = await User.findByEmail(email);
+        if (!user) {
+            return res.status(400).json({ error: 'Invalid credentials' });
         }
-    },//dfdfadsf
+
+        const isMatch = await User.verificationPassword(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ error: 'Invalid credentials' });
+        }
+
+        const actualUserId = user.id || user.user_id || user._id || user.ID;
+
+        // Check if there's already an active session
+        const existingSessionId = await User.getSessionId(actualUserId);
+
+        if (existingSessionId) {
+            // Check if the existing session is still valid (not expired)
+            try {
+                // You might want to verify the old token is still valid
+                // This is tricky because you don't have the old token
+                // Alternative: store session expiry in the database
+
+                // Simple approach: just block the login
+                return res.status(409).json({
+                    error: 'Already logged in on another device',
+                    code: 'SESSION_EXISTS'
+                });
+            } catch (error) {
+                // If we can't verify, allow the login (overwrite session)
+            }
+        }
+
+        const sessionId = uuidv4();
+        await User.updateSessionId(actualUserId, sessionId);
+
+        const token = jwt.sign(
+            { id: actualUserId, role: user.role, sessionId },
+            process.env.JWT_SECRET,
+            { expiresIn: '2d' }
+        );
+
+        res.json({
+            message: 'Login successful',
+            token,
+            user: {
+                id: actualUserId,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role
+            }
+        });
+
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+},//dfdfadsf
+
+
     getProfile: async (req, res) => {
         try {
             // req.user comes from authMiddleware

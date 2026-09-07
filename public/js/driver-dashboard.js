@@ -114,28 +114,30 @@ async function fetchMyTrips() {
 
 async function loadDriverDashboardData() {
     try {
-        const [pending, trips] = await Promise.all([
+        const [pending, trips, earnings] = await Promise.all([
             fetchPendingRequests(),
-            fetchMyTrips()
+            fetchMyTrips(),
+            fetchEarningsSummary()
         ]);
 
-        // SIMPLE CHECK: Convert data to string to see if anything actually changed
-        const currentDataString = JSON.stringify({pending, trips});
+        const currentDataString = JSON.stringify({ pending, trips, earnings });
         if (window.lastDriverData === currentDataString) {
-            return; // Data is the same, don't re-render (prevents flicker)
+            return;
         }
         window.lastDriverData = currentDataString;
 
         pendingRequests = pending;
         myActiveTrips = trips.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
         completedTrips = trips.filter(t => t.status === 'completed');
+        todayEarnings = earnings.today;       // now a real "today" number
+        totalEarningsValue = earnings.allTime; // separate from today
 
         renderDashboardUI();
-
     } catch (err) {
         console.error('loadDriverDashboardData error:', err);
     }
 }
+
 
 // async function loadDashboardData() {
 //     const [pending, trips] = await Promise.all([
@@ -154,8 +156,8 @@ async function loadDriverDashboardData() {
 function renderDashboardUI() {
 
     console.log("Pending:", pendingRequests.length, pendingRequests);
-console.log("Active:", myActiveTrips.length, myActiveTrips);
-console.log("Completed:", completedTrips.length);
+    console.log("Active:", myActiveTrips.length, myActiveTrips);
+    console.log("Completed:", completedTrips.length);
 
     const availableList = document.getElementById('availableRequestsList');
     if (availableList) {
@@ -223,12 +225,17 @@ console.log("Completed:", completedTrips.length);
     document.getElementById('statCompleted').innerText = completedTrips.length;
     const todayEarnings = completedTrips.reduce((sum, t) => sum + (t.amount || 0), 0);
     document.getElementById('statEarnings').innerText = `₱${todayEarnings}`;
+    document.getElementById('statEarnings').innerText = `₱${todayEarnings.toFixed(2)}`;
 
     // Other tabs
     const totalTrips = document.getElementById('totalTripsCount');
     if (totalTrips) totalTrips.innerText = completedTrips.length + myActiveTrips.length;
     const totalEarnings = document.getElementById('totalEarnings');
     if (totalEarnings) totalEarnings.innerText = `₱${todayEarnings}`;
+
+    const totalEarningsEl = document.getElementById('totalEarnings');
+    if (totalEarningsEl) totalEarningsEl.innerText = `₱${totalEarningsValue.toFixed(2)}`;
+
 }
 
 // ---------- ACCEPT JOB ----------
@@ -246,13 +253,13 @@ window.acceptJob = async function (requestId) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-             cache: 'no-store'
+            cache: 'no-store'
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Accept failed');
 
         showToast(`  Job #${requestId} accepted!`);
-        await  loadDriverDashboardData(); // refresh lists
+        await loadDriverDashboardData(); // refresh lists
 
         // If Live Tracking tab is visible, refresh map
         if (document.getElementById('tab-tracking').style.display !== 'none') {
@@ -351,39 +358,39 @@ window.updateTripStatus = async function (requestId, newStatus) {
 
         // IMPORTANT:
         // Reload the requests after updating the database
-        await  loadDriverDashboardData();
+        await loadDriverDashboardData();
 
         // If completed, stop driver tracking
         if (newStatus === 'completed') {
 
-           if (Number(activeRequestId) === Number(requestId)) {
+            if (Number(activeRequestId) === Number(requestId)) {
 
-    console.log('Cleaning up completed request:', requestId);
+                console.log('Cleaning up completed request:', requestId);
 
-    activeRequestId = null;
+                activeRequestId = null;
 
-    if (watchId) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-    }
+                if (watchId) {
+                    navigator.geolocation.clearWatch(watchId);
+                    watchId = null;
+                }
 
-    if (routeLayer) {
-        map.removeLayer(routeLayer);
-        routeLayer = null;
-    }
+                if (routeLayer) {
+                    map.removeLayer(routeLayer);
+                    routeLayer = null;
+                }
 
-    if (customerMarker) {
-        map.removeLayer(customerMarker);
-        customerMarker = null;
-    }
+                if (customerMarker) {
+                    map.removeLayer(customerMarker);
+                    customerMarker = null;
+                }
 
-    if (
-        document.getElementById('tab-tracking') &&
-        document.getElementById('tab-tracking').style.display !== 'none'
-    ) {
-        initDriverMap();
-    }
-}
+                if (
+                    document.getElementById('tab-tracking') &&
+                    document.getElementById('tab-tracking').style.display !== 'none'
+                ) {
+                    initDriverMap();
+                }
+            }
 
         } else {
 
@@ -405,7 +412,7 @@ window.updateTripStatus = async function (requestId, newStatus) {
         );
 
         // Restore correct UI after failure
-        await  loadDriverDashboardData();
+        await loadDriverDashboardData();
     }
 };
 //-----------cancel trippings--------------------------------------------
@@ -432,7 +439,7 @@ window.cancelTrip = async function (requestId) {
         if (!res.ok) throw new Error(data.error || 'Cancel failed');
 
         showToast(`Job #${requestId} cancelled.`);
-        await  loadDriverDashboardData(); // refresh lists
+        await loadDriverDashboardData(); // refresh lists
 
         // If Live Tracking tab is visible, refresh map
         if (document.getElementById('tab-tracking').style.display !== 'none') {
@@ -886,4 +893,19 @@ window.addEventListener('beforeunload', () => {
     if (watchId) navigator.geolocation.clearWatch(watchId);
 });
 
+async function fetchEarningsSummary() {
+    const token = sessionStorage.getItem('token');
+    if (!token) return { today: 0, thisWeek: 0, allTime: 0 };
+
+    const res = await fetch(`${API_BASE_URL}/earnings/summary`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Failed to fetch earnings summary: ${res.status} ${body}`);
+    }
+
+    return res.json();
+}
 console.log('🚛 Driver Dashboard loaded with API integration');

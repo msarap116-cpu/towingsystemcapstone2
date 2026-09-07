@@ -1500,65 +1500,28 @@ async function loadMyReceipts() {
         }
     }
 }
-
 function renderReceipts(receipts) {
-    const tbody = document.getElementById('receiptsTableBody');
+  const tbody = document.getElementById('receiptsTableBody');
+  if (!receipts || receipts.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center">No receipts found</td>
+      </tr>
+    `;
+    return;
+  }
 
-    if (!receipts || receipts.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" class="text-center">
-                    No receipts found
-                </td>
-            </tr>
-        `;
-        return;
-    }
-
-    tbody.innerHTML = receipts.map(receipt => `
-        <tr>
-            <td>
-                ${receipt.receipt_number || '—'}
-            </td>
-
-            <td>
-                #${receipt.request_id || '—'}
-            </td>
-
-            <td>
-                ₱${Number(receipt.amount || 0).toFixed(2)}
-            </td>
-
-            <td>
-                ${receipt.payment_date
-            ? new Date(
-                receipt.payment_date
-            ).toLocaleDateString()
-            : '—'
-        }
-            </td>
-
-            <td>
-                <span class="status-badge status-${receipt.status || 'unknown'}">
-                    ${receipt.status || '—'}
-                </span>
-            </td>
-
-            <td>
-                ${receipt.status === 'completed'
-            ? `
-                            <button
-                                class="btn btn-sm"
-                                onclick="downloadReceipt(${receipt.payment_id})">
-                                Generate Receipt
-                            </button>
-                          `
-            : `
-                            <span>—</span>
-                          `
-        }
-            </td>
-        </tr>
-    `).join('');
+  tbody.innerHTML = receipts.map(receipt => `
+    <tr>
+      <td>${receipt.receipt_number || '—'}</td>
+      <td>#${receipt.request_id || '—'}</td>
+      <td>₱${Number(receipt.amount || 0).toFixed(2)}</td>
+      <td>${receipt.payment_date ? new Date(receipt.payment_date).toLocaleDateString() : '—'}</td>
+      <td><span class="status-badge status-${receipt.status || 'unknown'}">${receipt.status || '—'}</span></td>
+      <td>${receipt.status === 'completed'
+        ? `<button class="btn btn-sm" onclick="downloadReceipt(${receipt.payment_id})">Generate Receipt</button>`
+        : `<span>—</span>`}</td>
+    </tr>
+  `).join('');
 }
 

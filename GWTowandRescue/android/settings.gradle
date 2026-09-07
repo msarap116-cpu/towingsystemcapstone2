@@ -1,0 +1,55 @@
+pluginManagement {
+    repositories {
+        // Priority order: fastest/most reliable first
+        maven {
+            url "https://maven.aliyun.com/repository/google"
+            allowInsecureProtocol = true
+        }
+        maven {
+            url "https://maven.aliyun.com/repository/jcenter"
+            allowInsecureProtocol = true
+        }
+        maven {
+            url "https://maven.aliyun.com/repository/public"
+            allowInsecureProtocol = true
+        }
+        maven {
+            url "https://repo1.maven.org/maven2"
+            allowInsecureProtocol = true
+        }
+        google()
+        gradlePluginPortal()
+    }
+    includeBuild("../node_modules/@react-native/gradle-plugin")
+}
+
+plugins {
+    id("com.facebook.react.settings")
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        maven {
+            url "https://maven.aliyun.com/repository/public"
+            allowInsecureProtocol = true
+        }
+        maven {
+            url "https://maven.aliyun.com/repository/google"
+            allowInsecureProtocol = true
+        }
+        maven {
+            url "https://repo1.maven.org/maven2"
+            allowInsecureProtocol = true
+        }
+        google()
+    }
+}
+
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+    ex.autolinkLibrariesFromCommand()
+}
+
+rootProject.name = "GWTowandRescue"
+include ':app'
+includeBuild('../node_modules/@react-native/gradle-plugin')

@@ -163,7 +163,8 @@ exports.updateStatus = async (req, res) => {
             SELECT
                 request_id,
                 driver_id,
-                status
+                status,
+                amount
             FROM service_requests
             WHERE request_id = ?
             `,
@@ -194,18 +195,24 @@ exports.updateStatus = async (req, res) => {
             });
         }
 
+        // Guard against double-completion (avoid duplicate earnings rows)
+        if (status === 'completed' && request.status === 'completed') {
+            return res.status(400).json({
+                error: 'Request is already completed'
+            });
+        }
+
+        // If completing, set completed_at too; otherwise just status/updated_at
+        const updateSql = status === 'completed'
+            ? `UPDATE service_requests
+               SET status = ?, completed_at = NOW(), updated_at = NOW()
+               WHERE request_id = ? AND driver_id = ?`
+            : `UPDATE service_requests
+               SET status = ?, updated_at = NOW()
+               WHERE request_id = ? AND driver_id = ?`;
+
         // db.query() ALREADY returns the UPDATE result
-        const result = await db.query(
-            `
-            UPDATE service_requests
-            SET
-                status = ?,
-                updated_at = NOW()
-            WHERE request_id = ?
-            AND driver_id = ?
-            `,
-            [status, id, driver_id]
-        );
+        const result = await db.query(updateSql, [status, id, driver_id]);
 
         console.log('Update result:', result);
 
@@ -213,6 +220,22 @@ exports.updateStatus = async (req, res) => {
             return res.status(400).json({
                 error: 'Status was not updated'
             });
+        }
+
+        // Record driver earnings on completion
+        if (status === 'completed') {
+            try {
+                await db.query(
+                    `INSERT INTO driver_earnings (driver_id, request_id, amount, type, description)
+                     VALUES (?, ?, ?, 'job_completion', ?)`,
+                    [driver_id, request.request_id, request.amount, `Job #${request.request_id} completed`]
+                );
+                console.log(`Earnings recorded for driver ${driver_id}, request ${request.request_id}, amount ${request.amount}`);
+            } catch (earningsErr) {
+                // Don't fail the whole request just because the earnings insert failed —
+                // log it so it can be reconciled, but the trip status change already succeeded.
+                console.error('Failed to record driver earnings (non-fatal):', earningsErr);
+            }
         }
 
         console.log(
@@ -236,6 +259,7 @@ exports.updateStatus = async (req, res) => {
         });
     }
 };
+
 exports.updateAddress = async (req, res) => {
     try {
         const requestId = req.params.id;
