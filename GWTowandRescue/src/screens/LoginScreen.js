@@ -131,7 +131,7 @@ const LoginScreen = ({ navigation, route }) => {
         <View style={styles.loginCard}>
           {/* Header */}
           <View style={styles.loginHeader}>
-            <Text style={styles.loginIcon}>🔐</Text>
+            <Text style={styles.loginIcon}>🤸🏾‍♂️</Text>
             <Text style={styles.loginTitle}>Welcome Back</Text>
             <Text style={styles.loginSubtitle}>Sign in to your account</Text>
           </View>

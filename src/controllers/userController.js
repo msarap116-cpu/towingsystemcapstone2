@@ -197,26 +197,8 @@ const userController = {
 
         const actualUserId = user.id || user.user_id || user._id || user.ID;
 
-        // Check if there's already an active session
-        const existingSessionId = await User.getSessionId(actualUserId);
-
-        if (existingSessionId) {
-            // Check if the existing session is still valid (not expired)
-            try {
-                // You might want to verify the old token is still valid
-                // This is tricky because you don't have the old token
-                // Alternative: store session expiry in the database
-
-                // Simple approach: just block the login
-                return res.status(409).json({
-                    error: 'Already logged in on another device',
-                    code: 'SESSION_EXISTS'
-                });
-            } catch (error) {
-                // If we can't verify, allow the login (overwrite session)
-            }
-        }
-
+        // Option 1: SIMPLE - Just allow login and overwrite session (last login wins)
+        // This is what you had originally and it works!
         const sessionId = uuidv4();
         await User.updateSessionId(actualUserId, sessionId);
 

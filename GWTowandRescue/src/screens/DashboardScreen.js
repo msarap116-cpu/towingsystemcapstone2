@@ -16,7 +16,7 @@ import {
   Platform
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LeafletMap from '../components/leafletMap';
+import LeafletMap from '../components/LeafletMap';
 import styles from '../styles/DashboardScreen.styles';
 import Geolocation from '@react-native-community/geolocation';
 
@@ -499,380 +499,380 @@ const DashboardScreen = ({ navigation }) => {
     );
   };
 
-  // ===== RENDER FUNCTIONS =====
-  const renderSidebar = () => (
-    <View style={styles.sidebar}>
-      <View style={styles.profileCard}>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatarInitials}>
-            {user ? getInitials(user.name) : 'U'}
-          </Text>
-        </View>
-        <Text style={styles.profileName}>{user?.name || 'User'}</Text>
-        <Text style={styles.userType}>⭐ Customer</Text>
-      </View>
-
-      <ScrollView style={styles.navList}>
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'dashboard' && styles.navItemActive]}
-          onPress={() => setActiveTab('dashboard')}
-        >
-          <Text style={[styles.navText, activeTab === 'dashboard' && styles.navTextActive]}>📊 Dashboard</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'request' && styles.navItemActive]}
-          onPress={() => navigation.navigate('RequestForm')}
-        >
-          <Text style={[styles.navText, activeTab === 'request' && styles.navTextActive]}>🆕 New Request</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'payment' && styles.navItemActive]}
-          onPress={() => {
-            setActiveTab('payment');
-            openPaymentModal();
-          }}
-        >
-          <Text style={[styles.navText, activeTab === 'payment' && styles.navTextActive]}>💳 Payment</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'editaddress' && styles.navItemActive]}
-          onPress={() => {
-            setActiveTab('editaddress');
-            if (latestRequest) {
-              setEditAddress(latestRequest.address || '');
-              setEditLat(String(latestRequest.location_lat || ''));
-              setEditLng(String(latestRequest.location_lng || ''));
-              setEditAddressModal(true);
-            } else {
-              Alert.alert('No Request', 'No active request to edit');
-            }
-          }}
-        >
-          <Text style={[styles.navText, activeTab === 'editaddress' && styles.navTextActive]}>📍 Edit Address</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'receipts' && styles.navItemActive]}
-          onPress={() => setActiveTab('receipts')}
-        >
-          <Text style={[styles.navText, activeTab === 'receipts' && styles.navTextActive]}>🧾 Receipts</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'recent' && styles.navItemActive]}
-          onPress={() => setActiveTab('recent')}
-        >
-          <Text style={[styles.navText, activeTab === 'recent' && styles.navTextActive]}>📋 Recent Activity</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, styles.logoutItem]}
-          onPress={handleLogout}
-        >
-          <Text style={styles.logoutText}>🚪 Logout</Text>
-        </TouchableOpacity>
-      </ScrollView>
+  // ===== RENDER FUNCTIONS — BOTTOM TAB BAR =====
+// Profile Card (moved to top above content)
+const renderProfileHeader = () => (
+  <View style={styles.profileHeader}>
+    <View style={styles.avatarContainer}>
+      <Text style={styles.avatarInitials}>
+        {user ? getInitials(user.name) : 'U'}
+      </Text>
     </View>
-  );
+    <View style={styles.profileInfo}>
+      <Text style={styles.profileName}>{user?.name || 'User'}</Text>
+      <Text style={styles.userType}>⭐ Customer</Text>
+    </View>
+  </View>
+);
 
-  // ===== RENDER TABS =====
-  const renderDashboard = () => (
-    <View style={styles.tabContent}>
-      {/* Request Header */}
-      <View style={styles.requestHeader}>
-        <View style={styles.requestBadge}>
-          <Text style={styles.trackingNumber}>
-            #{latestRequest?.request_id || 'N/A'}
-          </Text>
-          <View style={[styles.statusChip,
+// BOTTOM TAB BAR — replaces sidebar, ALL IDs & onPress UNCHANGED
+const renderBottomTabBar = () => (
+  <View style={styles.bottomTabBar}>
+    <TouchableOpacity
+      style={[styles.tabItem, activeTab === 'dashboard' && styles.tabItemActive]}
+      onPress={() => setActiveTab('dashboard')}
+    >
+      <Text style={styles.tabIcon}>📊</Text>
+      <Text style={[styles.tabText, activeTab === 'dashboard' && styles.tabTextActive]}>Dashboard</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={[styles.tabItem, activeTab === 'request' && styles.tabItemActive]}
+      onPress={() => navigation.navigate('RequestForm')}
+    >
+      <Text style={styles.tabIcon}>🆕</Text>
+      <Text style={[styles.tabText, activeTab === 'request' && styles.tabTextActive]}>Request</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={[styles.tabItem, activeTab === 'payment' && styles.tabItemActive]}
+      onPress={() => {
+        setActiveTab('payment');
+        openPaymentModal();
+      }}
+    >
+      <Text style={styles.tabIcon}>💳</Text>
+      <Text style={[styles.tabText, activeTab === 'payment' && styles.tabTextActive]}>Payment</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={[styles.tabItem, activeTab === 'editaddress' && styles.tabItemActive]}
+      onPress={() => {
+        setActiveTab('editaddress');
+        if (latestRequest) {
+          setEditAddress(latestRequest.address || '');
+          setEditLat(String(latestRequest.location_lat || ''));
+          setEditLng(String(latestRequest.location_lng || ''));
+          setEditAddressModal(true);
+        } else {
+          Alert.alert('No Request', 'No active request to edit');
+        }
+      }}
+    >
+      <Text style={styles.tabIcon}>📍</Text>
+      <Text style={[styles.tabText, activeTab === 'editaddress' && styles.tabTextActive]}>Address</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={[styles.tabItem, activeTab === 'receipts' && styles.tabItemActive]}
+      onPress={() => setActiveTab('receipts')}
+    >
+      <Text style={styles.tabIcon}>🧾</Text>
+      <Text style={[styles.tabText, activeTab === 'receipts' && styles.tabTextActive]}>Receipts</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={[styles.tabItem, activeTab === 'recent' && styles.tabItemActive]}
+      onPress={() => setActiveTab('recent')}
+    >
+      <Text style={styles.tabIcon}>📋</Text>
+      <Text style={[styles.tabText, activeTab === 'recent' && styles.tabTextActive]}>Activity</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={[styles.tabItem, styles.tabLogout]}
+      onPress={handleLogout}
+    >
+      <Text style={styles.tabIcon}>🚪</Text>
+      <Text style={styles.logoutTabText}>Logout</Text>
+    </TouchableOpacity>
+  </View>
+);
+
+// ===== RENDER TABS — ✅ UNCHANGED =====
+const renderDashboard = () => (
+  <View style={styles.tabContent}>
+    {/* Request Header */}
+    <View style={styles.requestHeader}>
+      <View style={styles.requestBadge}>
+        <Text style={styles.trackingNumber}>
+          #{latestRequest?.request_id || 'N/A'}
+        </Text>
+        <View style={[styles.statusChip,
           { backgroundColor: latestRequest?.status === 'completed' ? '#28a745' : '#ffc107' }
           ]}>
-            <Text style={styles.statusText}>
-              {latestRequest?.status || 'No Active Request'}
+          <Text style={styles.statusText}>
+            {latestRequest?.status || 'No Active Request'}
+          </Text>
+        </View>
+        {eta && (
+          <View style={styles.etaBox}>
+            <Text style={styles.etaText}>ETA {eta}</Text>
+          </View>
+        )}
+      </View>
+      <TouchableOpacity
+        style={styles.refreshButton}
+        onPress={() => loadDashboardData()}
+      >
+        <Text style={styles.refreshText}>⟳ Refresh</Text>
+      </TouchableOpacity>
+    </View>
+    {/* Map */}
+    <View style={styles.mapCard}>
+      <View style={styles.mapHeader}>
+        <Text style={styles.mapTitle}>Live Tracking</Text>
+      </View>
+      <View style={styles.mapContainer}>
+        <LeafletMap
+          customerLocation={customerLocation}
+          driverLocation={driverLocation}
+          routeCoordinates={routeCoordinates}
+          address={latestRequest?.address}
+        />
+      </View>
+    </View>
+  </View>
+);
+
+const renderRecentActivity = () => (
+  <View style={styles.tabContent}>
+    <Text style={styles.tabTitle}>Recent Activity</Text>
+    {recentActivities.length === 0 ? (
+      <Text style={styles.emptyText}>No recent activity</Text>
+    ) : (
+      <FlatList
+        data={recentActivities}
+        keyExtractor={(item) => String(item.request_id)}
+        renderItem={({ item }) => (
+          <View style={styles.historyItem}>
+            <Text style={styles.historyId}>#{item.request_id}</Text>
+            <Text style={styles.historyService}>{item.service_type || 'Service'}</Text>
+            <View style={[styles.historyStatus,
+              { backgroundColor: item.status === 'completed' ? '#28a745' : '#ffc107' }
+              ]}>
+              <Text style={styles.historyStatusText}>{item.status || 'Unknown'}</Text>
+            </View>
+            {item.status === 'pending' && (
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => cancelRequest(item.request_id)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      />
+    )}
+  </View>
+);
+
+const renderReceipts = () => (
+  <View style={styles.tabContent}>
+    <Text style={styles.tabTitle}>My Receipts</Text>
+    {receipts.length === 0 ? (
+      <Text style={styles.emptyText}>No receipts found</Text>
+    ) : (
+      <FlatList
+        data={receipts}
+        keyExtractor={(item) => String(item.payment_id)}
+        renderItem={({ item }) => (
+          <View style={styles.receiptItem}>
+            <Text style={styles.receiptId}>#{item.receipt_number || 'N/A'}</Text>
+            <Text style={styles.receiptAmount}>₱{Number(item.amount || 0).toFixed(2)}</Text>
+            <View style={[styles.receiptStatus,
+              { backgroundColor: item.status === 'completed' ? '#28a745' : '#ffc107' }
+              ]}>
+              <Text style={styles.receiptStatusText}>{item.status || 'Pending'}</Text>
+            </View>
+            {item.status === 'completed' && (
+              <TouchableOpacity style={styles.downloadButton}>
+                <Text style={styles.downloadButtonText}>Download</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      />
+    )}
+  </View>
+);
+
+// ===== MAIN RENDER — UPDATED =====
+if (loading) {
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#0046a8" />
+      <Text style={styles.loadingText}>Loading...</Text>
+    </View>
+  );
+}
+return (
+  <View style={styles.container}>
+    <StatusBar barStyle="light-content" backgroundColor="#0046a8" />
+
+    {/* Top Navbar — ✅ UNCHANGED */}
+    <View style={styles.navbar}>
+      <View style={styles.navbarContent}>
+        <View style={styles.brand}>
+          <Text style={styles.brandIcon}>🚛</Text>
+          <Text style={styles.brandText}>Goodwrench</Text>
+        </View>
+        <View style={styles.navbarRight}>
+          <View style={styles.onlineStatus}>
+            <View style={styles.onlineDot} />
+            <Text style={styles.onlineText}>Online</Text>
+          </View>
+          <Text style={styles.clockText}>{currentTime}</Text>
+        </View>
+      </View>
+    </View>
+
+    {/* Profile Header (replaced sidebar profile card) */}
+    {renderProfileHeader()}
+
+    {/* Main Panel — ✅ NO SIDEBAR, FULL WIDTH */}
+    <View style={styles.mainPanel}>
+      {activeTab === 'dashboard' && renderDashboard()}
+      {activeTab === 'recent' && renderRecentActivity()}
+      {activeTab === 'receipts' && renderReceipts()}
+    </View>
+
+    {/* BOTTOM TAB BAR — replaces sidebar */}
+    {renderBottomTabBar()}
+
+    {/* ========== ALL MODALS — ✅ UNCHANGED ========== */}
+    {/* Payment Modal */}
+    <Modal
+      visible={paymentModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setPaymentModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <TouchableOpacity
+            style={styles.modalClose}
+            onPress={() => setPaymentModalVisible(false)}
+          >
+            <Text style={styles.modalCloseText}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.modalTitle}>Payment</Text>
+          <Text style={styles.paymentRequestId}>Request #{latestRequest?.request_id}</Text>
+          <Text style={styles.paymentAmount}>Amount Due: {paymentAmount}</Text>
+          <Text style={styles.paymentMethodTitle}>Choose Payment Method</Text>
+          <View style={styles.paymentGrid}>
+            <TouchableOpacity
+              style={styles.paymentMethod}
+              onPress={() => processPaymentMethod('gcash')}
+            >
+              <Text style={styles.paymentMethodIcon}>💚</Text>
+              <Text style={styles.paymentMethodName}>GCash</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.paymentMethod}
+              onPress={() => processPaymentMethod('paymaya')}
+            >
+              <Text style={styles.paymentMethodIcon}>💳</Text>
+              <Text style={styles.paymentMethodName}>PayMaya</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.paymentMethod}
+              onPress={() => processPaymentMethod('cash')}
+            >
+              <Text style={styles.paymentMethodIcon}>💵</Text>
+              <Text style={styles.paymentMethodName}>Cash</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.paymentMethod}
+              onPress={() => processPaymentMethod('card')}
+            >
+              <Text style={styles.paymentMethodIcon}>💳</Text>
+              <Text style={styles.paymentMethodName}>Card</Text>
+            </TouchableOpacity>
+          </View>
+          {showGcashForm && (
+            <View style={styles.gcashForm}>
+              <Text style={styles.gcashTitle}>Pay with GCash</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="GCash Reference Number"
+                value={gcashReference}
+                onChangeText={setGcashReference}
+              />
+              <TouchableOpacity style={styles.uploadButton}>
+                <Text style={styles.uploadButtonText}>Upload Receipt</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.submitPaymentButton}
+                onPress={submitGcashProof}
+              >
+                <Text style={styles.submitPaymentText}>Submit Proof</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {paymentMessage && (
+            <Text style={styles.paymentMessage}>{paymentMessage}</Text>
+          )}
+        </View>
+      </View>
+    </Modal>
+
+    {/* Edit Address Modal */}
+    <Modal
+      visible={editAddressModal}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setEditAddressModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <TouchableOpacity
+            style={styles.modalClose}
+            onPress={() => setEditAddressModal(false)}
+          >
+            <Text style={styles.modalCloseText}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.modalTitle}>Edit Address</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Search for an address..."
+            value={editAddress}
+            onChangeText={(text) => {
+              setEditAddress(text);
+              searchAddress(text);
+            }}
+          />
+          {showSuggestions && addressSuggestions.length > 0 && (
+            <View style={styles.suggestionsList}>
+              {addressSuggestions.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.suggestionItem}
+                  onPress={() => selectAddress(item)}
+                >
+                  <Text style={styles.suggestionText}>{item.display_name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          <View style={styles.selectedLocation}>
+            <Text style={styles.selectedText}>
+              {editLat && editLng ? '📍 Location selected' : 'No location selected'}
             </Text>
           </View>
-          {eta && (
-            <View style={styles.etaBox}>
-              <Text style={styles.etaText}>ETA {eta}</Text>
-            </View>
-          )}
-        </View>
-
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={() => loadDashboardData()}
-        >
-          <Text style={styles.refreshText}>⟳ Refresh</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Map */}
-      <View style={styles.mapCard}>
-        <View style={styles.mapHeader}>
-          <Text style={styles.mapTitle}>Live Tracking</Text>
-        </View>
-        <View style={styles.mapContainer}>
-          <LeafletMap
-            customerLocation={customerLocation}
-            driverLocation={driverLocation}
-            routeCoordinates={routeCoordinates}
-            address={latestRequest?.address}
-          />
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={saveAddress}
+          >
+            <Text style={styles.saveButtonText}>Save Changes</Text>
+          </TouchableOpacity>
         </View>
       </View>
-    </View>
-  );
-
-  const renderRecentActivity = () => (
-    <View style={styles.tabContent}>
-      <Text style={styles.tabTitle}>Recent Activity</Text>
-      {recentActivities.length === 0 ? (
-        <Text style={styles.emptyText}>No recent activity</Text>
-      ) : (
-        <FlatList
-          data={recentActivities}
-          keyExtractor={(item) => String(item.request_id)}
-          renderItem={({ item }) => (
-            <View style={styles.historyItem}>
-              <Text style={styles.historyId}>#{item.request_id}</Text>
-              <Text style={styles.historyService}>{item.service_type || 'Service'}</Text>
-              <View style={[styles.historyStatus,
-              { backgroundColor: item.status === 'completed' ? '#28a745' : '#ffc107' }
-              ]}>
-                <Text style={styles.historyStatusText}>{item.status || 'Unknown'}</Text>
-              </View>
-              {item.status === 'pending' && (
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => cancelRequest(item.request_id)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-        />
-      )}
-    </View>
-  );
-
-  const renderReceipts = () => (
-    <View style={styles.tabContent}>
-      <Text style={styles.tabTitle}>My Receipts</Text>
-      {receipts.length === 0 ? (
-        <Text style={styles.emptyText}>No receipts found</Text>
-      ) : (
-        <FlatList
-          data={receipts}
-          keyExtractor={(item) => String(item.payment_id)}
-          renderItem={({ item }) => (
-            <View style={styles.receiptItem}>
-              <Text style={styles.receiptId}>#{item.receipt_number || 'N/A'}</Text>
-              <Text style={styles.receiptAmount}>₱{Number(item.amount || 0).toFixed(2)}</Text>
-              <View style={[styles.receiptStatus,
-              { backgroundColor: item.status === 'completed' ? '#28a745' : '#ffc107' }
-              ]}>
-                <Text style={styles.receiptStatusText}>{item.status || 'Pending'}</Text>
-              </View>
-              {item.status === 'completed' && (
-                <TouchableOpacity style={styles.downloadButton}>
-                  <Text style={styles.downloadButtonText}>Download</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-        />
-      )}
-    </View>
-  );
-
-  // ===== MAIN RENDER =====
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0046a8" />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0046a8" />
-
-      {/* Top Navbar */}
-      <View style={styles.navbar}>
-        <View style={styles.navbarContent}>
-          <View style={styles.brand}>
-            <Text style={styles.brandIcon}>🚛</Text>
-            <Text style={styles.brandText}>Goodwrench</Text>
-          </View>
-          <View style={styles.navbarRight}>
-            <View style={styles.onlineStatus}>
-              <View style={styles.onlineDot} />
-              <Text style={styles.onlineText}>Online</Text>
-            </View>
-            <Text style={styles.clockText}>{currentTime}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.dashboardWrapper}>
-        {/* Sidebar - Hidden on small screens, use hamburger menu */}
-        {renderSidebar()}
-
-        {/* Main Panel */}
-        <View style={styles.mainPanel}>
-          {activeTab === 'dashboard' && renderDashboard()}
-          {activeTab === 'recent' && renderRecentActivity()}
-          {activeTab === 'receipts' && renderReceipts()}
-        </View>
-      </View>
-
-      {/* Payment Modal */}
-      <Modal
-        visible={paymentModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setPaymentModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity
-              style={styles.modalClose}
-              onPress={() => setPaymentModalVisible(false)}
-            >
-              <Text style={styles.modalCloseText}>✕</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.modalTitle}>Payment</Text>
-            <Text style={styles.paymentRequestId}>Request #{latestRequest?.request_id}</Text>
-            <Text style={styles.paymentAmount}>Amount Due: {paymentAmount}</Text>
-
-            <Text style={styles.paymentMethodTitle}>Choose Payment Method</Text>
-            <View style={styles.paymentGrid}>
-              <TouchableOpacity
-                style={styles.paymentMethod}
-                onPress={() => processPaymentMethod('gcash')}
-              >
-                <Text style={styles.paymentMethodIcon}>💚</Text>
-                <Text style={styles.paymentMethodName}>GCash</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.paymentMethod}
-                onPress={() => processPaymentMethod('paymaya')}
-              >
-                <Text style={styles.paymentMethodIcon}>💳</Text>
-                <Text style={styles.paymentMethodName}>PayMaya</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.paymentMethod}
-                onPress={() => processPaymentMethod('cash')}
-              >
-                <Text style={styles.paymentMethodIcon}>💵</Text>
-                <Text style={styles.paymentMethodName}>Cash</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.paymentMethod}
-                onPress={() => processPaymentMethod('card')}
-              >
-                <Text style={styles.paymentMethodIcon}>💳</Text>
-                <Text style={styles.paymentMethodName}>Card</Text>
-              </TouchableOpacity>
-            </View>
-
-            {showGcashForm && (
-              <View style={styles.gcashForm}>
-                <Text style={styles.gcashTitle}>Pay with GCash</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="GCash Reference Number"
-                  value={gcashReference}
-                  onChangeText={setGcashReference}
-                />
-                <TouchableOpacity style={styles.uploadButton}>
-                  <Text style={styles.uploadButtonText}>Upload Receipt</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.submitPaymentButton}
-                  onPress={submitGcashProof}
-                >
-                  <Text style={styles.submitPaymentText}>Submit Proof</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {paymentMessage && (
-              <Text style={styles.paymentMessage}>{paymentMessage}</Text>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Edit Address Modal */}
-      <Modal
-        visible={editAddressModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setEditAddressModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity
-              style={styles.modalClose}
-              onPress={() => setEditAddressModal(false)}
-            >
-              <Text style={styles.modalCloseText}>✕</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.modalTitle}>Edit Address</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Search for an address..."
-              value={editAddress}
-              onChangeText={(text) => {
-                setEditAddress(text);
-                searchAddress(text);
-              }}
-            />
-
-            {showSuggestions && addressSuggestions.length > 0 && (
-              <View style={styles.suggestionsList}>
-                {addressSuggestions.map((item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.suggestionItem}
-                    onPress={() => selectAddress(item)}
-                  >
-                    <Text style={styles.suggestionText}>{item.display_name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            <View style={styles.selectedLocation}>
-              <Text style={styles.selectedText}>
-                {editLat && editLng ? '📍 Location selected' : 'No location selected'}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={saveAddress}
-            >
-              <Text style={styles.saveButtonText}>Save Changes</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </View>
-  );
+    </Modal>
+  </View>
+);
 };
-
 // ===== STYLES =====
 
 

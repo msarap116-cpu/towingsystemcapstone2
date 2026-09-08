@@ -16,7 +16,7 @@ import {
   Image
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LeafletMap from '../components/leafletMap';
+import LeafletMap from '../components/LeafletMap';
 import Geolocation from '@react-native-community/geolocation';
 import styles from '../styles/DriverDashboardScreen.styles';
 
@@ -488,394 +488,393 @@ const DriverDashboardScreen = ({ navigation }) => {
   const formatPrice = (amount) => {
     return `₱${Number(amount || 0).toFixed(2)}`;
   };
-
-  // ===== RENDER FUNCTIONS =====
-  const renderSidebar = () => (
-    <View style={styles.sidebar}>
-      <View style={styles.profileCard}>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatarInitials}>
-            {user ? getInitials(user.name) : 'AD'}
-          </Text>
-        </View>
-        <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{user?.name || 'Driver'}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>🚛 Driver</Text>
-          </View>
-        </View>
-      </View>
-
-      <ScrollView style={styles.navList}>
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'dashboard' && styles.navItemActive]}
-          onPress={() => setActiveTab('dashboard')}
-        >
-          <Text style={[styles.navText, activeTab === 'dashboard' && styles.navTextActive]}>📊 Dashboard</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'tracking' && styles.navItemActive]}
-          onPress={() => setActiveTab('tracking')}
-        >
-          <Text style={[styles.navText, activeTab === 'tracking' && styles.navTextActive]}>📍 Live Tracking</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'trips' && styles.navItemActive]}
-          onPress={() => setActiveTab('trips')}
-        >
-          <Text style={[styles.navText, activeTab === 'trips' && styles.navTextActive]}>🚗 My Trips</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'earnings' && styles.navItemActive]}
-          onPress={() => setActiveTab('earnings')}
-        >
-          <Text style={[styles.navText, activeTab === 'earnings' && styles.navTextActive]}>💰 Earnings</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, styles.logoutItem]}
-          onPress={handleLogout}
-        >
-          <Text style={styles.logoutText}>🚪 Logout</Text>
-        </TouchableOpacity>
-      </ScrollView>
+// ===== RENDER FUNCTIONS — BOTTOM TAB BAR =====
+// Profile Header (moved from sidebar to top)
+const renderProfileHeader = () => (
+  <View style={styles.profileHeader}>
+    <View style={styles.avatarContainer}>
+      <Text style={styles.avatarInitials}>
+        {user ? getInitials(user.name) : 'AD'}
+      </Text>
     </View>
-  );
-
-  // ===== RENDER TABS =====
-  const renderDashboard = () => (
-    <View style={styles.tabContent}>
-      {/* Stats */}
-      <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Available Jobs</Text>
-          <Text style={styles.statNumber}>{availableJobs}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>My Active Trips</Text>
-          <Text style={styles.statNumber}>{activeTrips}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Trips Completed</Text>
-          <Text style={styles.statNumber}>{completedTrips}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Today's Earnings</Text>
-          <Text style={styles.statNumber}>{formatPrice(todayEarnings)}</Text>
-        </View>
+    <View style={styles.profileInfo}>
+      <Text style={styles.profileName}>{user?.name || 'Driver'}</Text>
+      <View style={styles.roleBadge}>
+        <Text style={styles.roleText}>🚛 Driver</Text>
       </View>
+    </View>
+  </View>
+);
 
-      {/* Two Columns */}
-      <View style={styles.twoCol}>
-        {/* Available Requests */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Available Requests</Text>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{pendingRequests.length}</Text>
-            </View>
+// BOTTOM TAB BAR — replaces sidebar, ALL IDs & onPress UNCHANGED
+const renderBottomTabBar = () => (
+  <View style={styles.bottomTabBar}>
+    <TouchableOpacity
+      style={[styles.tabItem, activeTab === 'dashboard' && styles.tabItemActive]}
+      onPress={() => setActiveTab('dashboard')}
+    >
+      <Text style={styles.tabIcon}>📊</Text>
+      <Text style={[styles.tabText, activeTab === 'dashboard' && styles.tabTextActive]}>Dashboard</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={[styles.tabItem, activeTab === 'tracking' && styles.tabItemActive]}
+      onPress={() => setActiveTab('tracking')}
+    >
+      <Text style={styles.tabIcon}>📍</Text>
+      <Text style={[styles.tabText, activeTab === 'tracking' && styles.tabTextActive]}>Tracking</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={[styles.tabItem, activeTab === 'trips' && styles.tabItemActive]}
+      onPress={() => setActiveTab('trips')}
+    >
+      <Text style={styles.tabIcon}>🚗</Text>
+      <Text style={[styles.tabText, activeTab === 'trips' && styles.tabTextActive]}>Trips</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={[styles.tabItem, activeTab === 'earnings' && styles.tabItemActive]}
+      onPress={() => setActiveTab('earnings')}
+    >
+      <Text style={styles.tabIcon}>💰</Text>
+      <Text style={[styles.tabText, activeTab === 'earnings' && styles.tabTextActive]}>Earnings</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={[styles.tabItem, styles.tabLogout]}
+      onPress={handleLogout}
+    >
+      <Text style={styles.tabIcon}>🚪</Text>
+      <Text style={styles.logoutTabText}>Logout</Text>
+    </TouchableOpacity>
+  </View>
+);
+
+// ===== RENDER TABS — ✅ ALL UNCHANGED (Dashboard, Tracking, Trips, Earnings) =====
+const renderDashboard = () => (
+  <View style={styles.tabContent}>
+    {/* Stats */}
+    <View style={styles.statsGrid}>
+      <View style={styles.statCard}>
+        <Text style={styles.statLabel}>Available Jobs</Text>
+        <Text style={styles.statNumber}>{availableJobs}</Text>
+      </View>
+      <View style={styles.statCard}>
+        <Text style={styles.statLabel}>My Active Trips</Text>
+        <Text style={styles.statNumber}>{activeTrips}</Text>
+      </View>
+      <View style={styles.statCard}>
+        <Text style={styles.statLabel}>Trips Completed</Text>
+        <Text style={styles.statNumber}>{completedTrips}</Text>
+      </View>
+      <View style={styles.statCard}>
+        <Text style={styles.statLabel}>Today's Earnings</Text>
+        <Text style={styles.statNumber}>{formatPrice(todayEarnings)}</Text>
+      </View>
+    </View>
+    {/* Two Columns */}
+    <View style={styles.twoCol}>
+      {/* Available Requests */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Available Requests</Text>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{pendingRequests.length}</Text>
           </View>
-          {pendingRequests.length === 0 ? (
-            <Text style={styles.emptyText}>No pending requests right now.</Text>
-          ) : (
-            <FlatList
-              data={pendingRequests}
-              keyExtractor={(item) => String(item.request_id)}
-              renderItem={({ item }) => (
-                <View style={styles.requestItem}>
-                  <View style={styles.requestTop}>
-                    <Text style={styles.customerName}>{item.customer_name || 'Customer'}</Text>
-                    <View style={styles.serviceBadge}>
-                      <Text style={styles.serviceText}>{item.service_type || 'Service'}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.locationText}>📍 {item.location || 'No address'}</Text>
-                  <View style={styles.requestBottom}>
-                    <Text style={styles.priceText}>{formatPrice(item.amount)}</Text>
-                    <TouchableOpacity
-                      style={styles.acceptButton}
-                      onPress={() => acceptJob(item.request_id)}
-                    >
-                      <Text style={styles.acceptButtonText}>Accept</Text>
-                    </TouchableOpacity>
+        </View>
+        {pendingRequests.length === 0 ? (
+          <Text style={styles.emptyText}>No pending requests right now.</Text>
+        ) : (
+          <FlatList
+            data={pendingRequests}
+            keyExtractor={(item) => String(item.request_id)}
+            renderItem={({ item }) => (
+              <View style={styles.requestItem}>
+                <View style={styles.requestTop}>
+                  <Text style={styles.customerName}>{item.customer_name || 'Customer'}</Text>
+                  <View style={styles.serviceBadge}>
+                    <Text style={styles.serviceText}>{item.service_type || 'Service'}</Text>
                   </View>
                 </View>
-              )}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
-        </View>
-
-        {/* My Active Trips */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>My Active Trips</Text>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{myTrips.length}</Text>
-            </View>
+                <Text style={styles.locationText}>📍 {item.location || 'No address'}</Text>
+                <View style={styles.requestBottom}>
+                  <Text style={styles.priceText}>{formatPrice(item.amount)}</Text>
+                  <TouchableOpacity
+                    style={styles.acceptButton}
+                    onPress={() => acceptJob(item.request_id)}
+                  >
+                    <Text style={styles.acceptButtonText}>Accept</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </View>
+      {/* My Active Trips */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>My Active Trips</Text>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{myTrips.length}</Text>
           </View>
-          {myTrips.length === 0 ? (
-            <Text style={styles.emptyText}>No active trips</Text>
-          ) : (
-            <FlatList
-              data={myTrips}
-              keyExtractor={(item) => String(item.request_id)}
-              renderItem={({ item }) => (
-                <View style={styles.requestItem}>
-                  <View style={styles.requestTop}>
-                    <Text style={styles.customerName}>{item.customer_name || 'Customer'}</Text>
-                    <View style={styles.serviceBadge}>
-                      <Text style={styles.serviceText}>{item.service_type || 'Service'}</Text>
-                    </View>
+        </View>
+        {myTrips.length === 0 ? (
+          <Text style={styles.emptyText}>No active trips</Text>
+        ) : (
+          <FlatList
+            data={myTrips}
+            keyExtractor={(item) => String(item.request_id)}
+            renderItem={({ item }) => (
+              <View style={styles.requestItem}>
+                <View style={styles.requestTop}>
+                  <Text style={styles.customerName}>{item.customer_name || 'Customer'}</Text>
+                  <View style={styles.serviceBadge}>
+                    <Text style={styles.serviceText}>{item.service_type || 'Service'}</Text>
                   </View>
-                  <Text style={styles.locationText}>📍 {item.location || 'No address'}</Text>
-                  <View style={styles.requestBottom}>
-                    <View style={[styles.statusBadge,
+                </View>
+                <Text style={styles.locationText}>📍 {item.location || 'No address'}</Text>
+                <View style={styles.requestBottom}>
+                  <View style={[styles.statusBadge,
                     {
                       backgroundColor: item.status === 'assigned' ? '#dbeafe' :
                         item.status === 'in progress' ? '#e0f2fe' : '#d1fae5'
                     }
                     ]}>
-                      <Text style={[styles.statusText,
+                    <Text style={[styles.statusText,
                       {
                         color: item.status === 'assigned' ? '#1e40af' :
                           item.status === 'in progress' ? '#0369a1' : '#065f46'
                       }
                       ]}>
-                        {item.status || 'Unknown'}
-                      </Text>
-                    </View>
-                    <Text style={styles.priceText}>{formatPrice(item.amount)}</Text>
+                      {item.status || 'Unknown'}
+                    </Text>
                   </View>
-                  <View style={styles.actionButtons}>
-                    <View style={styles.statusSelect}>
-                      {['assigned', 'in progress', 'completed'].map((status) => (
-                        <TouchableOpacity
-                          key={status}
-                          style={[
-                            styles.statusOption,
-                            item.status === status && styles.statusOptionActive
-                          ]}
-                          onPress={() => updateTripStatus(item.request_id, status)}
-                        >
-                          <Text style={[
-                            styles.statusOptionText,
-                            item.status === status && styles.statusOptionTextActive
-                          ]}>
-                            {status === 'in progress' ? 'In Progress' :
-                              status.charAt(0).toUpperCase() + status.slice(1)}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                    <TouchableOpacity
-                      style={styles.cancelButton}
-                      onPress={() => cancelTrip(item.request_id)}
-                    >
-                      <Text style={styles.cancelButtonText}>🗑️ Cancel</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <Text style={styles.priceText}>{formatPrice(item.amount)}</Text>
                 </View>
-              )}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
-        </View>
-      </View>
-    </View>
-  );
-//include map
-  const renderTracking = () => (
-    <View style={styles.tabContent}>
-      <View style={styles.trackingHeader}>
-        <Text style={styles.tabTitle}>📍 Live Tracking</Text>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={() => {
-            initDriverMap();
-            Alert.alert('Success', 'Map refreshed');
-          }}
-        >
-          <Text style={styles.refreshText}>⟳ Refresh</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.mapCard}>
-        <View style={styles.mapContainer}>
-          <LeafletMap
-            customerLocation={customerLocation}
-            driverLocation={driverLocation}
-            routeCoordinates={routeCoordinates}
-            address={latestRequest?.address}
+                <View style={styles.actionButtons}>
+                  <View style={styles.statusSelect}>
+                    {['assigned', 'in progress', 'completed'].map((status) => (
+                      <TouchableOpacity
+                        key={status}
+                        style={[
+                          styles.statusOption,
+                          item.status === status && styles.statusOptionActive
+                        ]}
+                        onPress={() => updateTripStatus(item.request_id, status)}
+                      >
+                        <Text style={[
+                          styles.statusOptionText,
+                          item.status === status && styles.statusOptionTextActive
+                        ]}>
+                          {status === 'in progress' ? 'In Progress' :
+                            status.charAt(0).toUpperCase() + status.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => cancelTrip(item.request_id)}
+                  >
+                    <Text style={styles.cancelButtonText}>🗑️ Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            showsVerticalScrollIndicator={false}
           />
-        </View>
-        <View style={styles.mapLegend}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#d85a30' }]} />
-            <Text style={styles.legendText}>Customer pickup</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#1d9e75' }]} />
-            <Text style={styles.legendText}>Your location</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#3b82f6' }]} />
-            <Text style={styles.legendText}>Route</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.trackingInfo}>
-        <Text style={styles.trackingStatus}>{trackingStatus}</Text>
+        )}
       </View>
     </View>
-  );
+  </View>
+);
 
-  const renderTrips = () => (
-    <View style={styles.tabContent}>
-      <Text style={styles.tabTitle}>My Trips</Text>
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>All Trips</Text>
+const renderTracking = () => (
+  <View style={styles.tabContent}>
+    <View style={styles.trackingHeader}>
+      <Text style={styles.tabTitle}>📍 Live Tracking</Text>
+      <TouchableOpacity
+        style={styles.refreshButton}
+        onPress={() => {
+          initDriverMap();
+          Alert.alert('Success', 'Map refreshed');
+        }}
+      >
+        <Text style={styles.refreshText}>⟳ Refresh</Text>
+      </TouchableOpacity>
+    </View>
+    <View style={styles.mapCard}>
+      <View style={styles.mapContainer}>
+        <LeafletMap
+          customerLocation={customerLocation}
+          driverLocation={driverLocation}
+          routeCoordinates={routeCoordinates}
+          address={latestRequest?.address}
+        />
+      </View>
+      <View style={styles.mapLegend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#d85a30' }]} />
+          <Text style={styles.legendText}>Customer pickup</Text>
         </View>
-        {myTrips.length === 0 && completedTripsList.length === 0 ? (
-          <Text style={styles.emptyText}>No trips yet</Text>
-        ) : (
-          <FlatList
-            data={[...myTrips, ...completedTripsList]}
-            keyExtractor={(item) => String(item.request_id)}
-            renderItem={({ item }) => (
-              <View style={styles.requestItem}>
-                <View style={styles.requestTop}>
-                  <Text style={styles.customerName}>#{item.request_id}</Text>
-                  <View style={[styles.statusBadge,
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#1d9e75' }]} />
+          <Text style={styles.legendText}>Your location</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#3b82f6' }]} />
+          <Text style={styles.legendText}>Route</Text>
+        </View>
+      </View>
+    </View>
+    <View style={styles.trackingInfo}>
+      <Text style={styles.trackingStatus}>{trackingStatus}</Text>
+    </View>
+  </View>
+);
+
+const renderTrips = () => (
+  <View style={styles.tabContent}>
+    <Text style={styles.tabTitle}>My Trips</Text>
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>All Trips</Text>
+      </View>
+      {myTrips.length === 0 && completedTripsList.length === 0 ? (
+        <Text style={styles.emptyText}>No trips yet</Text>
+      ) : (
+        <FlatList
+          data={[...myTrips, ...completedTripsList]}
+          keyExtractor={(item) => String(item.request_id)}
+          renderItem={({ item }) => (
+            <View style={styles.requestItem}>
+              <View style={styles.requestTop}>
+                <Text style={styles.customerName}>#{item.request_id}</Text>
+                <View style={[styles.statusBadge,
                   {
                     backgroundColor: item.status === 'completed' ? '#d1fae5' :
                       item.status === 'assigned' ? '#dbeafe' : '#e0f2fe'
                   }
                   ]}>
-                    <Text style={[styles.statusText,
+                  <Text style={[styles.statusText,
                     {
                       color: item.status === 'completed' ? '#065f46' :
                         item.status === 'assigned' ? '#1e40af' : '#0369a1'
                     }
                     ]}>
-                      {item.status || 'Unknown'}
-                    </Text>
-                  </View>
+                    {item.status || 'Unknown'}
+                  </Text>
                 </View>
-                <Text style={styles.locationText}>📍 {item.location || 'No address'}</Text>
+              </View>
+              <Text style={styles.locationText}>📍 {item.location || 'No address'}</Text>
+              <Text style={styles.priceText}>{formatPrice(item.amount)}</Text>
+            </View>
+          )}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </View>
+  </View>
+);
+
+const renderEarnings = () => (
+  <View style={styles.tabContent}>
+    <Text style={styles.tabTitle}>Earnings</Text>
+    <View style={styles.statsGrid}>
+      <View style={styles.statCard}>
+        <Text style={styles.statLabel}>Total Trips</Text>
+        <Text style={styles.statNumber}>{completedTrips + activeTrips}</Text>
+      </View>
+      <View style={styles.statCard}>
+        <Text style={styles.statLabel}>Total Revenue</Text>
+        <Text style={styles.statNumber}>{formatPrice(totalEarnings)}</Text>
+      </View>
+    </View>
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>🧾 Payment History</Text>
+      </View>
+      {paymentHistory.length === 0 ? (
+        <Text style={styles.emptyText}>No payments yet</Text>
+      ) : (
+        <FlatList
+          data={paymentHistory}
+          keyExtractor={(item) => String(item.request_id)}
+          renderItem={({ item }) => (
+            <View style={styles.requestItem}>
+              <View style={styles.requestTop}>
+                <Text style={styles.customerName}>#{item.request_id}</Text>
                 <Text style={styles.priceText}>{formatPrice(item.amount)}</Text>
               </View>
-            )}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
-    </View>
-  );
-
-  const renderEarnings = () => (
-    <View style={styles.tabContent}>
-      <Text style={styles.tabTitle}>Earnings</Text>
-
-      <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Total Trips</Text>
-          <Text style={styles.statNumber}>{completedTrips + activeTrips}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Total Revenue</Text>
-          <Text style={styles.statNumber}>{formatPrice(totalEarnings)}</Text>
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>🧾 Payment History</Text>
-        </View>
-        {paymentHistory.length === 0 ? (
-          <Text style={styles.emptyText}>No payments yet</Text>
-        ) : (
-          <FlatList
-            data={paymentHistory}
-            keyExtractor={(item) => String(item.request_id)}
-            renderItem={({ item }) => (
-              <View style={styles.requestItem}>
-                <View style={styles.requestTop}>
-                  <Text style={styles.customerName}>#{item.request_id}</Text>
-                  <Text style={styles.priceText}>{formatPrice(item.amount)}</Text>
-                </View>
-                <Text style={styles.locationText}>{item.service_type || 'Service'}</Text>
-              </View>
-            )}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
-    </View>
-  );
-
-  // ===== MAIN RENDER =====
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1a4b6d" />
-        <Text style={styles.loadingText}>Loading Dashboard...</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
-      {/* Navbar */}
-      <View style={styles.navbar}>
-        <View style={styles.navbarContent}>
-          <TouchableOpacity style={styles.brand}>
-            <Text style={styles.brandText}>🚛 Towing <Text style={styles.brandSpan}>system</Text></Text>
-          </TouchableOpacity>
-          <View style={styles.navbarRight}>
-            <View style={styles.onlineStatus}>
-              <View style={styles.onlineDot} />
-              <Text style={styles.onlineText}>Online</Text>
+              <Text style={styles.locationText}>{item.service_type || 'Service'}</Text>
             </View>
-            <Text style={styles.clockText}>{currentTime}</Text>
-          </View>
-        </View>
-      </View>
+          )}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </View>
+  </View>
+);
 
-      <View style={styles.dashboardWrapper}>
-        {renderSidebar()}
-
-        <ScrollView
-          style={styles.mainPanel}
-          contentContainerStyle={styles.mainContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={async () => {
-                setRefreshing(true);
-                await loadDriverDashboardData();
-                setRefreshing(false);
-              }}
-            />
-          }
-        >
-          {activeTab === 'dashboard' && renderDashboard()}
-          {activeTab === 'tracking' && renderTracking()}
-          {activeTab === 'trips' && renderTrips()}
-          {activeTab === 'earnings' && renderEarnings()}
-        </ScrollView>
-      </View>
+// ===== MAIN RENDER — UPDATED =====
+if (loading) {
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#1a4b6d" />
+      <Text style={styles.loadingText}>Loading Dashboard...</Text>
     </View>
   );
+}
+return (
+  <View style={styles.container}>
+    <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+
+    {/* Navbar — ✅ UNCHANGED */}
+    <View style={styles.navbar}>
+      <View style={styles.navbarContent}>
+        <TouchableOpacity style={styles.brand}>
+          <Text style={styles.brandText}>🚛 Towing <Text style={styles.brandSpan}>system</Text></Text>
+        </TouchableOpacity>
+        <View style={styles.navbarRight}>
+          <View style={styles.onlineStatus}>
+            <View style={styles.onlineDot} />
+            <Text style={styles.onlineText}>Online</Text>
+          </View>
+          <Text style={styles.clockText}>{currentTime}</Text>
+        </View>
+      </View>
+    </View>
+
+    {/* Profile Header — replaces sidebar profile */}
+    {renderProfileHeader()}
+
+    {/* Main Content — FULL WIDTH, NO SIDEBAR */}
+    <ScrollView
+      style={styles.mainPanel}
+      contentContainerStyle={styles.mainContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={async () => {
+            setRefreshing(true);
+            await loadDriverDashboardData();
+            setRefreshing(false);
+          }}
+        />
+      }
+    >
+      {activeTab === 'dashboard' && renderDashboard()}
+      {activeTab === 'tracking' && renderTracking()}
+      {activeTab === 'trips' && renderTrips()}
+      {activeTab === 'earnings' && renderEarnings()}
+    </ScrollView>
+
+    {/* BOTTOM TAB BAR — replaces sidebar */}
+    {renderBottomTabBar()}
+  </View>
+);
 };
-
-
-
 export default DriverDashboardScreen;
