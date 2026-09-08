@@ -16,7 +16,7 @@ import {
   Platform
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import LeafletMap from '../components/leafletMap';
 import styles from '../styles/DashboardScreen.styles';
 import Geolocation from '@react-native-community/geolocation';
 
@@ -588,7 +588,7 @@ const DashboardScreen = ({ navigation }) => {
             #{latestRequest?.request_id || 'N/A'}
           </Text>
           <View style={[styles.statusChip,
-            { backgroundColor: latestRequest?.status === 'completed' ? '#28a745' : '#ffc107' }
+          { backgroundColor: latestRequest?.status === 'completed' ? '#28a745' : '#ffc107' }
           ]}>
             <Text style={styles.statusText}>
               {latestRequest?.status || 'No Active Request'}
@@ -615,35 +615,12 @@ const DashboardScreen = ({ navigation }) => {
           <Text style={styles.mapTitle}>Live Tracking</Text>
         </View>
         <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            provider={PROVIDER_GOOGLE}
-            region={mapRegion}
-            showsUserLocation={true}
-          >
-            {customerLocation && (
-              <Marker
-                coordinate={customerLocation}
-                title="Your Location"
-                description={latestRequest?.address}
-                pinColor="#0046a8"
-              />
-            )}
-            {driverLocation && (
-              <Marker
-                coordinate={driverLocation}
-                title="Driver Location"
-                pinColor="#e30613"
-              />
-            )}
-            {routeCoordinates.length > 0 && (
-              <Polyline
-                coordinates={routeCoordinates}
-                strokeColor="#1D9E75"
-                strokeWidth={4}
-              />
-            )}
-          </MapView>
+          <LeafletMap
+            customerLocation={customerLocation}
+            driverLocation={driverLocation}
+            routeCoordinates={routeCoordinates}
+            address={latestRequest?.address}
+          />
         </View>
       </View>
     </View>
@@ -663,7 +640,7 @@ const DashboardScreen = ({ navigation }) => {
               <Text style={styles.historyId}>#{item.request_id}</Text>
               <Text style={styles.historyService}>{item.service_type || 'Service'}</Text>
               <View style={[styles.historyStatus,
-                { backgroundColor: item.status === 'completed' ? '#28a745' : '#ffc107' }
+              { backgroundColor: item.status === 'completed' ? '#28a745' : '#ffc107' }
               ]}>
                 <Text style={styles.historyStatusText}>{item.status || 'Unknown'}</Text>
               </View>
@@ -696,7 +673,7 @@ const DashboardScreen = ({ navigation }) => {
               <Text style={styles.receiptId}>#{item.receipt_number || 'N/A'}</Text>
               <Text style={styles.receiptAmount}>₱{Number(item.amount || 0).toFixed(2)}</Text>
               <View style={[styles.receiptStatus,
-                { backgroundColor: item.status === 'completed' ? '#28a745' : '#ffc107' }
+              { backgroundColor: item.status === 'completed' ? '#28a745' : '#ffc107' }
               ]}>
                 <Text style={styles.receiptStatusText}>{item.status || 'Pending'}</Text>
               </View>

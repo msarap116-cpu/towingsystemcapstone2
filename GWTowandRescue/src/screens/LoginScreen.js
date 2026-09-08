@@ -13,9 +13,11 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles/LoginScreen.styles';
+import API_BASE_URL from '../config.js';
 // Import your PNG icons
 const eyeIcon = require('../assets/images/eye.png');
 const eyeCrossedIcon = require('../assets/images/eye-crossed.png');
+
 
 const LoginScreen = ({ navigation, route }) => {
   const [email, setEmail] = useState('');

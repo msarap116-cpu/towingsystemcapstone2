@@ -16,7 +16,7 @@ import {
   Image
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import LeafletMap from '../components/leafletMap';
 import Geolocation from '@react-native-community/geolocation';
 import styles from '../styles/DriverDashboardScreen.styles';
 
@@ -634,12 +634,16 @@ const DriverDashboardScreen = ({ navigation }) => {
                   <Text style={styles.locationText}>📍 {item.location || 'No address'}</Text>
                   <View style={styles.requestBottom}>
                     <View style={[styles.statusBadge,
-                      { backgroundColor: item.status === 'assigned' ? '#dbeafe' :
-                                     item.status === 'in progress' ? '#e0f2fe' : '#d1fae5' }
+                    {
+                      backgroundColor: item.status === 'assigned' ? '#dbeafe' :
+                        item.status === 'in progress' ? '#e0f2fe' : '#d1fae5'
+                    }
                     ]}>
                       <Text style={[styles.statusText,
-                        { color: item.status === 'assigned' ? '#1e40af' :
-                                item.status === 'in progress' ? '#0369a1' : '#065f46' }
+                      {
+                        color: item.status === 'assigned' ? '#1e40af' :
+                          item.status === 'in progress' ? '#0369a1' : '#065f46'
+                      }
                       ]}>
                         {item.status || 'Unknown'}
                       </Text>
@@ -662,7 +666,7 @@ const DriverDashboardScreen = ({ navigation }) => {
                             item.status === status && styles.statusOptionTextActive
                           ]}>
                             {status === 'in progress' ? 'In Progress' :
-                             status.charAt(0).toUpperCase() + status.slice(1)}
+                              status.charAt(0).toUpperCase() + status.slice(1)}
                           </Text>
                         </TouchableOpacity>
                       ))}
@@ -683,7 +687,7 @@ const DriverDashboardScreen = ({ navigation }) => {
       </View>
     </View>
   );
-
+//include map
   const renderTracking = () => (
     <View style={styles.tabContent}>
       <View style={styles.trackingHeader}>
@@ -701,34 +705,12 @@ const DriverDashboardScreen = ({ navigation }) => {
 
       <View style={styles.mapCard}>
         <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            provider={PROVIDER_GOOGLE}
-            region={mapRegion}
-            showsUserLocation={true}
-          >
-            {customerLocation && (
-              <Marker
-                coordinate={customerLocation}
-                title="Customer Location"
-                pinColor="#d85a30"
-              />
-            )}
-            {driverLocation && (
-              <Marker
-                coordinate={driverLocation}
-                title="Your Location"
-                pinColor="#1d9e75"
-              />
-            )}
-            {routeCoordinates.length > 0 && (
-              <Polyline
-                coordinates={routeCoordinates}
-                strokeColor="#3b82f6"
-                strokeWidth={4}
-              />
-            )}
-          </MapView>
+          <LeafletMap
+            customerLocation={customerLocation}
+            driverLocation={driverLocation}
+            routeCoordinates={routeCoordinates}
+            address={latestRequest?.address}
+          />
         </View>
         <View style={styles.mapLegend}>
           <View style={styles.legendItem}>
@@ -770,12 +752,16 @@ const DriverDashboardScreen = ({ navigation }) => {
                 <View style={styles.requestTop}>
                   <Text style={styles.customerName}>#{item.request_id}</Text>
                   <View style={[styles.statusBadge,
-                    { backgroundColor: item.status === 'completed' ? '#d1fae5' :
-                                   item.status === 'assigned' ? '#dbeafe' : '#e0f2fe' }
+                  {
+                    backgroundColor: item.status === 'completed' ? '#d1fae5' :
+                      item.status === 'assigned' ? '#dbeafe' : '#e0f2fe'
+                  }
                   ]}>
                     <Text style={[styles.statusText,
-                      { color: item.status === 'completed' ? '#065f46' :
-                              item.status === 'assigned' ? '#1e40af' : '#0369a1' }
+                    {
+                      color: item.status === 'completed' ? '#065f46' :
+                        item.status === 'assigned' ? '#1e40af' : '#0369a1'
+                    }
                     ]}>
                       {item.status || 'Unknown'}
                     </Text>
