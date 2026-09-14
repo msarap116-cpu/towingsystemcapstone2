@@ -1,6 +1,18 @@
 // dashboard.js
 
 const POLL_INTERVAL_MS = 30000;
+async function fetchWithRetry(url, options, retries = 1) {
+    for (let i = 0; i <= retries; i++) {
+        try {
+            const res = await fetch(url, options);
+            if (res.ok) return res;
+            if (i === retries) return res;
+        } catch (e) {
+            if (i === retries) throw e;
+        }
+        await new Promise(r => setTimeout(r, 2000));
+    }
+}
 //==================================================================map gelocation=====================================================
 let map = null;
 let customerMarker = null;
@@ -14,6 +26,8 @@ let addressSearchTimeout = null;
 let addressSearchController = null;
 
 let myLocationMarker = null;
+
+const GEO_HEADERS = { Accept: 'application/json' };
 
 const MAP_CONFIG = {
     bounds: {
@@ -39,6 +53,7 @@ const customerIcon = L.icon({
     iconAnchor: [18, 36],
     popupAnchor: [0, -36]
 });
+
 // Function to initialize map with boundaries
 function initMapWithBounds(mapDiv, initialCenter, initialZoom = 14) {
     const map = L.map(mapDiv, {
@@ -506,49 +521,6 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 function getMidpoint(lat1, lng1, lat2, lng2) {
     return [(lat1 + lat2) / 2, (lng1 + lng2) / 2];
 }
-//getting the location of the address in the change address modal
-async function geocodeAddress(address) {
-    try {
-        const searchQuery = address.includes('Philippines')
-            ? address
-            : `${address}, Philippines`;
-
-        const encoded = encodeURIComponent(searchQuery);
-
-        const url = `https://nominatim.openstreetmap.org/search?` +
-            `q=${encoded}` +
-            `&format=json` +
-            `&limit=5` +
-            `&countrycodes=ph` +
-            `&addressdetails=1`;
-
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'TowTheRescue/1.0'
-            }
-        });
-
-        const data = await response.json();
-
-        if (!data || data.length === 0) return null;
-
-        const best = data.find(r =>
-            parseFloat(r.lat) >= 6.0 && parseFloat(r.lat) <= 7.0 &&
-            parseFloat(r.lon) >= 124.0 && parseFloat(r.lon) <= 126.0
-        ) || data[0];
-
-        return {
-            lat: parseFloat(best.lat),
-            lng: parseFloat(best.lon),
-            displayName: best.display_name
-        };
-
-    } catch (err) {
-        console.error('Geocoding error:', err);
-        return null;
-    }
-}
-
 
 function initRecenterButton() {
     const btn = document.getElementById('recenterMapBtn');
@@ -1260,21 +1232,21 @@ async function useCurrentEditLocation() {
             try {
                 selectedLocationInfo.innerHTML = "🔍 Finding your address...";
 
-                // FIXED: Proper URL + required headers
-                const response = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
-                    {
-                        headers: {
-                            'Accept': 'application/json'
-                        }
-                    }
-                );
+                const url =
+                    `${GEO_API_BASE}/api/geocode/reverse?` +
+                    `lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`;
 
-                if (!response.ok) throw new Error(`Reverse geocoding failed: ${response.status}`);
+                const response = await fetch(url, { headers: GEO_HEADERS });
+
+                if (!response.ok) {
+                    const body = await response.text();
+                    throw new Error(`Reverse geocoding failed: ${response.status} ${body.slice(0, 120)}`);
+                }
+
                 const data = await response.json();
                 console.log("Reverse geocoding result:", data);
 
-                const address = data.display_name || `${lat}, ${lng}`;
+                const address = data.address || `${lat}, ${lng}`;
                 editAddressInput.value = address;
 
                 selectedLocationInfo.innerHTML = `
@@ -1319,6 +1291,7 @@ async function useCurrentEditLocation() {
 // ========== SEARCH ADDRESS ==========
 async function searchAddressLocations(query) {
     const addressSuggestions = document.getElementById('addressSuggestions');
+
     if (!query || query.trim().length < 3) {
         addressSuggestions.innerHTML = '';
         addressSuggestions.classList.remove('show');
@@ -1332,14 +1305,23 @@ async function searchAddressLocations(query) {
     addressSuggestions.classList.add('show');
 
     try {
-        const encodedQuery = encodeURIComponent(`${query}, Philippines`);
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodedQuery}&format=json&addressdetails=1&limit=5&countrycodes=ph`;
+        const url =
+            `${GEO_API_BASE}/api/geocode/search?` +
+            `q=${encodeURIComponent(query)}`;
 
-        const response = await fetch(url, { signal: addressSearchController.signal });
-        if (!response.ok) throw new Error(`Search failed: ${response.status}`);
+        const response = await fetch(url, {
+            signal: addressSearchController.signal,
+            headers: GEO_HEADERS,
+        });
+
+        if (!response.ok) {
+            const body = await response.text();
+            throw new Error(`Search failed: ${response.status} ${body.slice(0, 120)}`);
+        }
+
         const results = await response.json();
 
-        if (!results || results.length === 0) {
+        if (!Array.isArray(results) || results.length === 0) {
             addressSuggestions.innerHTML = `<div class="address-no-results">No locations found.</div>`;
             return;
         }
@@ -1392,15 +1374,39 @@ function selectAddressResult(result) {
 // ========== GEOCODE ADDRESS (manual input) ==========
 async function geocodeAddress(address) {
     try {
-        const encoded = encodeURIComponent(`${address}, Philippines`);
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1&countrycodes=ph`);
-        if (!res.ok) return null;
-        const data = await res.json();
-        if (!data || !data.length) return null;
-        return { lat: data[0].lat, lng: data[0].lon };
-    } catch { return null; }
-}
+        // Server already appends ", Philippines" and sets countrycodes=ph,
+        // so we don't need to do it here.
+        const url =
+            `${GEO_API_BASE}/api/geocode/search?` +
+            `q=${encodeURIComponent(address)}`;
 
+        const response = await fetch(url, { headers: GEO_HEADERS });
+        if (!response.ok) {
+            const body = await response.text();
+            console.error('Geocoding HTTP error:', response.status, body.slice(0, 120));
+            return null;
+        }
+
+        const data = await response.json();
+        if (!Array.isArray(data) || data.length === 0) return null;
+
+        // Prefer a result inside your service area (lat 6–7, lon 124–126),
+        // otherwise fall back to the first result.
+        const best = data.find(r =>
+            parseFloat(r.lat) >= 6.0 && parseFloat(r.lat) <= 7.0 &&
+            parseFloat(r.lon) >= 124.0 && parseFloat(r.lon) <= 126.0
+        ) || data[0];
+
+        return {
+            lat: parseFloat(best.lat),
+            lng: parseFloat(best.lon),
+            displayName: best.display_name,
+        };
+    } catch (err) {
+        console.error('Geocoding error:', err);
+        return null;
+    }
+}
 function escapeHtml(value) {
 
     return String(value)

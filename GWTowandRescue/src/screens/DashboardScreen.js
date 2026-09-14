@@ -398,9 +398,8 @@ const handleLogout = () => {
   const debounceRef = useRef(null);
 const abortRef = useRef(null);
 
-const NOMINATIM_HEADERS = {
-  'Accept': 'application/json',
-  'User-Agent': 'YourAppName/1.0 (msarap116@gmail.com)', // use a real email
+const GEO_HEADERS = {
+  Accept: 'application/json',
 };
 
 // debounce wrapper (called from onChangeText)
@@ -424,26 +423,27 @@ const runSearch = async (query) => {
 
   try {
     const url =
-      `https://nominatim.openstreetmap.org/search?` +
-      `q=${encodeURIComponent(query + ', Philippines')}` +
-      `&format=json&addressdetails=1&limit=5&countrycodes=ph`;
+      `${API_BASE}/api/geocode/search?` +
+      `q=${encodeURIComponent(query)}`;
 
     const response = await fetch(url, {
       signal: controller.signal,
-      headers: NOMINATIM_HEADERS,
+      headers: GEO_HEADERS,
     });
 
     const text = await response.text();
-    console.log('Nominatim status:', response.status);
-    console.log('Nominatim body:', text.slice(0, 300));  // ← look here if it fails
+    console.log('LocationIQ search status:', response.status);
+    console.log('LocationIQ search body:', text.slice(0, 300));
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}: ${text.slice(0, 120)}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${text.slice(0, 120)}`);
+    }
 
     let data;
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error('Nominatim returned non-JSON: ' + text.slice(0, 120));
+      throw new Error('Server returned non-JSON: ' + text.slice(0, 120));
     }
 
     setAddressSuggestions(Array.isArray(data) ? data : []);
@@ -462,7 +462,8 @@ const runSearch = async (query) => {
     setAddressSuggestions([]);
     setShowSuggestions(false);
   };
-  const useCurrentLocation = async () => {
+
+ const useCurrentLocation = async () => {
   try {
     setLocating(true);
 
@@ -493,17 +494,23 @@ const runSearch = async (query) => {
         setEditLng(lng.toFixed(6));
         setEditAddress('Finding your address...');
 
-        // ---- 3. Reverse geocode → readable address ----
+        // ---- 3. Reverse geocode via YOUR backend (LocationIQ) ----
         try {
           const url =
-            `https://nominatim.openstreetmap.org/reverse?` +
-            `lat=${lat}&lon=${lng}&format=json&addressdetails=1`;
+            `${API_BASE}/api/geocode/reverse?` +
+            `lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`;
 
-          const res = await fetch(url, { headers: NOMINATIM_HEADERS });
+          const res = await fetch(url, { headers: GEO_HEADERS });
           const text = await res.text();
-          const data = JSON.parse(text);
 
-          setEditAddress(data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${text.slice(0, 120)}`);
+          }
+
+          const data = JSON.parse(text);
+          setEditAddress(
+            data.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+          );
         } catch (err) {
           console.warn('Reverse geocode failed:', err.message);
           setEditAddress(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
@@ -528,7 +535,7 @@ const runSearch = async (query) => {
             Alert.alert('Error', 'Unable to determine your location.');
         }
       },
-        { enableHighAccuracy: false, timeout: 30000, maximumAge: 10000 }
+      { enableHighAccuracy: false, timeout: 30000, maximumAge: 10000 }
     );
   } catch (err) {
     console.error('useCurrentLocation error:', err);
