@@ -178,42 +178,7 @@ app.get('/api/geocode/reverse', async (req, res) => {
   }
 });
 
-// Forward geocode: search query → address suggestions
-app.get('/api/geocode/search', async (req, res) => {
-  try {
-    const { q } = req.query;
 
-    if (!q) {
-      return res.status(400).json({ error: 'q is required' });
-    }
-
-    const params = new URLSearchParams({
-      key: process.env.LOCATIONIQ_KEY,
-      q: `${q}, Philippines`,
-      format: 'json',
-      addressdetails: '1',
-      limit: '5',
-      countrycodes: 'ph',
-    });
-
-    const locationIqResponse = await fetch(
-      `https://us1.locationiq.com/v1/search?${params.toString()}`,
-      { headers: { Accept: 'application/json' } }
-    );
-
-    const responseText = await locationIqResponse.text();
-
-    if (!locationIqResponse.ok) {
-      console.error('LocationIQ search error:', locationIqResponse.status, responseText);
-      return res.status(locationIqResponse.status).json({ error: 'LocationIQ search failed' });
-    }
-
-    return res.json(JSON.parse(responseText));
-  } catch (error) {
-    console.error('Forward geocoding backend error:', error);
-    return res.status(500).json({ error: 'Forward geocoding failed', details: error.message });
-  }
-});
 app.get('/api/geocode/search', async (req, res) => {
   try {
     const { q } = req.query;
