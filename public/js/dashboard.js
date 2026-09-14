@@ -416,15 +416,22 @@ function showDriverOnMap(
 //draw route in the map
 async function drawRoute(fromLat, fromLng, toLat, toLng) {
     try {
+        console.log('drawRoute inputs:', { fromLat, fromLng, toLat, toLng });
 
         const url = `https://router.project-osrm.org/route/v1/driving/` +
             `${fromLng},${fromLat};${toLng},${toLat}` +
             `?overview=full&geometries=geojson&steps=true`;
 
-        const response = await fetch(url);
-        const data = await response.json();
+        console.log('OSRM URL:', url);
 
-        if (data.code !== 'Ok') throw new Error('Routing failed');
+        const response = await fetch(url);
+        console.log('OSRM HTTP status:', response.status);
+
+        const data = await response.json();
+        console.log('OSRM response:', data);
+
+        if (data.code !== 'Ok') throw new Error('Routing failed: ' + data.code);
+        // ... rest unchanged
 
         // Extract route coordinates
         const coordinates = data.routes[0].geometry.coordinates;
