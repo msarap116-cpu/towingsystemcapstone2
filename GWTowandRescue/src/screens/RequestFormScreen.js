@@ -284,86 +284,66 @@ const reverseGeocode = async (latitude, longitude) => {
 
   const response = await fetch(url, {
     method: 'GET',
-    headers: {
-      Accept: 'application/json',
-    },
+    headers: { Accept: 'application/json' },
   });
 
   const responseText = await response.text();
 
   if (!response.ok) {
     throw new Error(
-      `Reverse geocoding failed: ${response.status} ${responseText.substring(
-        0,
-        200
-      )}`
+      `Reverse geocoding failed: ${response.status} ${responseText.substring(0, 200)}`
     );
   }
 
   const data = JSON.parse(responseText);
-
   return data.address || null;
 };
 
 
 
-
     // Search address (forward geocode with suggestions)
-    const searchAddressLocations = async (query) => {
-        const text = query.trim();
+  const searchAddressLocations = async (query) => {
+  const text = query.trim();
 
-        if (text.length < 3) {
-            setAddressSuggestions([]);
-            setShowSuggestions(false);
-            return;
-        }
+  if (text.length < 3) {
+    setAddressSuggestions([]);
+    setShowSuggestions(false);
+    return;
+  }
 
-        if (addressSearchController.current) {
-            addressSearchController.current.abort();
-        }
+  if (addressSearchController.current) {
+    addressSearchController.current.abort();
+  }
 
-        addressSearchController.current = new AbortController();
+  addressSearchController.current = new AbortController();
 
-        try {
-            const params = new URLSearchParams({
-                q: `${text}, Philippines`,
-                format: 'jsonv2',
-                addressdetails: '1',
-                limit: '5',
-                countrycodes: 'ph',
-            });
+  try {
+    const url =
+      'https://goodwrench-towing-rescue.onrender.com/api/geocode/search' +
+      `?q=${encodeURIComponent(text)}`;
 
-            const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?${params.toString()}`,
-                {
-                    method: 'GET',
-                    signal: addressSearchController.current.signal,
-                    headers: {
-                        Accept: 'application/json',
-                        'User-Agent': 'YourAppName/1.0 support@example.com',
-                    },
-                }
-            );
+    const response = await fetch(url, {
+      method: 'GET',
+      signal: addressSearchController.current.signal,
+      headers: { Accept: 'application/json' },
+    });
 
-            if (!response.ok) {
-                const body = await response.text();
-                throw new Error(`Nominatim search failed: ${response.status} ${body}`);
-            }
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Address search failed: ${response.status} ${body}`);
+    }
 
-            const results = await response.json();
+    const results = await response.json();
 
-            setAddressSuggestions(results || []);
-            setShowSuggestions((results || []).length > 0);
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                return;
-            }
-
-            console.error('Address search error:', error);
-            setAddressSuggestions([]);
-            setShowSuggestions(false);
-        }
-    };
+    setAddressSuggestions(results || []);
+    setShowSuggestions((results || []).length > 0);
+  } catch (error) {
+    if (error.name === 'AbortError') return;
+    console.error('Address search error:', error);
+    setAddressSuggestions([]);
+    setShowSuggestions(false);
+  }
+};
 
 
     // Select address from suggestion
