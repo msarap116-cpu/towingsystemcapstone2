@@ -27,6 +27,7 @@ let addressSearchController = null;
 
 let myLocationMarker = null;
 
+const GEO_API_BASE = 'https://goodwrench-towing-rescue.onrender.com';
 const GEO_HEADERS = { Accept: 'application/json' };
 
 const MAP_CONFIG = {
