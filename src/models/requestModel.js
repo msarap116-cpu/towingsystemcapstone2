@@ -258,6 +258,56 @@ const Request = {
   return Array.isArray(result) ? result[0] : result;
  },
 
+async findPendingUnassigned() {
+    const sql = `
+        SELECT
+            r.request_id,
+            u.name AS customer_name,
+            u.phone AS customer_phone,
+            st.name AS service_type,
+            v.vehicle_type,
+            v.license_plate,
+            r.address AS location,
+            r.location_lat,
+            r.location_lng,
+            r.status,
+            r.created_at
+        FROM service_requests r
+        JOIN users u ON r.user_id = u.user_id
+        LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
+        LEFT JOIN vehicles v ON r.vehicle_id = v.vehicle_id
+        WHERE r.status = 'pending' AND r.driver_id IS NULL
+        ORDER BY r.created_at ASC
+    `;
+
+    return db.query(sql);
+},
+async findByDriverId(driverId) {
+    const sql = `
+        SELECT
+            r.request_id,
+            u.name AS customer_name,
+            u.phone AS customer_phone,
+            st.name AS service_type,
+            v.vehicle_type,
+            v.license_plate,
+            r.address AS location,
+            r.location_lat,
+            r.location_lng,
+            r.status,
+            r.created_at
+        FROM service_requests r
+        JOIN users u ON r.user_id = u.user_id
+        LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
+        LEFT JOIN vehicles v ON r.vehicle_id = v.vehicle_id
+        WHERE r.driver_id = ?
+        ORDER BY r.created_at DESC
+    `;
+
+    return db.query(sql, [driverId]);
+},
+
+
 
   async updateDriverLocation(request_id, driver_id, lat, lng) {
 
@@ -301,9 +351,298 @@ const Request = {
             updated_at = NOW()
         WHERE request_id = ?
     `, [address, lat, lng, requestId]);
- }
+ },
+/**
+ * Find a single service request by its id.
+ * Used before accepting to check status / ownership.
+ *
+ * @param {number|string} requestId
+ */
+ async findSerVice(requestId){
+    const sql = `
+        SELECT
+            request_id,
+            status,
+            driver_id,
+            user_id
+        FROM service_requests
+        WHERE request_id = ?
+    `;
+
+    return db.query(sql, [requestId]);
+},
+
+/**
+ * Atomically assign a driver to a pending, unassigned request.
+ * Returns the raw result object from mysql2 (contains affectedRows).
+ *
+ * @param {number|string} requestId
+ * @param {number|string} driverId
+ */
+async assignDriver(requestId, driverId){
+    const sql = `
+        UPDATE service_requests
+        SET
+            driver_id = ?,
+            status = 'assigned',
+            updated_at = NOW()
+        WHERE request_id = ?
+        AND driver_id IS NULL
+        AND status = 'pending'
+    `;
+
+    return db.query(sql, [driverId, requestId]);
+},
+/**
+ * Find a request's key fields for ownership/status validation.
+ * (Same columns as findById — reuse it if you prefer.)
+ *
+ * @param {number|string} requestId
+ */
+async  findForCancel(requestId) {
+    const sql = `
+        SELECT request_id, driver_id, user_id, status
+        FROM service_requests
+        WHERE request_id = ?
+    `;
+
+    return db.query(sql, [requestId]);
+},
+
+/**
+ * Mark a service request as cancelled.
+ *
+ * @param {number|string} requestId
+ * @param {string} reason - cancellation reason (already defaulted by controller)
+ */
+async markCancelled(requestId, reason) {
+    const sql = `
+        UPDATE service_requests
+        SET status = 'cancelled',
+            cancelled_at = NOW(),
+            cancellation_reason = ?,
+            updated_at = NOW()
+        WHERE request_id = ?
+    `;
+
+    return db.query(sql, [reason, requestId]);
+},
+/**
+ * Fetch a single service request with joined customer / service / vehicle info.
+ * Used for the request details endpoint.
+ *
+ * @param {number|string} requestId
+ */
+async findDetailsById(requestId) {
+    const sql = `
+        SELECT
+            sr.request_id,
+            u.name        AS customer_name,
+            u.phone       AS customer_phone,
+            st.name       AS service_type,
+            v.vehicle_type,
+            v.license_plate,
+            sr.address    AS location,
+            sr.status,
+            sr.created_at
+        FROM service_requests sr
+        LEFT JOIN users u          ON sr.user_id         = u.user_id
+        LEFT JOIN service_types st ON sr.service_type_id = st.service_type_id
+        LEFT JOIN vehicles v       ON sr.vehicle_id      = v.vehicle_id
+        WHERE sr.request_id = ?
+    `;
+
+    return db.query(sql, [requestId]);
+},
+
+/**
+ * Minimal lookup used by PUT /:id to verify the request exists
+ * and to know which user it belongs to.
+ *
+ * @param {number|string} requestId
+ */
+async findRequestAndUser(requestId) {
+    const sql = `
+        SELECT sr.request_id, sr.user_id
+        FROM service_requests sr
+        WHERE sr.request_id = ?
+    `;
+
+    return db.query(sql, [requestId]);
+},
+
+/**
+ * Update the customer's name and phone via the request's user_id.
+ *
+ * @param {number|string} requestId
+ * @param {string} customerName
+ * @param {string} customerPhone
+ */
+async updateCustomerInfo(requestId, customerName, customerPhone) {
+    const sql = `
+        UPDATE users u
+        JOIN service_requests sr ON sr.user_id = u.user_id
+        SET u.name = ?, u.phone = ?
+        WHERE sr.request_id = ?
+    `;
+
+    return db.query(sql, [customerName, customerPhone, requestId]);
+},
+
+/**
+ * Update the service request's service_type / address / status.
+ *
+ * @param {number|string} requestId
+ * @param {string} serviceType
+ * @param {string} location
+ * @param {string} status
+ */
+async updateRequestDetails(requestId, serviceType, location, status) {
+    const sql = `
+        UPDATE service_requests
+        SET service_type_id = (
+            SELECT service_type_id FROM service_types
+            WHERE name = ? LIMIT 1
+        ),
+        address = ?,
+        status = ?,
+        updated_at = NOW()
+        WHERE request_id = ?
+    `;
+
+    return db.query(sql, [serviceType, location, status, requestId]);
+},
+// requestController.js — new customerCancel path
+async customerCancel(requestId, reason) {
+    const conn = await db.getConnection();
+    try {
+        await conn.beginTransaction();
+
+        await conn.query(
+            `UPDATE service_requests
+             SET status = 'cancelled', cancelled_at = NOW(), cancellation_reason = ?, updated_at = NOW()
+             WHERE request_id = ?`,
+            [reason || 'Cancelled by customer', requestId]
+        );
+
+        // close out whatever assignment was open, if any
+        await conn.query(
+            `UPDATE driver_assignments
+             SET status = 'cancelled', cancellation_reason = ?, updated_at = NOW()
+             WHERE request_id = ? AND status NOT IN ('completed','cancelled')`,
+            [reason || 'Cancelled by customer', requestId]
+        );
+
+        await conn.commit();
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
+    }
+},
+
+// driver bails -> request survives, goes back to pending
+async driverReleaseAssignment(requestId, driverId, reason) {
+    const conn = await db.getConnection();
+    try {
+        await conn.beginTransaction();
+
+        await conn.query(
+            `UPDATE driver_assignments
+             SET status = 'cancelled', cancellation_reason = ?, updated_at = NOW()
+             WHERE request_id = ? AND driver_id = ? AND status NOT IN ('completed','cancelled')`,
+            [reason || 'Cancelled by driver', requestId, driverId]
+        );
+
+        await conn.query(
+            `UPDATE service_requests
+             SET status = 'pending', driver_id = NULL, assigned_driver_id = NULL, updated_at = NOW()
+             WHERE request_id = ? AND driver_id = ?`,
+            [requestId, driverId]
+        );
+
+        await conn.commit();
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
+    }
+},
+// requestModel.js
+
+async claimAndAssign(requestId, driverId) {
+    const conn = await db.getConnection();
+    try {
+        await conn.beginTransaction();
+
+        const [updateResult] = await conn.query(
+            `UPDATE service_requests
+             SET driver_id = ?, status = 'assigned', updated_at = NOW()
+             WHERE request_id = ? AND driver_id IS NULL AND status = 'pending'`,
+            [driverId, requestId]
+        );
+
+        if (updateResult.affectedRows === 0) {
+            await conn.rollback();
+            return { claimed: false };
+        }
+
+        await conn.query(
+            `INSERT INTO driver_assignments (request_id, driver_id, status, accepted_at)
+             VALUES (?, ?, 'accepted', NOW())`,
+            [requestId, driverId]
+        );
+
+        await conn.commit();
+        return { claimed: true };
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
+    }
+},
+
+// admin override: same insert, but bypasses the availability check
+// (the transaction body is identical to claimAndAssign — call it directly)
+
+async findPendingUnassignedForDriver(driverId) {
+    const sql = `
+        SELECT
+            r.request_id, u.name AS customer_name, u.phone AS customer_phone,
+            st.name AS service_type, v.vehicle_type, v.license_plate,
+            r.address AS location, r.location_lat, r.location_lng,
+            r.status, r.created_at
+        FROM service_requests r
+        JOIN users u ON r.user_id = u.user_id
+        LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
+        LEFT JOIN vehicles v ON r.vehicle_id = v.vehicle_id
+        WHERE r.status = 'pending' AND r.driver_id IS NULL
+          AND (
+            NOT EXISTS (SELECT 1 FROM driver_availability da WHERE da.driver_id = ? AND da.is_active = 1)
+            OR EXISTS (
+                SELECT 1 FROM driver_availability da
+                WHERE da.driver_id = ?
+                  AND da.is_active = 1
+                  AND da.day_of_week = DAYOFWEEK(NOW()) - 1
+                  AND CURTIME() BETWEEN da.start_time AND da.end_time
+            )
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM driver_assignments prev
+            WHERE prev.request_id = r.request_id
+              AND prev.driver_id = ?
+              AND prev.status = 'cancelled'
+          )
+        ORDER BY r.created_at ASC
+    `;
+    return db.query(sql, [driverId, driverId, driverId]);
+},
 
 };//const Request
+
 
 
 module.exports = Request;

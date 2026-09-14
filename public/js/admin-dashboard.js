@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let customers = [];
     let payments = [];
     let map, markersList = [];
+    let admins = [];
+
 
     // let customerMarkers = [];
     // let driverMarkers = [];
@@ -70,24 +72,31 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
 
-    async function loadDrivers() {
-        try {
-            drivers = await apiFetch("/admin/drivers");
+async function loadDrivers() {
+    try {
 
-            console.log("Drivers loaded:", drivers);
+        drivers = await apiFetch("/admin/drivers");
 
-            renderDrivers();
+        console.log("Drivers loaded:", drivers);
 
-            // Update map after drivers are loaded
-            if (map) {
-                updateMapMarkers();
-            }
+        renderDrivers();
 
-        } catch (err) {
-            console.error("Failed to load drivers:", err);
-            showAlert("Could not load drivers", "danger");
+        await loadAdmins();
+
+        if (map) {
+            updateMapMarkers();
         }
+
+    } catch (err) {
+
+        console.error("Failed to load drivers:", err);
+
+        showAlert(
+            "Could not load drivers",
+            "danger"
+        );
     }
+}
     async function loadCustomers() {
         try {
             customers = await apiFetch('/admin/customers');
@@ -96,7 +105,27 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Failed to load customers:', error);
         }
     }
+async function loadAdmins() {
+    try {
+        const result = await apiFetch("/admin/admins");
 
+        console.log("FULL ADMIN API RESULT:", result);
+        console.log("result.admins:", result.admins);
+        console.log("Is result.admins an array?", Array.isArray(result.admins));
+
+        admins = result.admins || [];
+
+        console.log("FINAL admins variable:", admins);
+        console.log("Is admins an array?", Array.isArray(admins));
+        console.log("Number of admins:", admins.length);
+
+        renderAdmins();
+
+    } catch (error) {
+        console.error("Failed to load admins:", error);
+        showAlert("Could not load admins", "danger");
+    }
+}
     window.loadPayments = async function () {
         try {
             payments = await apiFetch('/admin/payments');
@@ -369,7 +398,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <td>${c.id}</td>
         <td>${c.name || '—'}</td>
         <td>${c.phone || '—'}</td>
-        <td>${c.trips || 0}</td>
+        <td>${c.email || 0}</td>
         <td>₱${Number(c.total_spent || 0).toFixed(2)}</td>
         <td>
             <!-- Overflow Menu: Edit + Delete -->
@@ -1131,7 +1160,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('adminModal').style.display = 'flex';
     }
 
-    async function saveAdmin() {
+   window.saveAdmin = async function () {
 
         const id =
             document.getElementById('editAdminId').value;
@@ -1206,6 +1235,62 @@ document.addEventListener('DOMContentLoaded', function () {
             );
         }
     }
+
+function renderAdmins() {
+    console.log("admin data:", admins);
+
+    const container = document.getElementById("adminsListContainer");
+
+    if (!container) {
+        console.error("❌ adminListContainer NOT FOUND");
+        return;
+    }
+
+    console.log("✅ Admin container found");
+
+    if (!Array.isArray(admins) || admins.length === 0) {
+        container.innerHTML = `
+            <p style="text-align:center; padding:2rem; color:#666;">
+                No admins found
+            </p>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="table-responsive">
+            <table class="drivers-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    ${admins.map(admin => `
+                        <tr>
+                            <td>${admin.name || 'Unnamed'}</td>
+                            <td>${admin.phone || '--'}</td>
+                            <td>${admin.email || '--'}</td>
+                            <td>
+                                ${admin.is_active ? 'Active' : 'Inactive'}
+                            </td>
+                            <td>
+                                ${admin.created_at
+                                    ? new Date(admin.created_at).toLocaleDateString()
+                                    : '--'}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+};
 
     async function init() {
         // Load user from sessionStorage (set during login)

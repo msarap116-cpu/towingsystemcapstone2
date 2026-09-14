@@ -76,7 +76,7 @@
 
 
             <!-- ===== DASHBOARD TAB ===== -->
-            <div id="tab-dashboard" class="tab-pane active" style="display:flex; flex-direction:column; gap:24px;">
+            <div id="tab-dashboard" class="tab-pane active">
 
                 <!-- Top Bar -->
                 <div class="top-bar">
@@ -135,27 +135,28 @@
             </div><!-- /tab-dashboard -->
 
             <!-- ===== LIVE TRACKING TAB ===== -->
-            <div id="tab-tracking" class="tab-pane" style="display:none; flex-direction:column; gap:24px;">
+            <div id="tab-tracking" class="tab-pane">
                 <div class="top-bar">
-                    <h1>📍 Live Tracking</h1>
+                    <h1>driver map</h1>
+                                        <div class="map-legend">
+                        <div><span class="legend-dot" style="background:#d85a30;"></span> Driver</div>
+                        <div><span class="legend-dot" style="background:#1d9e75;"></span> Route</div>
+                        <div><span class="legend-dot" style="background:#f59e0b;"></span> Other drivers</div>
+                        <div><span class="legend-dot" style="background:#3b82f6;"></span> Route</div>
+                    </div>
                     <button class="btn btn-outline btn-sm" onclick="refreshMap()">⟳ Refresh</button>
                 </div>
                 <div class="map-card">
                     <div id="map"></div> <!-- Your existing map container -->
-                    <div class="map-legend">
-                        <div><span class="legend-dot" style="background:#d85a30;"></span> Customer pickup</div>
-                        <div><span class="legend-dot" style="background:#1d9e75;"></span> Your location</div>
-                        <div><span class="legend-dot" style="background:#f59e0b;"></span> Other drivers</div>
-                        <div><span class="legend-dot" style="background:#3b82f6;"></span> Route</div>
-                    </div>
+
                 </div>
                 <!-- Optional: add job info here if needed -->
-                <div id="tracking-job-info"
+                <!-- <div id="tracking-job-info"
                     style="background:#fff; border-radius:22px; padding:16px 20px; border:1px solid #e9edf4;">
                     <p id="trackingStatus">No active job – tracking idle.</p>
-                </div>
+                </div> -->
             </div>
-            <div id="tab-trips" class="tab-pane" style="display:none; flex-direction:column; gap:24px;">
+            <div id="tab-trips" class="tab-pane">
                 <div class="top-bar">
                     <h1>My Trips</h1>
                 </div>
@@ -167,7 +168,7 @@
                 </div>
             </div>
 
-            <div id="tab-earnings" class="tab-pane" style="display:none; flex-direction:column; gap:24px;">
+           <div id="tab-earnings" class="tab-pane">
                 <div class="top-bar">
                     <h1>Earnings</h1>
                 </div>

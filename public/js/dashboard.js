@@ -13,6 +13,8 @@ let latestRequestData = null;
 let addressSearchTimeout = null;
 let addressSearchController = null;
 
+let myLocationMarker = null;
+
 const MAP_CONFIG = {
     bounds: {
         southWest: { lat: 6.0, lng: 124.4 },
@@ -93,8 +95,8 @@ async function loadUserMap() {
     try {
         const res = await fetch(`${API_BASE_URL}/requests/latest`, {
             headers: {
-                'Authorization': `Bearer ${token}`
-            }, cache: 'no-store'
+                Authorization: `Bearer ${token}`
+            }
         });
 
         if (!res.ok) {
@@ -104,36 +106,34 @@ async function loadUserMap() {
 
         const data = await res.json();
 
-        // /requests/latest now returns an ARRAY of the latest 5 requests.
-        // The first item is the newest/latest request.
+        // The API returns an array. Get the newest request.
         const request = Array.isArray(data) ? data[0] : data;
-
-
 
         if (!request) {
             console.warn('No active request found.');
             return;
         }
 
+        latestRequestId = request.request_id;
+        latestRequestData = request;
+
+        updateRequestBadge(request);
 
         if (
             request.status === 'completed' ||
             request.status === 'cancelled'
         ) {
-            console.log(`Request #${request.request_id} is ${request.status}. Clearing live tracking.`);
+            console.log(
+                `Request #${request.request_id} is ${request.status}.`
+            );
 
             if (pollingInterval) {
                 clearInterval(pollingInterval);
                 pollingInterval = null;
             }
 
-            latestRequestId = request.request_id;
-            // Keep latestRequestData populated for completed requests so payment still works.
-            // Only null it out when there's truly nothing left to act on.
             if (request.status === 'cancelled') {
                 latestRequestData = null;
-            } else {
-                latestRequestData = request;
             }
 
             if (map) {
@@ -147,71 +147,74 @@ async function loadUserMap() {
 
             return;
         }
-        // Store the latest request, not the entire array
-        latestRequestId = request.request_id;
-        latestRequestData = request;
 
-        if (!request?.location_lat || !request?.location_lng) {
-            console.warn('No location data on request.');
-
-            const mapDiv = document.getElementById('map');
-
-            if (mapDiv) {
-                mapDiv.innerHTML =
-                    '<p style="padding:1rem;color:#888">No active request found.</p>';
-            }
-
+        if (
+            request.location_lat == null ||
+            request.location_lng == null
+        ) {
+            console.warn('No customer location data on request.');
             return;
         }
 
-        const lat = parseFloat(request.location_lat);
-        const lng = parseFloat(request.location_lng);
+        const customerLat = parseFloat(request.location_lat);
+        const customerLng = parseFloat(request.location_lng);
 
-        // console.log('Customer:', lat, lng);
-        // console.log('Driver:', request.driver_lat, request.driver_lng);
-        // console.log('Status:', request.status);
-        // console.log('Full data:', request);
-
-        if (map) {
-            map.remove();
-            map = null;
-            customerMarker = null;
-            driverMarker = null;
-            routeLayer = null;
+        if (Number.isNaN(customerLat) || Number.isNaN(customerLng)) {
+            console.error('Invalid customer coordinates.');
+            return;
         }
 
-        map = L.map('map').setView([lat, lng], 15);
+        // Create the map only once.
+        if (!map) {
+            map = L.map('map').setView(
+                [customerLat, customerLng],
+                15
+            );
 
-        L.tileLayer(
-            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            {
-                attribution:
-                    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19
-            }
-        ).addTo(map);
+            L.tileLayer(
+                'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                {
+                    attribution:
+                        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxZoom: 19
+                }
+            ).addTo(map);
 
-        customerMarker = L.marker(
-            [lat, lng],
-            { icon: customerIcon }
-        )
-            .addTo(map)
-            .bindPopup(
-                `<strong>📍 Your Location</strong><br>${request.address || 'Your requested location'}`
+            customerMarker = L.marker(
+                [customerLat, customerLng],
+                { icon: customerIcon }
             )
-            .openPopup();
+                .addTo(map)
+                .bindPopup(
+                    `<strong>📍 Your Location</strong><br>${
+                        request.address || 'Your requested location'
+                    }`
+                )
+                .openPopup();
 
-        if (request.driver_lat && request.driver_lng) {
+            setTimeout(() => {
+                if (map) {
+                    map.invalidateSize();
+                }
+            }, 100);
+        }
+
+        // Show the driver immediately if coordinates already exist.
+        if (
+            request.driver_lat != null &&
+            request.driver_lng != null
+        ) {
             showDriverOnMap(
                 parseFloat(request.driver_lat),
                 parseFloat(request.driver_lng),
-                lat,
-                lng
+                customerLat,
+                customerLng
             );
         }
 
+        // Start polling for request and driver updates.
         pollingInterval = setInterval(
-            () => pollDriverLocation(lat, lng),
+            () => pollDriverLocation(),
             POLL_INTERVAL_MS
         );
 
@@ -227,58 +230,172 @@ async function loadUserMap() {
     }
 }
 
+// ---------- REFRESH MAP ----------
+function refreshMap() {
+    loadUserMap();
+    showToast('Map refreshed');
+}
+window.refreshMap = refreshMap;
+
+function showTab(tabId) {
+    // Hide all tab panels
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.hidden = true;
+    });
+     document.getElementById(tabId).hidden = false;
+
+    // Show the selected one
+    const activePanel = document.getElementById(tabId);
+    if (activePanel) {
+        activePanel.hidden = false;
+    }
+
+    // If switching to dashboard, refresh Leaflet
+    if (tabId === 'dashboardPanel' && window.map) {
+        setTimeout(() => window.map.invalidateSize(), 100);
+    }
+}
 
 
 //getting the locations of the driver from the driver area
-async function pollDriverLocation(customerLat, customerLng) {
+
+async function pollDriverLocation() {
     const token = sessionStorage.getItem('token');
-    if (!token) return;
+
+    if (!token) {
+        return;
+    }
 
     try {
         const res = await fetch(`${API_BASE_URL}/requests/latest`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-            cache: 'no-store'
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
         });
-        if (!res.ok) return;
+
+        if (!res.ok) {
+            console.error('Polling failed:', res.status);
+            return;
+        }
 
         const data = await res.json();
-        if (!data?.driver_lat || !data?.driver_lng) return;
 
+        // Important: latest endpoint returns an array.
+        const request = Array.isArray(data) ? data[0] : data;
+
+        if (!request) {
+            return;
+        }
+
+        // Keep the current request data updated.
+        latestRequestId = request.request_id;
+        latestRequestData = request;
+
+        updateRequestBadge(request);
+
+        if (
+            request.status === 'completed' ||
+            request.status === 'cancelled'
+        ) {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+
+            if (request.status === 'cancelled') {
+                latestRequestData = null;
+            }
+
+            if (map) {
+                map.remove();
+                map = null;
+            }
+
+            customerMarker = null;
+            driverMarker = null;
+            routeLayer = null;
+
+            return;
+        }
+
+        if (
+            request.location_lat == null ||
+            request.location_lng == null
+        ) {
+            return;
+        }
+
+        const customerLat = parseFloat(request.location_lat);
+        const customerLng = parseFloat(request.location_lng);
+
+        // Driver may not have accepted yet.
+        if (
+            request.driver_lat == null ||
+            request.driver_lng == null
+        ) {
+            console.log('Driver has not sent a location yet.');
+            return;
+        }
+
+        const driverLat = parseFloat(request.driver_lat);
+        const driverLng = parseFloat(request.driver_lng);
+
+        if (
+            Number.isNaN(driverLat) ||
+            Number.isNaN(driverLng)
+        ) {
+            return;
+        }
+
+        // This updates or creates the driver marker.
         showDriverOnMap(
-            parseFloat(data.driver_lat),
-            parseFloat(data.driver_lng),
-            customerLat, customerLng
+            driverLat,
+            driverLng,
+            customerLat,
+            customerLng
         );
+
     } catch (err) {
         console.error('Poll error:', err);
     }
 }
 
 // Show driver on map and draw route
-async function showDriverOnMap(driverLat, driverLng, customerLat, customerLng) {
+function showDriverOnMap(
+    driverLat,
+    driverLng,
+    customerLat,
+    customerLng
+) {
+    if (!map) {
+        return;
+    }
+
+    const driverPosition = [driverLat, driverLng];
+
     if (!driverMarker) {
-        driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
+        driverMarker = L.marker(
+            driverPosition,
+            { icon: driverIcon }
+        )
             .addTo(map)
-            .bindPopup('<strong>🚗 Driver is on the way</strong>');
+            .bindPopup('🚗 Driver location');
     } else {
-        driverMarker.setLatLng([driverLat, driverLng]);
+        driverMarker.setLatLng(driverPosition);
     }
 
+    // Optional: keep the driver and customer visible.
+    const bounds = L.latLngBounds([
+        [customerLat, customerLng],
+        driverPosition
+    ]);
 
-    const distance = calculateDistance(driverLat, driverLng, customerLat, customerLng);
-    if (parseFloat(distance) > 0.05) { // 0.05 km = 50 meters
-        const bounds = L.latLngBounds(
-            [driverLat, driverLng],
-            [customerLat, customerLng]
-        );
-        map.fitBounds(bounds, { padding: [60, 60] });
-    } else {
-
-        map.setView([customerLat, customerLng], 16);
-    }
-
-    await drawRoute(driverLat, driverLng, customerLat, customerLng);
+    map.fitBounds(bounds, {
+        padding: [50, 50],
+        maxZoom: 16
+    });
 }
+
 
 //draw route in the map
 async function drawRoute(fromLat, fromLng, toLat, toLng) {
@@ -300,6 +417,12 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
         // Calculate distance and duration
         const distanceKm = (data.routes[0].distance / 1000).toFixed(1);
         const durationMin = Math.ceil(data.routes[0].duration / 60);
+// NEW — push real ETA into the badge
+const etaEl = document.getElementById('etaDisplay');
+if (etaEl) {
+    etaEl.style.display = '';
+    etaEl.textContent = `ETA ${durationMin} min`;
+}
 
         // Update or create route layer
         if (routeLayer) map.removeLayer(routeLayer);
@@ -352,6 +475,20 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
                  (Routing temporarily unavailable)`
             );
         }
+        const etaEl = document.getElementById('etaDisplay');
+    if (etaEl) {
+        etaEl.style.display = '';
+        etaEl.textContent = `~${straightDistance} km away`; // no reliable ETA without routing
+    }
+
+    if (driverMarker) {
+        driverMarker.setPopupContent(
+            `<strong>🚗 Driver is on the way</strong><br>
+             Straight line distance: <strong>${straightDistance} km</strong><br>
+             (Routing temporarily unavailable)`
+        );
+    }
+
     }
 }
 //calculate the distance
@@ -411,6 +548,121 @@ async function geocodeAddress(address) {
         return null;
     }
 }
+
+
+function initRecenterButton() {
+    const btn = document.getElementById('recenterMapBtn');
+    if (!btn) return;
+    btn.addEventListener('click', handleRecenterClick);
+}
+const myLocationIcon = L.icon({
+    iconUrl: 'image/waypoint-blue.png',
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -36]
+});
+function handleRecenterClick() {
+    if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser.');
+        return;
+    }
+
+    const btn = document.getElementById('recenterMapBtn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Locating…';
+
+   navigator.geolocation.getCurrentPosition(
+    (position) => {
+        btn.disabled = false;
+        btn.textContent = originalText;
+
+        const { latitude, longitude } = position.coords;
+
+        if (map) {
+            map.setView([latitude, longitude], 16);
+
+            if (myLocationMarker) {
+                myLocationMarker.setLatLng([latitude, longitude]);
+            } else {
+                myLocationMarker = L.marker([latitude, longitude], { icon: myLocationIcon })
+                    .addTo(map)
+                    .bindPopup('You are here');
+            }
+        } else {
+            const mapDiv = document.getElementById('map');
+            if (!mapDiv) return;
+
+            mapDiv.innerHTML = '';
+
+            map = L.map('map').setView([latitude, longitude], 16);
+
+            L.tileLayer(
+                'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                {
+                    attribution:
+                        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxZoom: 19
+                }
+            ).addTo(map);
+
+            myLocationMarker = L.marker([latitude, longitude], { icon: myLocationIcon })
+                .addTo(map)
+                .bindPopup('You are here')
+                .openPopup();
+        }
+    },
+    (error) => {
+        btn.disabled = false;
+        btn.textContent = originalText;
+
+        let msg = 'Unable to get your location.';
+        if (error.code === error.PERMISSION_DENIED) {
+            msg = 'Location permission denied. Please enable location access in your browser settings.';
+        } else if (error.code === error.TIMEOUT) {
+            msg = 'Location request timed out. Please try again.';
+        }
+        alert(msg);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+);
+}
+
+// Call this once on page load
+initRecenterButton();
+function updateRequestBadge(request) {
+    const trackingEl = document.getElementById('trackingIdDisplay');
+    const statusEl = document.getElementById('requestStatusBadge');
+    const etaEl = document.getElementById('etaDisplay');
+
+    if (trackingEl && request?.request_id) {
+        trackingEl.textContent = `request ID  ${request.request_id}`;
+    }
+
+    if (statusEl && request?.status) {
+        // Map raw status values to display labels
+        const statusLabels = {
+            pending: 'Searching for driver',
+            accepted: 'Driver on the way',
+            in_transit: 'In Transit',
+            completed: 'Completed',
+            cancelled: 'Cancelled'
+        };
+        statusEl.textContent = statusLabels[request.status] || request.status;
+    }
+
+    // Only show ETA once a driver is actually assigned
+    if (etaEl) {
+        const hasDriver = !!(request?.driver_lat && request?.driver_lng);
+        if (!hasDriver) {
+            etaEl.style.display = 'none';
+            etaEl.textContent = '';
+        } else {
+            etaEl.style.display = '';
+            // leave text as-is here; drawRoute() will fill in the real minutes
+        }
+    }
+}
 //======================================================= display user/driver =================================================
 
 //display the user info in the sidebar
@@ -433,7 +685,7 @@ async function loadRecentActivity() {
         // console.log("Recent activities:", activities);
 
         renderRecentActivity(activities);
-        cache: 'no-store'
+         emergencyBtn
     } catch (err) {
         console.error("Failed to load recent activity:", err);
     }
@@ -1008,7 +1260,7 @@ async function useCurrentEditLocation() {
             try {
                 selectedLocationInfo.innerHTML = "🔍 Finding your address...";
 
-                // ✅ FIXED: Proper URL + required headers
+                // FIXED: Proper URL + required headers
                 const response = await fetch(
                     `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
                     {
@@ -1020,7 +1272,7 @@ async function useCurrentEditLocation() {
 
                 if (!response.ok) throw new Error(`Reverse geocoding failed: ${response.status}`);
                 const data = await response.json();
-                console.log("✅ Reverse geocoding result:", data);
+                console.log("Reverse geocoding result:", data);
 
                 const address = data.display_name || `${lat}, ${lng}`;
                 editAddressInput.value = address;
@@ -1031,7 +1283,7 @@ async function useCurrentEditLocation() {
           <small>Lat: ${lat.toFixed(6)} &nbsp; Lng: ${lng.toFixed(6)}</small>
         `;
             } catch (error) {
-                console.error("❌ Reverse geocoding error:", error);
+                console.error("Reverse geocoding error:", error);
                 editAddressInput.value = `${lat}, ${lng}`;
                 selectedLocationInfo.innerHTML = `
           📍 <strong>GPS location selected</strong><br>
@@ -1044,7 +1296,7 @@ async function useCurrentEditLocation() {
             }
         },
         (error) => {
-            console.error("❌ Geolocation error:", error);
+            console.error("Geolocation error:", error);
             useCurrentEditLocationBtn.disabled = false;
             useCurrentEditLocationBtn.textContent = "📍 Use My Current Location";
             selectedLocationInfo.innerHTML = "Unable to get your current location.";
@@ -1105,7 +1357,7 @@ async function searchAddressLocations(query) {
         });
     } catch (error) {
         if (error.name === 'AbortError') return;
-        console.error('❌ Address search error:', error);
+        console.error('Address search error:', error);
         addressSuggestions.innerHTML = `<div class="address-no-results">⚠️ Unable to search locations.</div>`;
     }
 }
@@ -1134,7 +1386,7 @@ function selectAddressResult(result) {
 
     addressSuggestions.innerHTML = '';
     addressSuggestions.classList.remove('show');
-    console.log('✅ Selected address:', { address, lat, lng });
+    console.log('Selected address:', { address, lat, lng });
 }
 
 // ========== GEOCODE ADDRESS (manual input) ==========
@@ -1234,7 +1486,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 //sidebar nav button functions
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('✅ DOM Ready');
+    console.log('DOM Ready');
 
     // ========== DECLARE ALL ELEMENTS ==========
     const dashboardNav = document.getElementById('dashboardNav');
@@ -1289,7 +1541,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cancelPaymentBtn')?.addEventListener('click', () => showPanel(dashboardPanel, dashboardNav));
 
     // ==============================================
-    // ✅ EDIT ADDRESS NAV BUTTON — NOW WORKS!
+    // EDIT ADDRESS NAV BUTTON — NOW WORKS!
     // ==============================================
     if (editAddressSidebarBtn) {
         editAddressSidebarBtn.addEventListener('click', (e) => {
@@ -1326,7 +1578,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showPanel(editAddressSection, editAddressSidebarBtn);
         });
     } else {
-        console.log('❌ editAddressNavBtn NOT FOUND — check your HTML ID!');
+        console.log('editAddressNavBtn NOT FOUND — check your HTML ID!');
     }
 
     // ========== CLOSE EDIT ADDRESS ==========
@@ -1392,7 +1644,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const result = await res.json();
             if (!res.ok) { alert(result.error || "Failed to update address"); return; }
-            console.log("✅ Address updated:", result);
+            console.log("Address updated:", result);
 
             showPanel(dashboardPanel, dashboardNav);
 
@@ -1422,15 +1674,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             addressSuggestions.innerHTML = '';
             addressSuggestions.classList.remove('show');
-            alert(result.message || "✅ Address updated successfully");
+            alert(result.message || "Address updated successfully");
 
         } catch (err) {
-            console.error('❌ Save error:', err);
+            console.error('Save error:', err);
             alert("Failed to update address.");
         }
     });
 
-}); // ✅ END DOMContentLoaded
+}); // END DOMContentLoaded
 
 window.downloadReceipt = async function (paymentId) {
     const token = sessionStorage.getItem('token');
@@ -1468,7 +1720,7 @@ window.downloadReceipt = async function (paymentId) {
         window.URL.revokeObjectURL(url);
 
     } catch (error) {
-        console.error('❌ Download receipt error:', error);
+        console.error('Download receipt error:', error);
         alert(error.message);
     }
 };

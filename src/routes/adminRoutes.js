@@ -49,6 +49,18 @@ router.get(
     requireAdmin,
     adminController.getServiceTypes
 );
+router.get(
+    '/drivers/available',
+    authenticateToken,
+    adminController.getAvailableDrivers
+);
+
+router.get(
+    '/admins',
+    authenticateToken,
+    requireAdmin,
+    adminController.getAdmins
+);
 
 router.put(
     '/service-types/:id/price',
@@ -60,11 +72,6 @@ router.put(
     '/requests/:id/assign-driver',
     authenticateToken,
     adminController.assignDriver
-);
-router.get(
-    '/drivers/available',
-    authenticateToken,
-    adminController.getAvailableDrivers
 );
 
 router.post('/admins',adminController.createAdmin);
@@ -207,6 +214,13 @@ router.put(
         }
     }
 );
+
+// router.put(
+//     '/admins/:id',
+//     authenticateToken,
+//     requireAdmin,
+//     adminController.updateAdmin
+// );
 
 
 router.get('/map-data', authenticateToken, adminController.getMapData);//the getMapData is not declare in the adminRoute just yet

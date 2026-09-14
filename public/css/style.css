@@ -1,437 +1,546 @@
 /* css/style.css */
 
-/* ===== CALTEX INSPIRED COLORS =====
-   Blue:    #0046a8 (deep Caltex blue)
-   Red:     #e30613 (vibrant Caltex red)
-   Gray:    #eaeef2 / #d3d9e0 / #5a6c7d
-   Accent:  #0046a8 (dark blue)
-   Highlights: #e30613 (red)
-   Backgrounds: soft grays
-   All selectors keep original IDs/classes — only colors changed
-*/
-* {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+html,
+body {
+  /* This enables snapping on the main scroll container */
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  /* Makes the snap feel smooth, not jarring */
+  overflow-y: scroll;
+  /* Ensures scrolling is active */
+}
 
-    body {
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
   /* Add this line */
-background: url('../image/unnamed.png') no-repeat center center fixed;
-background-size: cover;
+  /* background: url('../image/unnamed.png') no-repeat center center fixed; */
+  background-size: cover;
 
   color: #1a2c3e;
   line-height: 1.4;
   scroll-behavior: smooth;
 }
 
-    .container {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0 32px;
-    }
-
-    /* top bar – Caltex deep blue */
-    .top-bar {
-      background: #0046a8;
-      color: #ffffff;
-      padding: 10px 0;
-      font-size: 14px;
-    }
-    .top-bar .container {
-      display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .contact-hours {
-      display: flex;
-      gap: 28px;
-      align-items: center;
-    }
-    .contact-hours span:first-child {
-      font-weight: 600;
-      letter-spacing: 0.3px;
-    }
-    .contact-hours span:first-child i {
-      margin-right: 6px;
-    }
-    .navbar {
-      background: white;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .nav-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 18px 32px;
-      max-width: 1280px;
-      margin: 0 auto;
-    }
-    .logo {
-      font-size: 26px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #0046a8, #1a6bc4);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      text-decoration: none;
-    }
-    .logo span {
-      color: #e30613;
-      background: none;
-      -webkit-background-clip: unset;
-      background-clip: unset;
-    }
-    .nav-links {
-      display: flex;
-      gap: 32px;
-      list-style: none;
-      align-items: center;
-    }
-    .nav-links a {
-      text-decoration: none;
-      font-weight: 500;
-      color: #1f3b4a;
-      transition: 0.2s;
-      font-size: 15px;
-    }
-    .nav-links a:hover {
-      color: #e30613;
-    }
-    .nav-cta {
-      background: #e30613;
-      color: white !important;
-      padding: 8px 18px;
-      border-radius: 40px;
-      font-weight: 600;
-    }
-    .nav-cta:hover {
-      background: #b8000f;
-      color: white;
-    }
-
- .hero-truck {
-  background:
-    /* Gradient overlay: transparent LEFT → white RIGHT */
-    linear-gradient(
-      to left,
-      rgba(255, 255, 255, 0.05),   /* Left side: almost fully transparent → image shows FULLY */
-      rgba(255, 255, 255, 0.35),   /* Middle: semi-transparent */
-      rgba(255, 255, 255, 0.92)    /* Right side: heavily faded → nearly white */
-    ),
-    /* Your background image */
-    url('../image/unnamed.png') no-repeat center center;
-  background-size: cover, cover;
-  background-blend-mode: normal;
-
-  padding: 70px 0 90px;
-  border-bottom: 1px solid #e2e8f0;
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 32px;
 }
-    .hero-grid {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 48px;
-    }
-    .hero-content {
-      flex: 1.2;
-    }
-    .hero-badge {
-      background: #e3061310;
-      color: #e30613;
-      font-weight: 600;
-      display: inline-block;
-      padding: 6px 14px;
-      border-radius: 40px;
-      font-size: 13px;
-      margin-bottom: 20px;
-      letter-spacing: 0.3px;
-    }
-    .hero-content h1 {
-      font-size: 52px;
-      font-weight: 800;
-      line-height: 1.2;
-      color: #0b2b3b;
-      margin-bottom: 24px;
-    }
-    .hero-content h1 span {
-      color: #e30613;
-      border-bottom: 4px solid #e30613;
-      display: inline-block;
-    }
-    .hero-description {
-      font-size: 18px;
-      color: #2c4b5e;
-      margin-bottom: 24px;
-      max-width: 550px;
-      line-height: 1.5;
-    }
-    .checklist {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      margin: 28px 0 32px;
-    }
-    .checklist li {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 500;
-      color: #1f3b4a;
-      list-style: none;
-    }
-    .checklist li::before {
-      content: "✓";
-      background: #e30613;
-      color: white;
-      font-weight: bold;
-      width: 22px;
-      height: 22px;
-      border-radius: 30px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-    }
-    .btn-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 18px;
-      margin-top: 10px;
-    }
-    .btn-primary {
-      background: #e30613;
-      border: none;
-      padding: 14px 34px;
-      border-radius: 50px;
-      font-weight: 700;
-      font-size: 16px;
-      color: white;
-      cursor: pointer;
-      transition: 0.2s;
-      text-decoration: none;
-      display: inline-block;
-      box-shadow: 0 8px 18px rgba(227, 6, 19, 0.25);
-    }
-    .btn-primary:hover {
-      background: #b8000f;
-      transform: translateY(-2px);
-      box-shadow: 0 12px 22px rgba(227, 6, 19, 0.3);
-    }
-    .btn-outline-dark {
-      background: transparent;
-      border: 2px solid #0046a8;
-      padding: 12px 32px;
-      border-radius: 50px;
-      font-weight: 600;
-      color: #0046a8;
-      text-decoration: none;
-      transition: 0.2s;
-    }
-    .btn-outline-dark:hover {
-      background: #0046a8;
-      color: white;
-      border-color: #0046a8;
-    }
-    .hero-image {
-      flex: 1;
+
+/* top bar – Caltex deep blue */
+.top-bar {
+  background: #0046a8;
+  color: #ffffff;
+  padding: 10px 0;
+  font-size: 14px;
+}
+
+.top-bar .container {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.contact-hours {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+}
+
+.contact-hours span:first-child {
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.contact-hours span:first-child i {
+  margin-right: 6px;
+}
+
+.navbar {
+  background: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 32px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #0046a8, #1a6bc4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-decoration: none;
+}
+
+.logo span {
+  color: #e30613;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+}
+
+.nav-links {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+  align-items: center;
+}
+
+.nav-links a {
+  text-decoration: none;
+  font-weight: 500;
+  color: #1f3b4a;
+  transition: 0.2s;
+  font-size: 15px;
+  display: inline-block;
+  /* REQUIRED so transform works */
+}
+
+.nav-links a:hover {
+  color: #e30613;
+  transform: translateY(-2px);
+  /* ← lifts up */
+}
+
+.nav-cta {
+  background: #e30613;
+  color: white !important;
+  padding: 8px 18px;
+  border-radius: 40px;
+  font-weight: 600;
+  display: inline-block;
+  /* ensure lift works reliably */
+  box-shadow: 0 6px 14px rgba(91, 6, 227, 0.2);
+  /* subtle shadow */
+  transition: 0.2s;
+  /* already inherited but explicit is safe */
+}
+
+.nav-cta:hover {
+  background: #b8000f;
+  color: white;
+  transform: translateY(-2px);
+  /* ← lifts up like .btn-primary */
+  box-shadow: 0 10px 18px rgb(234, 232, 232);
+  /* deeper shadow on hover */
+}
+
+.hero-truck {
+  margin-bottom: 0 !important;
+  /* Reduce bottom padding drastically since wrapper handles height */
+  padding: 100px 0 100px;
+  background: transparent;
+  border-bottom: none;
+}
+
+.hero-grid {
+  display: block;
+  /* ← WAS flex — THIS was causing overlap! */
+  gap: 0;
+}
+
+.hero-content {
+  flex: unset;
+  /* removed flex — no longer needed */
+  width: 100%;
+  max-width: 600px;
+}
+
+.hero-badge {
+  background: #e3061310;
+  color: #e30613;
+  font-weight: 600;
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 40px;
+  font-size: 13px;
+  margin-bottom: 20px;
+  letter-spacing: 0.3px;
+}
+
+.hero-content h1 {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #0b2b3b;
+  margin-bottom: 24px;
+}
+
+.hero-content h1 span {
+  color: #e30613;
+  border-bottom: 4px solid #e30613;
+  display: inline-block;
+}
+
+.hero-description {
+  font-size: 18px;
+  color: #2c4b5e;
+  margin-bottom: 24px;
+  max-width: 550px;
+  line-height: 1.5;
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 28px 0 32px;
+}
+
+.checklist li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+  color: #1f3b4a;
+  list-style: none;
+}
+
+.checklist li::before {
+  content: "✓";
+  background: #e30613;
+  color: white;
+  font-weight: bold;
+  width: 22px;
+  height: 22px;
+  border-radius: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 10px;
+}
+
+.btn-primary {
+  background: #e30613;
+  border: none;
+  padding: 14px 34px;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 16px;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+  text-decoration: none;
+  display: inline-block;
+  box-shadow: 0 8px 18px rgba(227, 6, 19, 0.25);
+}
+
+.btn-primary:hover {
+  background: #b8000f;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 22px rgba(227, 6, 19, 0.3);
+}
+
+.btn-outline-dark {
+  background: transparent;
+  border: 2px solid #0046a8;
+  padding: 12px 32px;
+  border-radius: 50px;
+  font-weight: 600;
+  color: #0046a8;
+  text-decoration: none;
+  transition: 0.2s;
+  /* already here — good, keeps smooth animation */
+  display: inline-block;
+  /* recommended: match .btn-primary layout */
+  box-shadow: 0 8px 18px rgba(0, 70, 168, 0.15);
+  /* optional: subtle base shadow */
+}
+
+.btn-outline-dark:hover {
+  background: #0046a8;
+  color: white;
+  border-color: #0046a8;
+  transform: translateY(-2px);
+  /* ← THIS LINE makes it lift up */
+  box-shadow: 0 12px 22px rgba(0, 70, 168, 0.25);
+  /* ← shadow grows too */
+}
+
+.hero-image {
+  /* flex: 1;
       background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="%23e6ecf3"/><path d="M60,180 L340,180 L340,220 L60,220 Z" fill="%23cbd5e1"/><circle cx="110" cy="230" r="28" fill="%23334155"/><circle cx="290" cy="230" r="28" fill="%23334155"/><rect x="120" y="120" width="160" height="60" fill="%23e30613" rx="8"/><rect x="180" y="80" width="40" height="45" fill="%230046a8" rx="6"/><path d="M80 120 L130 120 L130 160 L80 160 Z" fill="%234b6e8a"/></svg>') no-repeat center;
       background-size: contain;
-      min-height: 280px;
-    }
-
-    .feature-strip {
-      background: white;
-      padding: 32px 0;
-      border-bottom: 1px solid #d3d9e0;
-    }
-    .features-row {
-      display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 28px;
-      text-align: center;
-    }
-    .feature-item {
-      flex: 1;
-      min-width: 160px;
-    }
-    .feature-icon {
-      font-size: 32px;
-      margin-bottom: 10px;
-    }
-    .feature-item h4 {
-      font-size: 18px;
-      font-weight: 700;
-      color: #0b2b3b;
-    }
-    .feature-item p {
-      color: #4a6272;
-      font-size: 14px;
-    }
-
-  .services-showcase {
-  padding: 80px 0;
-
-  /* Your background image + left-clear → right-faded gradient */
-  background:
-    linear-gradient(
-      to right,
-      rgba(255, 255, 255, 0.1),   /* Left side: image shows clearly */
-      rgba(255, 255, 255, 0.4),   /* Middle: soft fade */
-      rgba(255, 255, 255, 0.92)   /* Right side: semi-visible/faded */
-    ),
-    url('../image/unnamed.webp') no-repeat center center;
-  background-size: cover, cover;
-  background-blend-mode: normal;
+      min-height: 280px; */
+  display: none;
 }
-    .section-header {
-      text-align: center;
-      margin-bottom: 48px;
-    }
-    .section-header h2 {
-      font-size: 38px;
-      font-weight: 800;
-      color: #0b2b3b;
-    }
-    .section-header p {
-      color: #54738c;
-      max-width: 600px;
-      margin: 12px auto 0;
-    }
-    .card-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 32px;
-    }
-    .service-card {
-      background: white;
-      border-radius: 24px;
-      padding: 28px 20px;
-      text-align: center;
-      transition: 0.25s ease;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.02), 0 2px 6px rgba(0,0,0,0.05);
-      border: 1px solid #d3d9e0;
-    }
-    .service-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 20px 30px -12px rgba(0,0,0,0.1);
-      border-color: #e3061340;
-    }
-    .service-emoji {
-      font-size: 48px;
-      margin-bottom: 16px;
-    }
-    .service-card h3 {
-      font-size: 22px;
-      margin-bottom: 12px;
-    }
-    .service-card p {
-      color: #496f86;
-      font-size: 14px;
-      margin-bottom: 20px;
-    }
-    .price-tag {
-      font-weight: 800;
-      color: #e30613;
-      margin-bottom: 18px;
-      font-size: 18px;
-    }
-    .card-btn {
-      background: #eaeef2;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 40px;
-      font-weight: 600;
-      color: #0046a8;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    .card-btn:hover {
-      background: #e30613;
-      color: white;
-    }
 
-    .testimonial {
-      background: #ffffff;
-      padding: 70px 0;
-    }
-    .quote {
-      max-width: 700px;
-      margin: 0 auto;
-      text-align: center;
-      font-style: italic;
-      font-size: 20px;
-      background: #eaeef2;
-      padding: 32px 40px;
-      border-radius: 48px;
-      color: #1a3a48;
-    }
+.feature-strip {
+  background: white;
+  padding: 32px 0;
+  border-bottom: 1px solid #d3d9e0;
+}
 
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.6);
-      align-items: center;
-      justify-content: center;
-    }
-    .modal-card {
-      background: white;
-      max-width: 500px;
-      width: 90%;
-      padding: 32px;
-      border-radius: 32px;
-      position: relative;
-      box-shadow: 0 25px 40px rgba(0,0,0,0.2);
-    }
-    .close-modal {
-      position: absolute;
-      right: 24px;
-      top: 20px;
-      font-size: 28px;
-      cursor: pointer;
-      color: #8f9eb2;
-    }
-    .modal-card h3 {
-      font-size: 28px;
-      margin-bottom: 20px;
-      color: #0b2b3b;
-    }
-    .modal-card ol {
-      margin-left: 20px;
-      line-height: 1.7;
-    }
-    .modal-card li {
-      margin-bottom: 12px;
-    }
+.features-row {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 28px;
+  text-align: center;
+}
 
-    footer {
-      background: #0046a8;
-      color: #eaeef2;
-      padding: 32px 0;
-      text-align: center;
-      font-size: 14px;
-    }
-    @media (max-width: 780px) {
-      .container { padding: 0 20px; }
-      .hero-content h1 { font-size: 36px; }
-      .nav-container { flex-direction: column; gap: 14px; }
-      .nav-links { flex-wrap: wrap; justify-content: center; gap: 18px; }
-      .top-bar .container { flex-direction: column; align-items: center; text-align: center; }
-      .hero-grid { flex-direction: column-reverse; }
-    }
+.feature-item {
+  flex: 1;
+  min-width: 160px;
+}
+
+.feature-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.feature-item h4 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0b2b3b;
+}
+
+.feature-item p {
+  color: #4a6272;
+  font-size: 14px;
+}
+
+.services-showcase {
+  margin-top: 0;
+  /* Reduce padding to fit within the 100vh wrapper */
+  padding: 20px 0 60px;
+  background: transparent;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-wrapper {
+  position: relative;
+  width: 100%;
+
+  /* The image covers BOTH sections seamlessly */
+  background:
+    linear-gradient(to right,
+      rgba(255, 255, 255, 0.92),
+      rgba(255, 255, 255, 0.35),
+      rgba(255, 255, 255, 0.05)),
+    url('../image/unnamed.png') no-repeat center center;
+
+  background-size: cover;
+  background-position: center center;
+
+  /* NEW: SCROLL SNAP BEHAVIOR */
+  scroll-snap-align: start;
+  /* Tells the browser to snap to the top of this wrapper */
+  min-height: 100vh;
+  /* Makes this wrapper fill the whole screen height */
+
+  /* Optional: Ensures the background stays fixed while scrolling (Parallax effect) */
+  /* background-attachment: fixed; */
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.section-header h2 {
+  font-size: 38px;
+  font-weight: 800;
+  color: #0b2b3b;
+}
+
+.section-header p {
+  color: #54738c;
+  max-width: 600px;
+  margin: 12px auto 0;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 32px;
+}
+
+.service-card {
+  background: white;
+  border-radius: 24px;
+  padding: 28px 20px;
+  text-align: center;
+  transition: 0.25s ease;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.02), 0 2px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #d3d9e0;
+}
+
+.service-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.1);
+  border-color: #e3061340;
+}
+
+.service-emoji {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.service-card h3 {
+  font-size: 22px;
+  margin-bottom: 12px;
+}
+
+.service-card p {
+  color: #496f86;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.price-tag {
+  font-weight: 800;
+  color: #e30613;
+  margin-bottom: 18px;
+  font-size: 18px;
+}
+
+.card-btn {
+  background: #eaeef2;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 40px;
+  font-weight: 600;
+  color: #0046a8;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.card-btn:hover {
+  background: #e30613;
+  color: white;
+}
+
+.testimonial {
+  background: #ffffff;
+  padding: 70px 0;
+}
+
+.quote {
+  max-width: 700px;
+  margin: 0 auto;
+  text-align: center;
+  font-style: italic;
+  font-size: 20px;
+  background: #eaeef2;
+  padding: 32px 40px;
+  border-radius: 48px;
+  color: #1a3a48;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-card {
+  background: white;
+  max-width: 500px;
+  width: 90%;
+  padding: 32px;
+  border-radius: 32px;
+  position: relative;
+  box-shadow: 0 25px 40px rgba(0, 0, 0, 0.2);
+}
+
+.close-modal {
+  position: absolute;
+  right: 24px;
+  top: 20px;
+  font-size: 28px;
+  cursor: pointer;
+  color: #8f9eb2;
+}
+
+.modal-card h3 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #0b2b3b;
+}
+
+.modal-card ol {
+  margin-left: 20px;
+  line-height: 1.7;
+}
+
+.modal-card li {
+  margin-bottom: 12px;
+}
+
+footer {
+  background: #0046a8;
+  color: #eaeef2;
+  padding: 32px 0;
+  text-align: center;
+  font-size: 14px;
+}
+
+@media (max-width: 780px) {
+  .container {
+    padding: 0 20px;
+  }
+
+  .hero-content h1 {
+    font-size: 36px;
+  }
+
+  .nav-container {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 18px;
+  }
+
+  .top-bar .container {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .hero-grid {
+    flex-direction: column-reverse;
+  }
+}
 
 /* ===== MODAL – Native <dialog> ===== */
 dialog#emergencyModal {
@@ -457,7 +566,7 @@ dialog#emergencyModal .modal-box {
   background: #ffffff !important;
   border-radius: 16px !important;
   padding: 32px 30px 28px !important;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
   max-height: 85vh !important;
   overflow-y: auto !important;
   width: 100% !important;
@@ -480,14 +589,22 @@ dialog#emergencyModal .modal-close {
   border-radius: 6px !important;
   z-index: 10 !important;
 }
+
 dialog#emergencyModal .modal-close:hover {
   color: #222 !important;
   background: #f0f0f0 !important;
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(30px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (max-width: 600px) {
@@ -495,9 +612,11 @@ dialog#emergencyModal .modal-close:hover {
     padding: 20px 16px !important;
     border-radius: 12px !important;
   }
+
   dialog#emergencyModal .form-container {
     padding: 18px 14px !important;
   }
+
   dialog#emergencyModal .btn-secondary {
     align-self: stretch !important;
     text-align: center !important;
@@ -508,41 +627,46 @@ dialog#emergencyModal .form-container {
   background: #0046a8;
   padding: 28px 26px;
   border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
+
 dialog#emergencyModal .form-group {
   margin-bottom: 18px;
   display: flex;
   flex-direction: column;
 }
+
 dialog#emergencyModal .form-group label {
   font-weight: 600;
   margin-bottom: 5px;
   color: #fff;
   font-size: 14px;
 }
+
 dialog#emergencyModal .form-group input,
 dialog#emergencyModal .form-group select,
 dialog#emergencyModal .form-group textarea {
   padding: 10px 12px;
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   font-size: 15px;
-  background: rgba(255,255,255,0.95);
+  background: rgba(255, 255, 255, 0.95);
   width: 100%;
   font-family: inherit;
 }
+
 dialog#emergencyModal .form-group input:focus,
 dialog#emergencyModal .form-group select:focus,
 dialog#emergencyModal .form-group textarea:focus {
   outline: none;
   border-color: #fff;
-  box-shadow: 0 0 0 3px rgba(255,255,255,0.35);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
 }
+
 dialog#emergencyModal .btn-secondary {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   color: #fff;
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 10px 18px;
   border-radius: 8px;
   cursor: pointer;
@@ -550,9 +674,11 @@ dialog#emergencyModal .btn-secondary {
   font-size: 14px;
   transition: background 0.2s;
 }
+
 dialog#emergencyModal .btn-secondary:hover {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.3);
 }
+
 dialog#emergencyModal .btn-danger {
   background: #e30613;
   color: #fff;
@@ -565,26 +691,31 @@ dialog#emergencyModal .btn-danger {
   width: 100%;
   margin-top: 6px;
 }
+
 dialog#emergencyModal .btn-danger:hover {
   background: #b8000f;
 }
+
 dialog#emergencyModal .location-status {
   margin-top: 8px;
   font-size: 14px;
   color: #e0f0ff;
   min-height: 22px;
 }
+
 dialog#emergencyModal .manual-address {
   margin-top: 12px;
   display: flex;
   flex-direction: column;
 }
+
 dialog#emergencyModal .manual-address label {
   color: #fff;
   font-weight: 500;
   margin-bottom: 4px;
   font-size: 14px;
 }
+
 dialog#emergencyModal .confirmation-box {
   margin-top: 24px;
   background: #e6ffed;
@@ -593,15 +724,18 @@ dialog#emergencyModal .confirmation-box {
   border-radius: 10px;
   display: none;
 }
+
 dialog#emergencyModal .confirmation-box h4 {
   color: #0b6e2e;
   margin-bottom: 6px;
   font-size: 18px;
 }
+
 dialog#emergencyModal .confirmation-box p {
   margin: 4px 0;
   color: #1a3b2a;
 }
+
 dialog#emergencyModal .alert {
   padding: 10px 16px;
   border-radius: 8px;
@@ -609,26 +743,31 @@ dialog#emergencyModal .alert {
   font-size: 14px;
   margin-bottom: 8px;
 }
+
 dialog#emergencyModal .alert-success {
   background: #d4edda;
   color: #155724;
   border: 1px solid #c3e6cb;
 }
+
 dialog#emergencyModal .alert-danger {
   background: #f8d7da;
   color: #721c24;
   border: 1px solid #f5c6cb;
 }
+
 dialog#emergencyModal .alert-warning {
   background: #fff3cd;
   color: #856404;
   border: 1px solid #ffc107;
 }
+
 dialog#emergencyModal .alert-info {
   background: #d1ecf1;
   color: #0c5460;
   border: 1px solid #bee5eb;
 }
+
 dialog#emergencyModal .page-title {
   text-align: center;
   margin-bottom: 22px;

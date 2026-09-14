@@ -252,8 +252,77 @@ const result = await db.query(`
     WHERE service_type_id = ?
 `, [basePrice, serviceTypeId]);
     return result;
-}
+},
+// requestModel.js
 
+async claimAndAssign(requestId, driverId) {
+    const conn = await db.getConnection();
+    try {
+        await conn.beginTransaction();
+
+        const [updateResult] = await conn.query(
+            `UPDATE service_requests
+             SET driver_id = ?, status = 'assigned', updated_at = NOW()
+             WHERE request_id = ? AND driver_id IS NULL AND status = 'pending'`,
+            [driverId, requestId]
+        );
+
+        if (updateResult.affectedRows === 0) {
+            await conn.rollback();
+            return { claimed: false };
+        }
+
+        await conn.query(
+            `INSERT INTO driver_assignments (request_id, driver_id, status, accepted_at)
+             VALUES (?, ?, 'accepted', NOW())`,
+            [requestId, driverId]
+        );
+
+        await conn.commit();
+        return { claimed: true };
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
+    }
+},
+
+// admin override: same insert, but bypasses the availability check
+// (the transaction body is identical to claimAndAssign — call it directly)
+
+async findPendingUnassignedForDriver(driverId) {
+    const sql = `
+        SELECT
+            r.request_id, u.name AS customer_name, u.phone AS customer_phone,
+            st.name AS service_type, v.vehicle_type, v.license_plate,
+            r.address AS location, r.location_lat, r.location_lng,
+            r.status, r.created_at
+        FROM service_requests r
+        JOIN users u ON r.user_id = u.user_id
+        LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
+        LEFT JOIN vehicles v ON r.vehicle_id = v.vehicle_id
+        WHERE r.status = 'pending' AND r.driver_id IS NULL
+          AND (
+            NOT EXISTS (SELECT 1 FROM driver_availability da WHERE da.driver_id = ? AND da.is_active = 1)
+            OR EXISTS (
+                SELECT 1 FROM driver_availability da
+                WHERE da.driver_id = ?
+                  AND da.is_active = 1
+                  AND da.day_of_week = DAYOFWEEK(NOW()) - 1
+                  AND CURTIME() BETWEEN da.start_time AND da.end_time
+            )
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM driver_assignments prev
+            WHERE prev.request_id = r.request_id
+              AND prev.driver_id = ?
+              AND prev.status = 'cancelled'
+          )
+        ORDER BY r.created_at ASC
+    `;
+    return db.query(sql, [driverId, driverId, driverId]);
+},
 
 
 };

@@ -1,5 +1,6 @@
-// ===== STYLES — DRIVER DASHBOARD (Bottom Tab Bar Ready) =====
+// ===== STYLES — DRIVER DASHBOARD (Fixed Overlap + Safe Area Ready) =====
 import { StyleSheet } from "react-native";
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -17,11 +18,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  // Navbar — ✅ UNCHANGED
+  //  FIXED Navbar — No more overlap
   navbar: {
     backgroundColor: '#0046a8',
     paddingVertical: 12,
     paddingHorizontal: 16,
+    paddingTop: 44, // Safe area top — avoids status bar overlap
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -32,10 +34,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%', // Ensure full width
+  },
+  //  Left side — takes available space, text wraps
+  navbarLeft: {
+    flex: 1,
+    marginRight: 12, // Gap between left & right
   },
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap', // Allows text to wrap
   },
   brandText: {
     color: '#fff',
@@ -45,14 +54,16 @@ const styles = StyleSheet.create({
   brandSpan: {
     opacity: 0.8,
   },
+  //  Right side — fixed size, never shrinks
   navbarRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0, // KEY: prevents being squeezed
   },
   onlineStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   onlineDot: {
     width: 8,
@@ -71,7 +82,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
 
-  // Profile Header (replaced sidebar profile card)
+  // Profile Header
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -83,6 +94,7 @@ const styles = StyleSheet.create({
   },
   profileInfo: {
     marginLeft: 12,
+    flex: 1, //  Also prevent overlap here
   },
   avatarContainer: {
     width: 44,
@@ -110,19 +122,19 @@ const styles = StyleSheet.create({
     color: '#888',
   },
 
-  // Main Panel — FULL WIDTH, space for bottom tab bar
+  //  FIXED Main Panel — Consistent spacing
   mainPanel: {
     flex: 1,
   },
   mainContent: {
     padding: 16,
-    paddingBottom: 90,
+    paddingBottom: 85, // Matches tab bar height exactly
   },
   tabContent: {
     flex: 1,
   },
 
-  // ========== BOTTOM TAB BAR — NEW ==========
+  //  FIXED Bottom Tab Bar — Better sizing
   bottomTabBar: {
     position: 'absolute',
     bottom: 0,
@@ -133,7 +145,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
     paddingVertical: 8,
-    paddingBottom: 16,
+    paddingBottom: 12, //  Reduced — less extra space
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
@@ -171,7 +183,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // ========== ALL EXISTING CONTENT STYLES — ✅ UNCHANGED ==========
+  // ========== ALL EXISTING CONTENT STYLES —  UNCHANGED ==========
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -408,6 +420,186 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 30,
   },
+ modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+    maxHeight: '85%',
+  },
+  modalClose: {
+    alignSelf: 'flex-end',
+    padding: 4,
+    marginBottom: 8,
+  },
+  modalCloseText: {
+    fontSize: 22,
+    color: '#666',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a1a2e',
+    marginBottom: 4,
+  },
+  paymentRequestId: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 4,
+  },
+  paymentAmount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0046a8',
+    marginBottom: 16,
+  },
+  paymentMethodTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  paymentGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 10, //  Consistent spacing between items
+    marginBottom: 16,
+  },
+  paymentMethod: {
+    width: '48%', //  2 columns side-by-side
+    alignItems: 'center',
+    paddingVertical: 14,
+    backgroundColor: '#f5f7fa',
+    borderRadius: 10,
+  },
+  paymentMethodIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  paymentMethodName: {
+    fontSize: 13,
+    color: '#333',
+    fontWeight: '500',
+  },
+  gcashForm: {
+    marginTop: 8,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  gcashTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#333',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    marginBottom: 12,
+    color: '#333',
+  },
+  uploadButton: {
+    backgroundColor: '#e8f0fe',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  uploadButtonText: {
+    color: '#0046a8',
+    fontWeight: '600',
+  },
+  submitPaymentButton: {
+    backgroundColor: '#0046a8',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  submitPaymentText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  paymentMessage: {
+    marginTop: 12,
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#28a745',
+  },
+  suggestionsList: {
+    marginTop: 4,
+    marginBottom: 12,
+    maxHeight: 180, //  Scrollable suggestions
+  },
+  suggestionItem: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  suggestionText: {
+    fontSize: 13,
+    color: '#444',
+  },
+  selectedLocation: {
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  selectedText: {
+    fontSize: 14,
+    color: '#28a745',
+  },
+  saveButton: {
+    backgroundColor: '#0046a8',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  currentLocationButton: {
+  backgroundColor: '#f1f5f9',
+  borderWidth: 1,
+  borderColor: '#cbd5e1',
+  paddingVertical: 12,
+  borderRadius: 8,
+  alignItems: 'center',
+  marginTop: 8,
+  marginBottom: 12,
+},
+currentLocationText: {
+  color: '#0f172a',
+  fontSize: 14,
+  fontWeight: '600',
+},
+selectedTitle: {
+  fontSize: 14,
+  fontWeight: '600',
+  color: '#0f172a',
+  marginBottom: 4,
+},
+selectedSubText: {
+  color: '#64748b',
+  fontSize: 12,
+  marginTop: 2,
+},
 });
+
 
 export default styles;

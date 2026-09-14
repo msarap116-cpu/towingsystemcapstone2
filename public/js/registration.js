@@ -1,4 +1,8 @@
 // registration.js
+
+
+ let isSubmitting = false
+
 document.addEventListener("DOMContentLoaded", () => {
     const toggleButtons = document.querySelectorAll('.toggle-password');
     toggleButtons.forEach(btn => {
@@ -34,6 +38,15 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 async function handleRegister(e) {
     e.preventDefault();
+
+        if (isSubmitting) return;      // double safety
+    isSubmitting = true;
+
+    const submitBtn = document.querySelector('#registrationForm button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Registering...'; // optional, para malinaw sa user
+    }
 
     const name = document.getElementById('name').value;
     const email = document.getElementById('email').value;
@@ -94,37 +107,45 @@ async function handleRegister(e) {
 
     console.log('📤 Sending registration:', payload);
 
-    try {
-        const data = await fetch('/users/register', {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
 
-        console.log('GoodWrenchRegistration successful:', data);
+try {
+    const data = await apiFetch('/users/register', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+    });
 
-        // Make sure no registration token is kept
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('user');
+    console.log('Registration successful:', data);
 
-        // Show success notification
-        showAlert(
-            'Registration successful! Redirecting to login...',
-            'success'
-        );
+    // Make sure no registration token is kept
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
 
-        // Redirect to login after notification
-        setTimeout(() => {
-            window.location.replace('/login');
-        }, 8000);
+    // Show success notification
+    showAlert(
+        'Registration successful! Redirecting to login...',
+        'success'
+    );
 
-    } catch (error) {
-        console.error('❌ Registration error:', error);
+    // Redirect to login after notification
+    setTimeout(() => {
+        window.location.replace('/login');
+    }, 8000);
 
-        showAlert(
-            error.message || 'Registration failed. Please try again.',
-            'danger'
-        );
+} catch (error) {
+    console.error('❌ Registration error:', error);
+
+    showAlert(
+        error.message || 'Registration failed. Please try again.',
+        'danger'
+    );
+
+} finally {
+    isSubmitting = false;
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Register';
     }
+}
 }
 
 // Helper function for showing alerts
@@ -370,10 +391,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===== SUBMIT: SHOW RED ERRORS ONLY NOW =====
+
     if (form) {
         form.addEventListener('submit', function (e) {
             e.preventDefault();
-            let isFormValid = true;
+
+
+            if(isSubmitting) return;
+
+             let isFormValid = true;
 
             // ---- Password ----
             if (passwordInput) {

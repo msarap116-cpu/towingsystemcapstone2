@@ -136,6 +136,65 @@ app.post('/users/login', async (req, res) => {
         });
     }
 });
+app.get('/api/geocode/reverse', async (req, res) => {
+  try {
+    const { lat, lng } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({
+        error: 'lat and lng are required',
+      });
+    }
+
+    const params = new URLSearchParams({
+      format: 'jsonv2',
+      lat: String(lat),
+      lon: String(lng),
+      addressdetails: '1',
+      'accept-language': 'en',
+    });
+
+    const nominatimResponse = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?${params.toString()}`,
+      {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent':
+            'GoodWrenchTowingRescue/1.0 (your-email@example.com)',
+        },
+      }
+    );
+
+    const responseText = await nominatimResponse.text();
+
+    if (!nominatimResponse.ok) {
+      console.error(
+        'Nominatim error:',
+        nominatimResponse.status,
+        responseText
+      );
+
+      return res.status(nominatimResponse.status).json({
+        error: 'Nominatim reverse geocoding failed',
+      });
+    }
+
+    const data = JSON.parse(responseText);
+
+    return res.json({
+      address: data.display_name || null,
+      latitude: data.lat || lat,
+      longitude: data.lon || lng,
+    });
+  } catch (error) {
+    console.error('Reverse geocoding backend error:', error);
+
+    return res.status(500).json({
+      error: 'Reverse geocoding failed',
+      details: error.message,
+    });
+  }
+});
 
 async function startServer() {
     try {

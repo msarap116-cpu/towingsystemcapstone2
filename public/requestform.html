@@ -1,50 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Request Assistance - GoodWrench</title>
-
     <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/requestform.css">
-
-    <style>
-
-    </style>
-
 </head>
-
 <body>
-
     <!-- ===== NAVBAR ===== -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <a class="navbar-brand" href="index">
-                <span class="brand-icon">🎉</span>
-                <span class="brand-text">GoodWrench</span>
-            </a>
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a class="nav-link" href="#" id="dashboardLink" data-guest="home" data-user="dashboard.html">
-                        Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="myvehicles"> My Vehicles</a>
-                </li>
-            </ul>
-        </div>
-    </nav>
+<nav class="navbar">
+  <div class="nav-container">
+    <a class="navbar-brand" href="#">
+      <!-- <span class="brand-icon">🎉</span> -->
+      <span class="brand-text">GoodWrench</span>
+    </a>
+    <ul class="nav-menu">
+      <li class="nav-item">
+        <a class="nav-link" href="#" id="dashboardLink" data-guest="home" data-user="dashboard.html">
+          Dashboard
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="myvehicles">My Vehicles</a>
+      </li>
+    </ul>
+  </div>
+</nav>
 
-    <!-- ===== MAIN CONTENT WITH ADS ===== -->
+    <!-- ===== MAIN CONTENT ===== -->
     <div class="emergency-wrapper">
-
-
         <!-- ===== FORM SECTION ===== -->
         <section class="emergency-section">
-            <h2 class="page-title"> Request Roadside Assistance</h2>
+            <h2 class="page-title">Request Roadside Assistance</h2>
+            <p class="page-subtitle">Tell us what you need and we'll send help your way.</p>
 
             <div class="form-container">
                 <form id="emergencyForm">
@@ -61,17 +51,17 @@
                         </select>
                     </div>
 
-                    <!-- Vehicle (from saved vehicles) -->
+                    <!-- Vehicle -->
                     <div class="form-group">
                         <label>Vehicle:</label>
                         <select id="vehicleId" required>
                             <option value="">Loading your vehicles...</option>
                         </select>
-                        <div id="noVehiclesNotice" style="display:none; margin-top:8px;">
+                        <div id="noVehiclesNotice" style="display:none;">
                             You don't have any saved vehicles yet.
                             <a href="myvehicles">Add one here</a> before requesting assistance.
                         </div>
-                        <div id="guestNotice" style="display:none; margin-top:8px;">
+                        <div id="guestNotice" style="display:none;">
                             You need an account to submit a request.
                             <a href="#" id="guestLoginLink">Log in</a> or
                             <a href="#" id="guestRegisterLink">Register</a>
@@ -82,8 +72,7 @@
                     <div class="form-group">
                         <label>Your Location:</label>
                         <div class="location-actions">
-                            <button type="button" class="btn-location" onclick="getCurrentLocation()"
-                                id="getLocationBtn">
+                            <button type="button" class="btn-location" onclick="getCurrentLocation()" id="getLocationBtn">
                                 Use Current Location
                             </button>
                             <div id="locationStatus" class="location-status"></div>
@@ -93,24 +82,29 @@
 
                         <div class="manual-address">
                             <label>Or Enter Address:</label>
-
                             <div class="address-search-wrapper">
-                                <textarea id="address" rows="2" placeholder="Search street, barangay, city, province..."
-                                    autocomplete="off"></textarea>
-
+                                <textarea id="address" rows="2" placeholder="Search street, barangay, city, province..." autocomplete="off"></textarea>
                                 <div id="addressSuggestions" class="address-suggestions"></div>
                             </div>
                         </div>
-
                     </div>
-                    <a href="dashboard">fdjfh</a>
-                    <!-- Submit -->
-                    <button type="submit" class="btn-submit" id="submitBtn"> Request Assistance</button>
+
+                    <!-- INFO BOX -->
+                    <!-- <div class="info-box">
+                        💡 We'll automatically find the nearest provider based on your location.
+                    </div> -->
+
+                    <!-- BUTTONS -->
+                    <div class="form-buttons">
+                        <button type="button" class="btn-cancel" onclick="history.back()">Cancel</button>
+                        <button type="submit" class="btn-submit" id="submitBtn">Submit Request</button>
+                    </div>
+
                 </form>
 
                 <!-- Confirmation -->
                 <div id="confirmation" class="confirmation-box">
-                    <div class="confirmation-icon"></div>
+                    <div class="confirmation-icon">✅</div>
                     <h4>Request Submitted!</h4>
                     <p>Your request ID: <strong id="requestId"></strong></p>
                     <p>Estimated arrival time: <strong>25-40 minutes</strong></p>
@@ -118,41 +112,33 @@
                 </div>
             </div>
         </section>
-
-
     </div>
 
     <!-- ===== SCRIPTS ===== -->
     <script src="js/app.js"></script>
     <script src="js/requestform.js"></script>
-
     <script>
 document.addEventListener('DOMContentLoaded', function () {
   const link = document.getElementById('dashboardLink');
   if (!link) return;
 
-  // Check login status — matches your auth system
   function isLoggedIn() {
-    // If you store login data in localStorage/sessionStorage — this works perfectly
     return !!(sessionStorage.getItem('userToken') || sessionStorage.getItem('userData'));
   }
 
   const loggedIn = isLoggedIn();
-
-  // Set correct href automatically
   link.href = loggedIn ? link.dataset.user : link.dataset.guest;
 
-  // Extra safety: prevent wrong destination on click
   link.addEventListener('click', function (e) {
     if (!loggedIn) {
       e.preventDefault();
       window.location.href = 'dashboard';
-    }else{
-        window.location.href = 'home'
+    } else {
+      e.preventDefault();
+      window.location.href = 'home';
     }
   });
 });
-</script>
+    </script>
 </body>
-
 </html>

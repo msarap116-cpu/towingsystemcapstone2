@@ -2,6 +2,7 @@
 const bcrypt = require('bcryptjs');
 const db = require('../database/database');
 const Admin = require('../models/adminModel');
+const Request = require('../models/requestModel');
 
 
 exports.getDrivers = async (req, res) => {
@@ -676,6 +677,37 @@ exports.createAdmin = async (req, res) => {
         connection.release();
     }
 };
+exports.getAdmins = async (req, res) => {
+    try {
+        const admins = await db.query(`
+            SELECT
+                user_id AS id,
+                name,
+                phone,
+                email,
+                role,
+                is_active,
+                created_at
+            FROM users
+            WHERE role = 'admin'
+            ORDER BY user_id DESC
+        `);
+
+        console.log("ADMINS FROM DATABASE:", admins);
+
+        res.json({
+            success: true,
+            admins: admins
+        });
+
+    } catch (error) {
+        console.error("Get admins error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to load admins"
+        });
+    }
+};
 
 // exports.assignDriver = async (req, res) => {
 
@@ -773,127 +805,59 @@ exports.assignDriver = async (req, res) => {
     const requestId = req.params.id;
     const { driver_id } = req.body;
 
-    console.log('=================================');
-    console.log('ADMIN ASSIGN DRIVER');
-    console.log('Request ID:', requestId);
-    console.log('Driver ID:', driver_id);
-    console.log('Admin:', req.user);
-    console.log('=================================');
-
     if (!driver_id) {
-        return res.status(400).json({
-            error: 'Driver ID is required'
-        });
+        return res.status(400).json({ error: 'Driver ID is required' });
     }
 
     try {
-
         // 1. Find request
-        console.log('1. Checking request...');
-
         const result = await db.query(
-            `SELECT
-                request_id,
-                user_id,
-                driver_id,
-                status
-             FROM service_requests
-             WHERE request_id = ?`,
+            `SELECT request_id, user_id, driver_id, status FROM service_requests WHERE request_id = ?`,
             [requestId]
         );
-
-        console.log('Request query result:', result);
-
-        const requests = Array.isArray(result[0])
-            ? result[0]
-            : result;
-
+        const requests = Array.isArray(result[0]) ? result[0] : result;
         if (!requests || requests.length === 0) {
-            return res.status(404).json({
-                error: 'Request not found'
-            });
+            return res.status(404).json({ error: 'Request not found' });
         }
-
         const request = requests[0];
 
-        console.log('Request found:', request);
-
-        // 2. Check existing driver
         if (request.driver_id) {
-            return res.status(400).json({
-                error: 'This request is already assigned to a driver'
-            });
+            return res.status(400).json({ error: 'This request is already assigned to a driver' });
         }
-
-        // 3. Check status
         if (request.status !== 'pending') {
-            return res.status(400).json({
-                error: `Request is already ${request.status}`
-            });
+            return res.status(400).json({ error: `Request is already ${request.status}` });
         }
 
-        // 4. Find driver
-        console.log('2. Checking driver...');
-
+        // 2. Find driver
         const driverResult = await db.query(
-            `SELECT
-                user_id,
-                name,
-                phone,
-                role
-             FROM users
-             WHERE user_id = ?
-             AND role = 'driver'`,
+            `SELECT user_id, name, phone, role FROM users WHERE user_id = ? AND role = 'driver'`,
             [driver_id]
         );
-
-        console.log('Driver query result:', driverResult);
-
-        const drivers = Array.isArray(driverResult[0])
-            ? driverResult[0]
-            : driverResult;
-
+        const drivers = Array.isArray(driverResult[0]) ? driverResult[0] : driverResult;
         if (!drivers || drivers.length === 0) {
-            return res.status(404).json({
-                error: 'Driver not found'
-            });
+            return res.status(404).json({ error: 'Driver not found' });
         }
-
         const driver = drivers[0];
 
-        console.log('Driver found:', driver);
+        // 3. Same transactional claim used by the driver-accept flow
+        const { claimed } = await Request.claimAndAssign(requestId, driver_id);
+        if (!claimed) {
+            return res.status(409).json({ error: 'Request was already claimed by another driver' });
+        }
 
-        // 5. Assign driver
-        console.log('3. Updating service request...');
-
-        const updateResult = await db.query(
-            `UPDATE service_requests
-             SET
-                driver_id = ?,
-                status = 'assigned',
-                updated_at = NOW()
-             WHERE request_id = ?
-             AND driver_id IS NULL
-             AND status = 'pending'`,
-            [driver_id, requestId]
-        );
-
-        console.log('Update result:', updateResult);
-
-        console.log('Driver assignment successful.');
-
+        // 4. Notify — fixed to use real variables
         await Notification.create({
-  userId: driverId,
-  requestId,
-  type: 'order',
-  message: `You've been assigned to service request #${requestId}.`
-});
-await Notification.create({
-  userId: customerId,
-  requestId,
-  type: 'order',
-  message: `A driver has been assigned to your request #${requestId}.`
-});
+            userId: driver_id,
+            requestId,
+            type: 'order',
+            message: `You've been assigned to service request #${requestId}.`
+        });
+        await Notification.create({
+            userId: request.user_id,
+            requestId,
+            type: 'order',
+            message: `A driver has been assigned to your request #${requestId}.`
+        });
 
         res.json({
             success: true,
@@ -904,22 +868,10 @@ await Notification.create({
         });
 
     } catch (err) {
-
-        console.error('=================================');
-        console.error('ADMIN ASSIGN DRIVER ERROR');
-        console.error('Code:', err.code);
-        console.error('Message:', err.message);
-        console.error('SQL:', err.sql);
-        console.error('Stack:', err.stack);
-        console.error('=================================');
-
-        res.status(500).json({
-            error: err.message || 'Failed to assign driver'
-        });
+        console.error('ADMIN ASSIGN DRIVER ERROR:', err.message);
+        res.status(500).json({ error: err.message || 'Failed to assign driver' });
     }
 };
-
-
 exports.getAvailableDrivers = async (req, res) => {
     try {
         const drivers = await Admin.getAvailableDrivers();

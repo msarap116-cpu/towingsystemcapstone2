@@ -1,5 +1,5 @@
 // screens/RequestFormScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -11,93 +11,384 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
-    StatusBar
+    StatusBar,
+    Modal,
+    PermissionsAndroid
 } from 'react-native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Picker } from '@react-native-picker/picker';
 import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import styles from '../styles/RequestFormScreen.style';
 import API_BASE_URL from '../config';
 
-// const API_BASE_URL = 'http://192.168.1.100:3000'; // Change to your computer's IP
 
-const RequestFormScreen = ({ navigation }) => {
+
+const RequestFormScreen = ({ navigation, route }) => {
+    // Get service from URL params (similar to setServiceFromURL)
+    const serviceIdFromRoute = route?.params?.service || '';
+
     const [formData, setFormData] = useState({
-        serviceType: '',
-        vehicleType: '',
-        licensePlate: '',
-        address: '',
+        serviceType: serviceIdFromRoute || '',
+        vehicleId: '',
         latitude: null,
-        longitude: null
+        longitude: null,
+        address: ''
     });
 
+    const [vehicles, setVehicles] = useState([]);
+    const [loadingVehicles, setLoadingVehicles] = useState(false);
     const [loading, setLoading] = useState(false);
     const [gettingLocation, setGettingLocation] = useState(false);
     const [locationStatus, setLocationStatus] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [requestId, setRequestId] = useState(null);
+    const [isGuest, setIsGuest] = useState(false);
+    const [showGuestModal, setShowGuestModal] = useState(false);
+    const [addressSuggestions, setAddressSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+
+    const searchTimer = useRef(null);
+    const addressSearchController = useRef(null);
+
+    // Service types matching the web version
+    const serviceTypes = [
+        { label: 'Select Service', value: '' },
+        { label: 'Towing Service', value: '1' },
+        { label: 'Flat Tire Change', value: '2' },
+        { label: 'Jump Start', value: '3' },
+        { label: 'Fuel Delivery', value: '4' },
+        { label: 'Lockout Service', value: '5' }
+    ];
+
+// Load vehicles on mount
+ useEffect(() => {
+    checkAuthAndLoadVehicles();
+    restoreDraft();
+
+    return () => {
+      clearTimeout(searchTimeout.current);
+      addressSearchController.current?.abort();
+    };
+  }, []);
+
+const checkAuthAndLoadVehicles = async () => {
+    try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) {
+            setIsGuest(true);
+            setShowGuestModal(true);
+            return;
+        }
+        setIsGuest(false);
+        await loadVehicles();
+    } catch (error) {
+        console.error('Auth check error:', error);
+    }
+};
+
+
+const searchTimeout = useRef(null);
+
+const onAddressChange = (text) => {
+    updateField('address', text);
+
+    clearTimeout(searchTimeout.current);
+
+    searchTimeout.current = setTimeout(() => {
+        searchAddressLocations(text);
+    }, 800);
+};
+
+
+const requestLocationPermission = async () => {
+    if (Platform.OS === 'ios') {
+        return true;
+    }
+
+    const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+            title: 'Location permission',
+            message: 'This app needs your location to fill in the address.',
+            buttonPositive: 'Allow',
+            buttonNegative: 'Deny',
+        }
+    );
+
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+};
+
+
+    const loadVehicles = async () => {
+        try {
+            setLoadingVehicles(true);
+            const token = await AsyncStorage.getItem('token');
+
+            const response = await fetch(`${API_BASE_URL}/vehicles`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                const vehicleList = data.vehicles || [];
+                setVehicles(vehicleList);
+
+                // Auto-select default vehicle
+                const defaultVehicle = vehicleList.find(v => v.is_default);
+                if (defaultVehicle) {
+                    setFormData(prev => ({
+                        ...prev,
+                        vehicleId: String(defaultVehicle.vehicle_id)
+                    }));
+                }
+            } else {
+                Alert.alert('Error', data.error || 'Failed to load vehicles');
+            }
+        } catch (error) {
+            console.error('loadVehicles error:', error);
+            Alert.alert('Network Error', 'Cannot load your vehicles.');
+        } finally {
+            setLoadingVehicles(false);
+        }
+    };
+
+    const restoreDraft = async () => {
+        try {
+            const draft = await AsyncStorage.getItem('draftRequest');
+            if (draft) {
+                const parsed = JSON.parse(draft);
+                setFormData(prev => ({
+                    ...prev,
+                    serviceType: parsed.serviceType || prev.serviceType,
+                    latitude: parsed.latitude || prev.latitude,
+                    longitude: parsed.longitude || prev.longitude,
+                    address: parsed.address || prev.address
+                }));
+                await AsyncStorage.removeItem('draftRequest');
+            }
+        } catch (error) {
+            console.error('Restore draft error:', error);
+        }
+    };
+
+    const saveDraft = async () => {
+        try {
+            const draft = {
+                serviceType: formData.serviceType,
+                latitude: formData.latitude,
+                longitude: formData.longitude,
+                address: formData.address
+            };
+            await AsyncStorage.setItem('draftRequest', JSON.stringify(draft));
+        } catch (error) {
+            console.error('Save draft error:', error);
+        }
+    };
 
     const updateField = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        // Save draft on any change
+        saveDraft();
     };
 
-    const getCurrentLocation = () => {
-        setGettingLocation(true);
-        setLocationStatus('Getting location...');
+    // Get current location (matches web version)
 
-        Geolocation.getCurrentPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords;
+
+
+const getCurrentLocation = async () => {
+    const hasPermission = await requestLocationPermission();
+
+    if (!hasPermission) {
+        setLocationStatus(
+            'Location permission was denied. Please enable it in Settings.'
+        );
+        return;
+    }
+
+    setGettingLocation(true);
+    setLocationStatus('Getting your location...');
+
+    Geolocation.getCurrentPosition(
+        async position => {
+            try {
+                const {latitude, longitude} = position.coords;
 
                 updateField('latitude', latitude);
                 updateField('longitude', longitude);
-                setLocationStatus('✓ Location captured! Getting address...');
 
-                // Get address from coordinates
-                const address = await getAddressFromCoords(latitude, longitude);
+                setLocationStatus(
+                    '📍 Location captured — looking up address...'
+                );
+
+                const address = await reverseGeocode(latitude, longitude);
+
                 if (address) {
                     updateField('address', address);
-                    setLocationStatus('✓ Location captured successfully');
+                    setLocationStatus('📍 Location captured');
                 } else {
-                    setLocationStatus('✓ Coordinates captured (address unavailable)');
+                    setLocationStatus(
+                        '📍 Location captured, but address lookup failed.'
+                    );
                 }
+            } catch (error) {
+                console.error('Reverse geocoding error:', error);
+                setLocationStatus(
+                    '📍 Location captured, but address lookup failed.'
+                );
+            } finally {
+                setGettingLocation(false);
+            }
+        },
+        error => {
+            console.error('Location error:', {
+                code: error.code,
+                message: error.message,
+            });
 
-                setGettingLocation(false);
-            },
-            (error) => {
-                let errorMessage = 'Unable to get location. ';
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        errorMessage += 'Please enable location services.';
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        errorMessage += 'Location information unavailable.';
-                        break;
-                    case error.TIMEOUT:
-                        errorMessage += 'Location request timeout.';
-                        break;
-                    default:
-                        errorMessage += 'Unknown error.';
+            if (error.code === 1) {
+                setLocationStatus(
+                    'Location permission was denied. Please enable it in Settings.'
+                );
+            } else if (error.code === 2) {
+                setLocationStatus(
+                    'Location is unavailable. Please enable GPS and try again.'
+                );
+            } else if (error.code === 3) {
+                setLocationStatus(
+                    'Location request timed out. Please try again.'
+                );
+            } else {
+                setLocationStatus(
+                    'Could not get your location. Please enter your address manually.'
+                );
+            }
+
+            setGettingLocation(false);
+        },
+        {
+            enableHighAccuracy: false,
+            timeout: 30000,
+            maximumAge: 60000,
+        }
+    );
+};
+
+const reverseGeocode = async (latitude, longitude) => {
+  const url =
+    'https://goodwrench-towing-rescue.onrender.com/api/geocode/reverse' +
+    `?lat=${encodeURIComponent(latitude)}` +
+    `&lng=${encodeURIComponent(longitude)}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `Reverse geocoding failed: ${response.status} ${responseText.substring(
+        0,
+        200
+      )}`
+    );
+  }
+
+  const data = JSON.parse(responseText);
+
+  return data.address || null;
+};
+
+
+
+
+    // Search address (forward geocode with suggestions)
+    const searchAddressLocations = async (query) => {
+        const text = query.trim();
+
+        if (text.length < 3) {
+            setAddressSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        if (addressSearchController.current) {
+            addressSearchController.current.abort();
+        }
+
+        addressSearchController.current = new AbortController();
+
+        try {
+            const params = new URLSearchParams({
+                q: `${text}, Philippines`,
+                format: 'jsonv2',
+                addressdetails: '1',
+                limit: '5',
+                countrycodes: 'ph',
+            });
+
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?${params.toString()}`,
+                {
+                    method: 'GET',
+                    signal: addressSearchController.current.signal,
+                    headers: {
+                        Accept: 'application/json',
+                        'User-Agent': 'YourAppName/1.0 support@example.com',
+                    },
                 }
-                setLocationStatus(errorMessage);
-                setGettingLocation(false);
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
+            );
+
+            if (!response.ok) {
+                const body = await response.text();
+                throw new Error(`Nominatim search failed: ${response.status} ${body}`);
+            }
+
+            const results = await response.json();
+
+            setAddressSuggestions(results || []);
+            setShowSuggestions((results || []).length > 0);
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                return;
+            }
+
+            console.error('Address search error:', error);
+            setAddressSuggestions([]);
+            setShowSuggestions(false);
+        }
     };
 
-    const getAddressFromCoords = async (lat, lng) => {
-        try {
-            // Using free Nominatim API
-            const response = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
-            );
-            const data = await response.json();
-            return data.display_name || null;
-        } catch (error) {
-            console.error('Geocoding error:', error);
-            return null;
+
+    // Select address from suggestion
+    const selectAddressResult = (result) => {
+        updateField('address', result.display_name);
+        updateField('latitude', parseFloat(result.lat));
+        updateField('longitude', parseFloat(result.lon));
+        setAddressSuggestions([]);
+        setShowSuggestions(false);
+        setLocationStatus('📍 Location selected');
+    };
+
+    // Handle address text change with debounce
+    const handleAddressChange = (text) => {
+        updateField('address', text);
+
+        // Clear previous timer
+        if (searchTimer.current) {
+            clearTimeout(searchTimer.current);
         }
+
+        // Debounce search
+        searchTimer.current = setTimeout(() => {
+            searchAddressLocations(text);
+        }, 1000);
     };
 
     const validateForm = () => {
@@ -106,18 +397,13 @@ const RequestFormScreen = ({ navigation }) => {
             return false;
         }
 
-        if (!formData.vehicleType.trim()) {
-            Alert.alert('Error', 'Please enter vehicle type');
-            return false;
-        }
-
-        if (!formData.licensePlate.trim()) {
-            Alert.alert('Error', 'Please enter license plate');
+        if (!formData.vehicleId) {
+            Alert.alert('Error', 'Please select a vehicle');
             return false;
         }
 
         if (!formData.latitude && !formData.longitude && !formData.address.trim()) {
-            Alert.alert('Error', 'Please provide your location (use current location or enter address)');
+            Alert.alert('Error', 'Please share your location or enter an address');
             return false;
         }
 
@@ -129,45 +415,38 @@ const RequestFormScreen = ({ navigation }) => {
 
         const token = await AsyncStorage.getItem('token');
         if (!token) {
-            Alert.alert('Error', 'Please login first');
-            navigation.navigate('Login');
+            setIsGuest(true);
+            setShowGuestModal(true);
             return;
         }
 
         setLoading(true);
 
-        try {
-            console.log('Submitting request with data:', {
-                service_type: formData.serviceType,
-                vehicle_type: formData.vehicleType,
-                license_plate: formData.licensePlate,
-                location_lat: formData.latitude,
-                location_lng: formData.longitude,
-                address: formData.address
-            });
+        const requestData = {
+            service_type_id: parseInt(formData.serviceType),
+            vehicle_id: parseInt(formData.vehicleId),
+            location_lat: formData.latitude ? parseFloat(formData.latitude) : null,
+            location_lng: formData.longitude ? parseFloat(formData.longitude) : null,
+            address: formData.address.trim() || null
+        };
 
-            const response = await fetch(`${API_BASE_URL}/api/requests`, {
+        try {
+            const response = await fetch(`${API_BASE_URL}/requests`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({
-                    service_type: formData.serviceType,
-                    vehicle_type: formData.vehicleType,
-                    license_plate: formData.licensePlate,
-                    location_lat: formData.latitude,
-                    location_lng: formData.longitude,
-                    address: formData.address.trim() || null
-                })
+                body: JSON.stringify(requestData)
             });
 
             const data = await response.json();
-            console.log('Response:', data);
 
             if (response.ok) {
                 setRequestId(data.request.id);
                 setSubmitted(true);
+                // Clear draft on successful submission
+                await AsyncStorage.removeItem('draftRequest');
 
                 Alert.alert(
                     'Request Submitted!',
@@ -186,10 +465,9 @@ const RequestFormScreen = ({ navigation }) => {
             } else {
                 Alert.alert('Error', data.error || 'Failed to submit request');
             }
-
         } catch (error) {
-            console.error('Request error:', error);
-            Alert.alert('Network Error', 'Cannot connect to server. Please check your connection.\n\nMake sure your backend is running on: ' + API_BASE_URL);
+            console.error('Request submission error:', error);
+            Alert.alert('Network Error', 'Cannot connect to server. Please check your connection.');
         } finally {
             setLoading(false);
         }
@@ -198,31 +476,38 @@ const RequestFormScreen = ({ navigation }) => {
     const resetForm = () => {
         setFormData({
             serviceType: '',
-            vehicleType: '',
-            licensePlate: '',
-            address: '',
+            vehicleId: '',
             latitude: null,
-            longitude: null
+            longitude: null,
+            address: ''
         });
         setLocationStatus('');
         setSubmitted(false);
+        setAddressSuggestions([]);
+        setShowSuggestions(false);
+        AsyncStorage.removeItem('draftRequest');
     };
 
-    const serviceTypes = [
-        { label: 'Select Service', value: '' },
-        { label: 'Towing Service', value: 'towing' },
-        { label: 'Flat Tire Change', value: 'flat_tire' },
-        { label: 'Jump Start', value: 'jump_start' },
-        { label: 'Fuel Delivery', value: 'fuel' },
-        { label: 'Lockout Service', value: 'lockout' }
-    ];
+    const handleGuestLogin = () => {
+        saveDraft();
+        const returnTo = encodeURIComponent('RequestForm');
+        navigation.navigate('Login', { returnTo });
+        setShowGuestModal(false);
+    };
+
+    const handleGuestRegister = () => {
+        saveDraft();
+        const returnTo = encodeURIComponent('RequestForm');
+        navigation.navigate('Register', { returnTo });
+        setShowGuestModal(false);
+    };
 
     return (
         <KeyboardAvoidingView
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-            <StatusBar barStyle="dark-content" backgroundColor="#f4f6f9" />
+            <StatusBar barStyle="dark-content" backgroundColor="#eaeef2" />
 
             <ScrollView
                 contentContainerStyle={styles.scrollContainer}
@@ -266,29 +551,55 @@ const RequestFormScreen = ({ navigation }) => {
                             </View>
                         </View>
 
-                        {/* Vehicle Type */}
+                        {/* Vehicle Selection */}
                         <View style={styles.formGroup}>
-                            <Text style={styles.label}>Vehicle Type:</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="e.g., Sedan, SUV, Truck"
-                                value={formData.vehicleType}
-                                onChangeText={(value) => updateField('vehicleType', value)}
-                                editable={!loading && !submitted}
-                            />
-                        </View>
+                            <Text style={styles.label}>Vehicle:</Text>
+                            <View style={styles.pickerContainer}>
+                                <Picker
+                                    selectedValue={formData.vehicleId}
+                                    onValueChange={(value) => updateField('vehicleId', value)}
+                                    enabled={!loading && !submitted && !isGuest && vehicles.length > 0}
+                                    style={styles.picker}
+                                >
+                                    <Picker.Item
+                                        label={loadingVehicles ? "Loading your vehicles..." : "Select a vehicle"}
+                                        value=""
+                                    />
+                                    {vehicles.map((vehicle) => (
+                                        <Picker.Item
+                                            key={vehicle.vehicle_id}
+                                            label={`${vehicle.make} ${vehicle.model} — ${vehicle.license_plate}${vehicle.is_default ? ' (Default)' : ''}`}
+                                            value={String(vehicle.vehicle_id)}
+                                        />
+                                    ))}
+                                </Picker>
+                            </View>
 
-                        {/* License Plate */}
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>License Plate:</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Enter license plate number"
-                                value={formData.licensePlate}
-                                onChangeText={(value) => updateField('licensePlate', value)}
-                                autoCapitalize="characters"
-                                editable={!loading && !submitted}
-                            />
+                            {vehicles.length === 0 && !loadingVehicles && !isGuest && (
+                                <Text style={styles.noticeText}>
+                                    You don't have any saved vehicles yet.{' '}
+                                    <Text
+                                        style={styles.linkText}
+                                        onPress={() => navigation.navigate('MyVehicles')}
+                                    >
+                                        Add one here
+                                    </Text>
+                                    {' '}before requesting assistance.
+                                </Text>
+                            )}
+
+                            {isGuest && (
+                                <Text style={styles.noticeText}>
+                                    You need an account to submit a request.{' '}
+                                    <Text style={styles.linkText} onPress={handleGuestLogin}>
+                                        Log in
+                                    </Text>
+                                    {' '}or{' '}
+                                    <Text style={styles.linkText} onPress={handleGuestRegister}>
+                                        Register
+                                    </Text>
+                                </Text>
+                            )}
                         </View>
 
                         {/* Location Section */}
@@ -310,32 +621,58 @@ const RequestFormScreen = ({ navigation }) => {
                             {locationStatus ? (
                                 <Text style={[
                                     styles.locationStatus,
-                                    locationStatus.includes('✓') ? styles.successText : styles.errorText
+                                    locationStatus.includes('📍') ? styles.successText : styles.errorText
                                 ]}>
                                     {locationStatus}
                                 </Text>
                             ) : null}
 
-                            {/* Manual Address */}
+                            {/* Manual Address with Suggestions */}
                             <View style={styles.manualAddress}>
                                 <Text style={styles.subLabel}>Or Enter Address:</Text>
-                                <TextInput
-                                    style={[styles.textArea, styles.input]}
-                                    placeholder="Enter your full address"
-                                    value={formData.address}
-                                    onChangeText={(value) => updateField('address', value)}
-                                    multiline
-                                    numberOfLines={3}
-                                    editable={!loading && !submitted}
-                                />
+                                <View style={styles.addressSearchWrapper}>
+                                    <TextInput
+                                        style={[styles.textArea, styles.input]}
+                                        placeholder="Search street, barangay, city, province..."
+                                        value={formData.address}
+                                        onChangeText={handleAddressChange}
+                                        multiline
+                                        numberOfLines={2}
+                                        editable={!loading && !submitted}
+                                    />
+
+                                    {showSuggestions && addressSuggestions.length > 0 && (
+                                        <View style={styles.suggestionsContainer}>
+                                            <ScrollView
+                                                style={styles.suggestionsScroll}
+                                                keyboardShouldPersistTaps="handled"
+                                            >
+                                                {addressSuggestions.map((result, index) => (
+                                                    <TouchableOpacity
+                                                        key={index}
+                                                        style={styles.suggestionItem}
+                                                        onPress={() => selectAddressResult(result)}
+                                                    >
+                                                        <Text style={styles.suggestionMain}>
+                                                            {result.display_name.split(',')[0]}
+                                                        </Text>
+                                                        <Text style={styles.suggestionDetail}>
+                                                            {result.display_name}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </ScrollView>
+                                        </View>
+                                    )}
+                                </View>
                             </View>
                         </View>
 
                         {/* Submit Button */}
                         <TouchableOpacity
-                            style={[styles.submitButton, (loading || submitted) && styles.submitButtonDisabled]}
+                            style={[styles.submitButton, (loading || submitted || isGuest || vehicles.length === 0) && styles.submitButtonDisabled]}
                             onPress={handleSubmit}
-                            disabled={loading || submitted}
+                            disabled={loading || submitted || isGuest || vehicles.length === 0}
                         >
                             {loading ? (
                                 <ActivityIndicator color="#fff" />
@@ -343,12 +680,68 @@ const RequestFormScreen = ({ navigation }) => {
                                 <Text style={styles.submitButtonText}>Request Assistance</Text>
                             )}
                         </TouchableOpacity>
+
+                        {/* Confirmation */}
+                        {submitted && (
+                            <View style={styles.confirmationBox}>
+                                <Text style={styles.confirmationIcon}>✅</Text>
+                                <Text style={styles.confirmationTitle}>Request Submitted!</Text>
+                                <Text style={styles.confirmationText}>
+                                    Your request ID: <Text style={styles.confirmationStrong}>{requestId}</Text>
+                                </Text>
+                                <Text style={styles.confirmationText}>
+                                    Estimated arrival time: <Text style={styles.confirmationStrong}>25-40 minutes</Text>
+                                </Text>
+                                <Text style={styles.confirmationText}>
+                                    You can track your request in the dashboard.
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 </View>
             </ScrollView>
+
+            {/* Guest Modal */}
+            <Modal
+                visible={showGuestModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowGuestModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitle}>Account Required</Text>
+                        <Text style={styles.modalText}>
+                            You need an account to submit a request. Please log in or register.
+                        </Text>
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.modalButtonLogin]}
+                                onPress={handleGuestLogin}
+                            >
+                                <Text style={styles.modalButtonText}>Log In</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.modalButtonRegister]}
+                                onPress={handleGuestRegister}
+                            >
+                                <Text style={styles.modalButtonText}>Register</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.modalCancel}
+                            onPress={() => {
+                                setShowGuestModal(false);
+                                navigation.goBack();
+                            }}
+                        >
+                            <Text style={styles.modalCancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </KeyboardAvoidingView>
     );
 };
-
 
 export default RequestFormScreen;

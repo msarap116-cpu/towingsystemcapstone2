@@ -173,11 +173,50 @@ body {
 /* ---------- MAIN CONTENT ---------- */
 .main-content {
     flex: 1;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;          /* ← was auto */
     padding: 24px 32px 32px;
+    min-height: 0;
+}
+
+/* ---------- TAB PANES (all) ---------- */
+.tab-pane {
+    width: 100%;
     display: flex;
     flex-direction: column;
     gap: 24px;
+    flex: 1;                   /* ← fills main-content */
+    min-height: 0;
+    overflow-y: auto;          /* ← scroll if content too tall */
+    padding-right: 4px;        /* space for scrollbar */
+}
+
+/* ---------- MAP CARD (only stretches when inside tracking tab) ---------- */
+#tab-tracking {
+    overflow: hidden;          /* ← no scroll, map fills */
+}
+
+#tab-tracking .map-card {
+    flex: 1;                   /* ← grows to fill remaining height */
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#tab-tracking .map-card #map {
+    flex: 1;                   /* ← was fixed 450px */
+    width: 100%;
+    min-height: 0;             /* ← remove any fixed height */
+    background: #dce5ef;
+}
+.tab-pane {
+    display: none;             /* hidden by default */
+}
+
+.tab-pane.active {
+    display: flex;             /* only the active tab shows */
 }
 
 /* top bar */
@@ -271,16 +310,15 @@ body {
 /* ---------- MAP CARD ---------- */
 .map-card {
     background: #fff;
-    border-radius: 22px;
+    border-radius: 0;
     border: 1px solid #e9edf4;
     overflow: hidden;
+    flex: 1 1 auto;      /* ← grows if space allows, shrinks if needed */
+    min-height: 400px;   /* ← minimum so map is usable */
+    display: flex;
+    flex-direction: column;
 }
 
-.map-card #map {
-    height: 450px;
-    width: 100%;
-    background: #dce5ef;
-}
 
 .map-legend {
     display: flex;

@@ -13,7 +13,8 @@ import {
   RefreshControl,
   Image,
   FlatList,
-  Platform
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LeafletMap from '../components/LeafletMap';
@@ -67,6 +68,7 @@ const DashboardScreen = ({ navigation }) => {
   const [editLng, setEditLng] = useState('');
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   // Pin modal
   const [pinModalVisible, setPinModalVisible] = useState(false);
@@ -123,24 +125,29 @@ const DashboardScreen = ({ navigation }) => {
     }
   };
 
-  const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await AsyncStorage.removeItem('token');
-            await AsyncStorage.removeItem('user');
-            navigation.replace('Login');
-          }
-        }
-      ]
-    );
-  };
+//  SIMPLEST — No Alert on Dashboard at all
+const handleLogout = () => {
+  Alert.alert(
+    'Confirm Logout',
+    'Are you sure you want to log out?',
+    [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          await AsyncStorage.removeItem('token');
+          await AsyncStorage.removeItem('user');
+          navigation.replace('Login', { logoutMessage: 'Logout successful!' });
+        },
+      },
+    ],
+    { cancelable: true }
+  );
+};
 
   // ===== DASHBOARD DATA =====
   const loadDashboardData = async (silent = false) => {
@@ -388,27 +395,66 @@ const DashboardScreen = ({ navigation }) => {
   };
 
   // ===== EDIT ADDRESS =====
-  const searchAddress = async (query) => {
-    if (!query || query.length < 3) {
-      setAddressSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
+  const debounceRef = useRef(null);
+const abortRef = useRef(null);
 
+const NOMINATIM_HEADERS = {
+  'Accept': 'application/json',
+  'User-Agent': 'YourAppName/1.0 (msarap116@gmail.com)', // use a real email
+};
+
+// debounce wrapper (called from onChangeText)
+const searchAddress = (query) => {
+  if (debounceRef.current) clearTimeout(debounceRef.current);
+
+  if (!query || query.trim().length < 3) {
+    setAddressSuggestions([]);
+    setShowSuggestions(false);
+    return;
+  }
+
+  debounceRef.current = setTimeout(() => runSearch(query), 600);
+};
+
+// actual fetch
+const runSearch = async (query) => {
+  if (abortRef.current) abortRef.current.abort();
+  const controller = new AbortController();
+  abortRef.current = controller;
+
+  try {
+    const url =
+      `https://nominatim.openstreetmap.org/search?` +
+      `q=${encodeURIComponent(query + ', Philippines')}` +
+      `&format=json&addressdetails=1&limit=5&countrycodes=ph`;
+
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: NOMINATIM_HEADERS,
+    });
+
+    const text = await response.text();
+    console.log('Nominatim status:', response.status);
+    console.log('Nominatim body:', text.slice(0, 300));  // ← look here if it fails
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${text.slice(0, 120)}`);
+
+    let data;
     try {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}, Philippines&format=json&addressdetails=1&limit=5&countrycodes=ph`;
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data && data.length > 0) {
-        setAddressSuggestions(data);
-        setShowSuggestions(true);
-      }
-    } catch (error) {
-      console.error('Address search error:', error);
+      data = JSON.parse(text);
+    } catch {
+      throw new Error('Nominatim returned non-JSON: ' + text.slice(0, 120));
     }
-  };
 
+    setAddressSuggestions(Array.isArray(data) ? data : []);
+    setShowSuggestions(Array.isArray(data) && data.length > 0);
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    console.warn('Address search failed:', err.message);
+    setAddressSuggestions([]);
+    setShowSuggestions(false);
+  }
+};
   const selectAddress = (result) => {
     setEditAddress(result.display_name);
     setEditLat(result.lat);
@@ -416,6 +462,80 @@ const DashboardScreen = ({ navigation }) => {
     setAddressSuggestions([]);
     setShowSuggestions(false);
   };
+  const useCurrentLocation = async () => {
+  try {
+    setLocating(true);
+
+    // ---- 1. Ask for permission (Android only) ----
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Location Permission',
+          message: 'This app needs access to your location to set your address.',
+          buttonPositive: 'Allow',
+          buttonNegative: 'Cancel',
+        }
+      );
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+        Alert.alert('Permission denied', 'Please allow location access.');
+        return;
+      }
+    }
+
+    // ---- 2. Get GPS coords ----
+    Geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        setEditLat(lat.toFixed(6));
+        setEditLng(lng.toFixed(6));
+        setEditAddress('Finding your address...');
+
+        // ---- 3. Reverse geocode → readable address ----
+        try {
+          const url =
+            `https://nominatim.openstreetmap.org/reverse?` +
+            `lat=${lat}&lon=${lng}&format=json&addressdetails=1`;
+
+          const res = await fetch(url, { headers: NOMINATIM_HEADERS });
+          const text = await res.text();
+          const data = JSON.parse(text);
+
+          setEditAddress(data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+        } catch (err) {
+          console.warn('Reverse geocode failed:', err.message);
+          setEditAddress(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+        } finally {
+          setLocating(false);
+        }
+      },
+      (error) => {
+        console.warn('Geolocation error:', error);
+        setLocating(false);
+        switch (error.code) {
+          case 1:
+            Alert.alert('Permission denied', 'Location access was denied.');
+            break;
+          case 2:
+            Alert.alert('Unavailable', 'Your location is unavailable.');
+            break;
+          case 3:
+            Alert.alert('Timeout', 'Getting your location took too long.');
+            break;
+          default:
+            Alert.alert('Error', 'Unable to determine your location.');
+        }
+      },
+        { enableHighAccuracy: false, timeout: 30000, maximumAge: 10000 }
+    );
+  } catch (err) {
+    console.error('useCurrentLocation error:', err);
+    setLocating(false);
+    Alert.alert('Error', 'Something went wrong getting your location.');
+  }
+};
 
   const saveAddress = async () => {
     if (!editAddress || !editLat || !editLng) {
@@ -499,6 +619,8 @@ const DashboardScreen = ({ navigation }) => {
     );
   };
 
+
+
   // ===== RENDER FUNCTIONS — BOTTOM TAB BAR =====
 // Profile Card (moved to top above content)
 const renderProfileHeader = () => (
@@ -509,7 +631,10 @@ const renderProfileHeader = () => (
       </Text>
     </View>
     <View style={styles.profileInfo}>
-      <Text style={styles.profileName}>{user?.name || 'User'}</Text>
+      {/*  REMOVED the bad {username} line — kept only the good one */}
+      <Text numberOfLines={1} style={styles.profileName}>
+        {user?.name || 'User'}
+      </Text>
       <Text style={styles.userType}>⭐ Customer</Text>
     </View>
   </View>
@@ -589,7 +714,7 @@ const renderBottomTabBar = () => (
   </View>
 );
 
-// ===== RENDER TABS — ✅ UNCHANGED =====
+// ===== RENDER TABS — UNCHANGED =====
 const renderDashboard = () => (
   <View style={styles.tabContent}>
     {/* Request Header */}
@@ -711,12 +836,13 @@ return (
   <View style={styles.container}>
     <StatusBar barStyle="light-content" backgroundColor="#0046a8" />
 
-    {/* Top Navbar — ✅ UNCHANGED */}
+    {/* Top Navbar —  UNCHANGED */}
+
     <View style={styles.navbar}>
       <View style={styles.navbarContent}>
         <View style={styles.brand}>
           <Text style={styles.brandIcon}>🚛</Text>
-          <Text style={styles.brandText}>Goodwrench</Text>
+          <Text style={styles.brandText}>Good<Text style={styles.brandSpan}>Wrench</Text></Text>
         </View>
         <View style={styles.navbarRight}>
           <View style={styles.onlineStatus}>
@@ -731,7 +857,7 @@ return (
     {/* Profile Header (replaced sidebar profile card) */}
     {renderProfileHeader()}
 
-    {/* Main Panel — ✅ NO SIDEBAR, FULL WIDTH */}
+    {/* Main Panel —  NO SIDEBAR, FULL WIDTH */}
     <View style={styles.mainPanel}>
       {activeTab === 'dashboard' && renderDashboard()}
       {activeTab === 'recent' && renderRecentActivity()}
@@ -741,7 +867,7 @@ return (
     {/* BOTTOM TAB BAR — replaces sidebar */}
     {renderBottomTabBar()}
 
-    {/* ========== ALL MODALS — ✅ UNCHANGED ========== */}
+    {/* ========== ALL MODALS —  UNCHANGED ========== */}
     {/* Payment Modal */}
     <Modal
       visible={paymentModalVisible}
@@ -750,7 +876,8 @@ return (
       onRequestClose={() => setPaymentModalVisible(false)}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+          <ScrollView style={styles.modalContent} bounces={false}>
+
           <TouchableOpacity
             style={styles.modalClose}
             onPress={() => setPaymentModalVisible(false)}
@@ -814,7 +941,9 @@ return (
           {paymentMessage && (
             <Text style={styles.paymentMessage}>{paymentMessage}</Text>
           )}
-        </View>
+           <Text numberOfLines={1} style={styles.paymentRequestId}></Text>
+          </ScrollView>
+
       </View>
     </Modal>
 
@@ -826,7 +955,8 @@ return (
       onRequestClose={() => setEditAddressModal(false)}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <ScrollView style={styles.modalContent} bounces={false}>
+
           <TouchableOpacity
             style={styles.modalClose}
             onPress={() => setEditAddressModal(false)}
@@ -834,40 +964,58 @@ return (
             <Text style={styles.modalCloseText}>✕</Text>
           </TouchableOpacity>
           <Text style={styles.modalTitle}>Edit Address</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Search for an address..."
-            value={editAddress}
-            onChangeText={(text) => {
-              setEditAddress(text);
-              searchAddress(text);
-            }}
-          />
-          {showSuggestions && addressSuggestions.length > 0 && (
-            <View style={styles.suggestionsList}>
-              {addressSuggestions.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.suggestionItem}
-                  onPress={() => selectAddress(item)}
-                >
-                  <Text style={styles.suggestionText}>{item.display_name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-          <View style={styles.selectedLocation}>
-            <Text style={styles.selectedText}>
-              {editLat && editLng ? '📍 Location selected' : 'No location selected'}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={saveAddress}
-          >
-            <Text style={styles.saveButtonText}>Save Changes</Text>
-          </TouchableOpacity>
-        </View>
+{/* 🔍 Search input */}
+<TextInput
+  style={styles.input}
+  placeholder="Search for an address..."
+  value={editAddress}
+  onChangeText={(text) => {
+    setEditAddress(text);
+    searchAddress(text);
+  }}
+/>
+
+{showSuggestions && addressSuggestions.length > 0 && (
+  <View style={styles.suggestionsList}>
+    {addressSuggestions.map((item, index) => (
+      <TouchableOpacity
+        key={index}
+        style={styles.suggestionItem}
+        onPress={() => selectAddress(item)}
+      >
+        <Text style={styles.suggestionText}>{item.display_name}</Text>
+      </TouchableOpacity>
+    ))}
+  </View>
+)}
+
+{/* 📍 Use current location */}
+<TouchableOpacity
+  style={[styles.currentLocationButton, locating && { opacity: 0.6 }]}
+  onPress={useCurrentLocation}
+  disabled={locating}
+>
+  <Text style={styles.currentLocationText}>
+    {locating ? '📡 Getting your location...' : '📍 Use My Current Location'}
+  </Text>
+</TouchableOpacity>
+
+{/* Confirmation card — only when a location exists */}
+{editLat && editLng && (
+  <View style={styles.selectedLocation}>
+    <Text style={styles.selectedTitle}>📍 Location selected</Text>
+    <Text style={styles.selectedSubText}>{editAddress}</Text>
+    <Text style={styles.selectedSubText}>
+      Lat: {editLat}  •  Lng: {editLng}
+    </Text>
+  </View>
+)}
+
+<TouchableOpacity style={styles.saveButton} onPress={saveAddress}>
+  <Text style={styles.saveButtonText}>Save Changes</Text>
+</TouchableOpacity>
+
+        </ScrollView>
       </View>
     </Modal>
   </View>

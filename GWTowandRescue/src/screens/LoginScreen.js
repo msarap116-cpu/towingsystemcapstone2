@@ -26,75 +26,89 @@ const LoginScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [returnTo, setReturnTo] = useState(null);
 
-  useEffect(() => {
-    if (route.params?.returnTo) {
-      setReturnTo(route.params.returnTo);
-    }
-  }, [route.params]);
+  //ONE SINGLE COMBINED useEffect — NO duplicates, NO conflicts
+useEffect(() => {
+  // 1.Read returnTo from navigation params
+  if (route.params?.returnTo) {
+    setReturnTo(route.params.returnTo);
+  }
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
+  // 2.Check auth status — auto-redirect if already logged in
+  checkAuthStatus();
 
-  const checkAuthStatus = async () => {
-    const token = await AsyncStorage.getItem('token');
-    if (token) {
+  // 3.Show logout message (passed from Dashboard on logout)
+  const message = route.params?.logoutMessage;
+  if (message) {
+    setTimeout(() => {
+      Alert.alert('Logged Out', message);
+      //Clear message so it doesn't re-appear
+      if (navigation?.setParams) {
+        navigation.setParams({ logoutMessage: null });
+      }
+    }, 0);
+  }
+}, [route.params]); //ONE dependency list — clean & correct
+
+//Auth check — unchanged
+const checkAuthStatus = async () => {
+  const token = await AsyncStorage.getItem('token');
+  const userStr = await AsyncStorage.getItem('user');
+  if (token && userStr) {
+    const user = JSON.parse(userStr);
+    if (user.role === 'driver') {
+      navigation.replace('DriverDashboard');
+    } else {
       navigation.replace('Dashboard');
     }
-  };
+  }
+};
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
-      return;
-    }
+//Login — timing fixed, no orphaned Alert
+const handleLogin = async () => {
+  if (!email || !password) {
+    Alert.alert('Error', 'Please enter both email and password');
+    return;
+  }
+  setLoading(true);
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await response.json();
+    if (response.ok) {
+      await AsyncStorage.setItem('token', data.token);
+      await AsyncStorage.setItem('user', JSON.stringify(data.user));
 
-    setLoading(true);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/users/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        await AsyncStorage.setItem('token', data.token);
-        await AsyncStorage.setItem('user', JSON.stringify(data.user));
-
-        // Show success alert
-        Alert.alert('✅ Success', 'Login successful!', [
-          {
-            text: 'OK',
-            onPress: () => {
-              let redirectScreen = 'Dashboard';
-
-              if (returnTo) {
-                navigation.replace(returnTo);
-              } else if (data.user.role === 'admin') {
-                redirectScreen = 'AdminDashboard';
-              } else if (data.user.role === 'driver') {
-                redirectScreen = 'DriverDashboard';
-              }
-
-              navigation.replace(redirectScreen);
+      //Alert shows FIRST → navigate AFTER user taps OK
+      Alert.alert(' Success', 'Login successful!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            let redirectScreen = 'Dashboard';
+            if (data.user.role === 'driver') {
+              redirectScreen = 'DriverDashboard';
+            } else if (returnTo) {
+              redirectScreen = returnTo;
             }
+            //Wait for Alert to CLOSE COMPLETELY before navigating
+            setTimeout(() => {
+              navigation.replace(redirectScreen);
+            }, 100);
           }
-        ]);
-      } else {
-        Alert.alert('Error', data.error || 'Login failed');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert('Error', 'Network error. Please try again.');
-    } finally {
-      setLoading(false);
+        }
+      ]);
+    } else {
+      Alert.alert('Error', data.error || 'Login failed');
     }
-  };
+  } catch (error) {
+    console.error('Login error:', error);
+    Alert.alert('Error', 'Network error. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <KeyboardAvoidingView

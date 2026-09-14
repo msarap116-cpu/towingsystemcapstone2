@@ -68,9 +68,9 @@
                 <div class="nav-item" data-tab="payments">
                     <span class="nav-icon"></span> Payments
                 </div>
-<div class="nav-item" data-tab="serviceprices">
-    <span class="nav-icon"></span> Service Prices
-</div>
+                <div class="nav-item" data-tab="serviceprices">
+                    <span class="nav-icon"></span> Service Prices
+                </div>
                 <div class="nav-item logout-item" id="logoutBtnSidebar">
                     <span class="nav-icon"></span> Logout
                 </div>
@@ -81,8 +81,11 @@
         <div class="main-panel">
             <!-- THIS IS THE STARTING POINT OF THE DASHBOARD LAIN ANG PANEL SA DASHBOARD-->
             <div id="dashboardPanel" class="tab-panel active">
-                <br>
-                <span style="font-weight:600;">available request and etchoss</span>
+                <div id="maptop-card"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+                    <span style="font-weight: 600;">available request and etchoss</span>
+                    <button class="btn btn-primary" onclick="refreshMapMarkers()">Refresh locations</button>
+                </div>
                 <div class="map-container">
                     <div id="map">
 
@@ -115,7 +118,7 @@
                 <div
                     style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; flex-wrap:wrap; gap:12px;">
 
-                    <button class="btn btn-primary" onclick="refreshMapMarkers()">Refresh locations</button>
+
                 </div>
             </div>
 
@@ -150,16 +153,24 @@
             <div id="driversPanel" class="tab-panel">
                 <div class="panel-header-actions">
                     <h2>🚛 Faculty</h2>
-                    <!-- GoodWrenchOVERFLOW MENU: Driver + Admin -->
+
+                    <!-- Overflow Menu -->
                     <div class="overflow-menu">
-                        <button class="btn btn-primary overflow-trigger"> Add Someone</button>
+                        <button class="btn btn-primary overflow-trigger">
+                            <span class="plus-icon">+</span> Add Someone
+                        </button>
                         <div class="overflow-dropdown">
                             <button class="dropdown-item" onclick="openDriverModal()">Add Member / Driver</button>
-                            <button class="dropdown-item" onclick="openAdminModal()"> Add Admin</button>
+                            <button class="dropdown-item" onclick="openAdminModal()">Add Admin</button>
                         </div>
                     </div>
                 </div>
+
                 <div id="driversListContainer"></div>
+                <div>
+                    <p><b>ADMINS ↓</b></p>
+                </div>
+                <div id="adminsListContainer"></div>
             </div>
 
             <!-- CUSTOMERS TAB-->
@@ -176,7 +187,7 @@
                                 <th>Name</th>
                                 <th>Phone</th>
                                 <th>Total Trips</th>
-                                <th>Actions</th>
+                                <th>Spend</th>
                             </tr>
                         </thead>
                         <tbody id="customersTable"></tbody>
@@ -207,36 +218,36 @@
                 </div>
             </div>
 
-<div id="servicePricesPanel" class="tab-panel">
+            <div id="servicePricesPanel" class="tab-panel">
 
-    <div class="panel-header">
-        <div>
-            <h2>Service Prices</h2>
-            <p>Manage the base price of each towing service.</p>
-        </div>
-    </div>
+                <div class="panel-header">
+                    <div>
+                        <h2>Service Prices</h2>
+                        <p>Manage the base price of each towing service.</p>
+                    </div>
+                </div>
 
-    <div class="table-container">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Service</th>
-                    <th>Description</th>
-                    <th>Base Price</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Service</th>
+                                <th>Description</th>
+                                <th>Base Price</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
 
-            <tbody id="servicePricesTableBody">
-                <tr>
-                    <td colspan="5">Loading services...</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+                        <tbody id="servicePricesTableBody">
+                            <tr>
+                                <td colspan="5">Loading services...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-</div>
+            </div>
 
         </div>
     </div>
@@ -367,6 +378,7 @@
             </div>
         </div>
     </div>
+
     <div id="adminModal" class="modal">
         <div class="modal-content">
 
@@ -436,73 +448,55 @@
 
     </div>
     <!-- Edit Service Price Modal -->
-<div id="servicePriceModal" class="modal">
+    <div id="servicePriceModal" class="modal">
 
-    <div class="modal-content">
+        <div class="modal-content">
 
-        <div class="modal-header">
-            <span>💰 Edit Service Price</span>
+            <div class="modal-header">
+                <span>💰 Edit Service Price</span>
 
-            <button onclick="closeModal('servicePriceModal')">
-                ✕
-            </button>
-        </div>
-
-        <div class="modal-body">
-
-            <input type="hidden" id="editServiceTypeId">
-
-            <div class="form-group">
-                <label>Service Type</label>
-                <input
-                    type="text"
-                    id="editServiceName"
-                    readonly
-                >
+                <button onclick="closeModal('servicePriceModal')">
+                    ✕
+                </button>
             </div>
 
-            <div class="form-group">
-                <label>Description</label>
-                <input
-                    type="text"
-                    id="editServiceDescription"
-                    readonly
-                >
+            <div class="modal-body">
+
+                <input type="hidden" id="editServiceTypeId">
+
+                <div class="form-group">
+                    <label>Service Type</label>
+                    <input type="text" id="editServiceName" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="editServiceDescription" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label>Base Price</label>
+
+                    <input type="number" id="editServicePrice" min="0" step="0.01" placeholder="0.00">
+                </div>
+
             </div>
 
-            <div class="form-group">
-                <label>Base Price</label>
+            <div class="modal-footer">
 
-                <input
-                    type="number"
-                    id="editServicePrice"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                >
+                <button class="btn btn-outline" onclick="closeModal('servicePriceModal')">
+                    Cancel
+                </button>
+
+                <button class="btn btn-primary" onclick="saveServicePrice()">
+                    Save Price
+                </button>
+
             </div>
-
-        </div>
-
-        <div class="modal-footer">
-
-            <button
-                class="btn btn-outline"
-                onclick="closeModal('servicePriceModal')">
-                Cancel
-            </button>
-
-            <button
-                class="btn btn-primary"
-                onclick="saveServicePrice()">
-                Save Price
-            </button>
 
         </div>
 
     </div>
-
-</div>
 
 
     <!-- Load your JS files LAST -->

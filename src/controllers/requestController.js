@@ -2,6 +2,7 @@
 const Request = require('../models/requestModel');
 const Vehicle = require('../models/vehicleModel');
 const db = require('../database/database');
+const Notification = require('../models/notificationModel');
 
 exports.createRequest = async (req, res) => {
     try {
@@ -14,7 +15,6 @@ exports.createRequest = async (req, res) => {
         }
 
 
-        // 1. CHECK FOR EXISTING ACTIVE REQUEST
 
         const activeRequest = await Request.getActiveByUser(user_id);
 
@@ -28,8 +28,6 @@ exports.createRequest = async (req, res) => {
             });
         }
 
-
-        // 2. CHECK REQUEST COOLDOWN
 
         const latestRequest =
             await Request.getLatestByUserForCooldown(user_id);
@@ -55,8 +53,6 @@ exports.createRequest = async (req, res) => {
             }
         }
 
-
-        // 3. VALIDATE THE VEHICLE BELONGS TO THIS USER
 
         // vehicle_id must reference a vehicle owned by the requesting
         // customer — never trust it blindly, or a user could submit a
@@ -137,6 +133,120 @@ exports.getAllRequests = async (req, res) => {
         res.status(500).json({ error: "Failed to load requests" });
     }
 };
+exports.getPendingRequests = async (req, res) => {
+    // Role check (authorization). If you want, move this to a middleware.
+    if (req.user.role !== "driver") {
+        return res.status(403).json({ error: "Only drivers can access this endpoint" });
+    }
+
+    try {
+        const requests = await Request.findPendingUnassigned();
+        return res.json(requests);
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+};
+
+exports.getMyTrips = async (req, res) => {
+    const driverId = req.user.id;
+
+    try {
+        const trips = await Request.findByDriverId(driverId);
+        return res.json(trips);
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+};
+
+exports.acceptRequest = async (req, res) => {
+    const driverId = req.user.id;
+    const { id } = req.params;
+
+    console.log('=================================');
+    console.log('DRIVER ACCEPT JOB');
+    console.log('Request ID:', id);
+    console.log('Driver ID:', driverId);
+    console.log('=================================');
+
+    try {
+        // ---- 1. Look up the request ----
+        const result = await Request.findSerVice(id);
+
+        console.log('Accept request query result:', result);
+
+        // Your db.query() returns rows directly,
+        // but this also safely handles [rows, fields].
+        const rows = Array.isArray(result[0]) ? result[0] : result;
+
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: 'Request not found' });
+        }
+
+        const request = rows[0];
+        console.log('Request found:', request);
+
+        // ---- 2. Business rules ----
+        if (request.status !== 'pending') {
+            return res.status(400).json({
+                error: `Request is not pending. Current status: ${request.status}`,
+            });
+        }
+
+        if (request.driver_id !== null) {
+            return res.status(400).json({
+                error: 'Already assigned to a driver',
+            });
+        }
+
+        // ---- 3. Atomic claim ----
+        const updateResult = await Request.assignDriver(id, driverId);
+
+        console.log('Accept update result:', updateResult);
+
+        const affectedRows = updateResult.affectedRows;
+
+        if (affectedRows === 0) {
+            return res.status(409).json({
+                error: 'Request was already accepted or assigned by another user.',
+            });
+        }
+
+        // ---- 4. Notify (non-fatal) ----
+        try {
+            await Notification.create({
+                userId: request.user_id,
+                requestId: id,
+                type: 'order',
+                message: `A driver has accepted your service request #${id}.`,
+            });
+        } catch (notifErr) {
+            console.error('Notification failed (non-fatal):', notifErr);
+        }
+
+        console.log(`Driver ${driverId} successfully accepted request ${id}`);
+
+        return res.json({
+            success: true,
+            message: 'Request accepted',
+            request_id: Number(id),
+            driver_id: Number(driverId),
+        });
+
+    } catch (err) {
+        console.error('=================================');
+        console.error('DRIVER ACCEPT ERROR');
+        console.error('Code:', err.code);
+        console.error('Message:', err.message);
+        console.error('SQL:', err.sql);
+        console.error('Stack:', err.stack);
+        console.error('=================================');
+
+        return res.status(500).json({
+            error: err.message || 'Failed to accept request',
+        });
+    }
+};
+
 
 exports.updateStatus = async (req, res) => {
     const driver_id = req.user.id;
@@ -279,5 +389,108 @@ exports.updateAddress = async (req, res) => {
     } catch (error) {
         console.error('updateAddress error:', error);
         res.status(500).json({ error: "Failed to update address" });
+    }
+};
+
+
+/**
+ * GET /api/service-requests/:id
+ * Fetch full details for a single service request.
+ */
+exports.getRequestById = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const rows = await Request.findDetailsById(id);
+
+        console.log('GET /:id rows:', rows); // debug
+
+        if (!rows || !rows[0]) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        res.json(rows[0]);
+    } catch (err) {
+        console.error('GET /:id error:', err.message); // this shows in Render logs
+        res.status(500).json({ error: 'Failed to fetch request: ' + err.message });
+    }
+};
+/**
+ * PUT /api/service-requests/:id
+ * Update customer info + request details for a given request.
+ */
+exports.updateRequest = async (req, res) => {
+    const { id } = req.params;
+    const { customer_name, customer_phone, service_type, location, status } = req.body;
+
+    try {
+        // ---- 1. Verify the request exists ----
+        const rows = await Request.findRequestAndUser(id);
+
+        if (!rows || !rows[0]) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        // ---- 2. Update customer info ----
+        await Request.updateCustomerInfo(id, customer_name, customer_phone);
+
+        // ---- 3. Update request details ----
+        await Request.updateRequestDetails(id, service_type, location, status);
+
+        // ---- 4. Respond ----
+        res.json({ success: true, message: `Request #${id} updated` });
+
+    } catch (err) {
+        console.error('PUT /:id error:', err.message);
+        res.status(500).json({
+            error: 'Failed to update request: ' + err.message,
+        });
+    }
+};
+exports.cancelRequest = async (req, res) => {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    try {
+        const rows = await Request.findForCancel(id);
+        const request = Array.isArray(rows) ? rows[0] : rows;
+        if (!request) return res.status(404).json({ error: 'Request not found' });
+
+        const isOwner =
+            (userRole === 'driver' && request.driver_id === userId) ||
+            (userRole === 'customer' && request.user_id === userId);
+        if (!isOwner) return res.status(403).json({ error: 'Not your trip' });
+
+        if (request.status === 'completed' || request.status === 'cancelled') {
+            return res.status(400).json({ error: 'Cannot cancel completed or already cancelled trip' });
+        }
+
+        if (userRole === 'customer') {
+            await Request.customerCancel(id, reason);
+            res.json({ success: true, message: 'Trip cancelled' });
+
+            if (request.driver_id) {
+                await Notification.create({
+                    userId: request.driver_id,
+                    requestId: id,
+                    type: 'order',
+                    message: `Request #${id} was cancelled by the customer.${reason ? ' Reason: ' + reason : ''}`
+                });
+            }
+        } else {
+            await Request.driverReleaseAssignment(id, userId, reason);
+            res.json({ success: true, message: 'Trip released back to the pending pool' });
+
+            await Notification.create({
+                userId: request.user_id,
+                requestId: id,
+                type: 'order',
+                message: `Your driver had to cancel. We're finding you a new driver.${reason ? ' Reason: ' + reason : ''}`
+            });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 };

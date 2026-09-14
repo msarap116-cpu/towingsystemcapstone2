@@ -10,21 +10,129 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
-    StatusBar
+    StatusBar,
+    Image
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import styles from '../styles/RegisterScreen.styles';
-import { Picker } from '@react-native-picker/picker';
-import API_BASE_URL from '../config';  //
+import API_BASE_URL from '../config';
 
-// const API_BASE_URL = 'http://192.168.0.104:3000'; // Change to your computer's IP
+// ===== VALIDATION HELPERS (mirrors your web registration.js) =====
 
+// Email validation with typo correction (same as web)
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return { isValid: false, message: 'Please enter a valid email address' };
+    }
+
+    const [localPart, domain] = email.split('@');
+
+    const domainCorrections = {
+        'gmail.con': 'gmail.com',
+        'gmail.cm': 'gmail.com',
+        'gmail.co': 'gmail.com',
+        'gmail.c': 'gmail.com',
+        'yahoo.con': 'yahoo.com',
+        'yahoo.cm': 'yahoo.com',
+        'yahoo.co': 'yahoo.com',
+        'hotmail.con': 'hotmail.com',
+        'hotmail.cm': 'hotmail.com',
+        'hotmail.co': 'hotmail.com',
+        'outlook.con': 'outlook.com',
+        'outlook.cm': 'outlook.com',
+        'outlook.co': 'outlook.com'
+    };
+
+    const tldCorrections = {
+        '.con': '.com',
+        '.can': '.com',
+        '.cmo': '.com',
+        '.comm': '.com',
+        '.comn': '.com',
+        '.coom': '.com',
+        '.cpm': '.com',
+        '.xom': '.com',
+        '.vom': '.com'
+    };
+
+    let correctedDomain = domain.toLowerCase();
+    let hasCorrection = false;
+
+    for (const [wrong, correct] of Object.entries(domainCorrections)) {
+        if (correctedDomain === wrong) {
+            correctedDomain = correct;
+            hasCorrection = true;
+            break;
+        }
+    }
+
+    if (!hasCorrection) {
+        for (const [wrong, correct] of Object.entries(tldCorrections)) {
+            if (correctedDomain.endsWith(wrong)) {
+                const domainWithoutTld = correctedDomain.slice(0, -wrong.length);
+                correctedDomain = domainWithoutTld + correct;
+                hasCorrection = true;
+                break;
+            }
+        }
+    }
+
+    const correctedEmail = `${localPart}@${correctedDomain}`;
+
+    if (hasCorrection && correctedEmail !== email) {
+        return {
+            isValid: true,
+            correctedEmail,
+            message: `Did you mean ${correctedEmail}?`
+        };
+    }
+
+    const commonDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'];
+    const domainWithoutDot = correctedDomain.replace(/\./g, '');
+    for (const commonDomain of commonDomains) {
+        const commonDomainWithoutDot = commonDomain.replace(/\./g, '');
+        if (domainWithoutDot === commonDomainWithoutDot && correctedDomain !== commonDomain) {
+            return {
+                isValid: true,
+                correctedEmail: `${localPart}@${commonDomain}`,
+                message: `Did you mean ${localPart}@${commonDomain}?`
+            };
+        }
+    }
+
+    return { isValid: true, correctedEmail: null };
+}
+
+// Password validation (same regex as your web)
+function validatePassword(password) {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&_]{8,}$/;
+    if (!passwordRegex.test(password)) {
+        return {
+            isValid: false,
+            message: 'Password must be 8+ chars with uppercase, lowercase, number, and special character (@$!%*?&)'
+        };
+    }
+    return { isValid: true };
+}
+
+// PH phone validation (same as your web)
+function validatePhoneNumber(phone) {
+    const cleanPhone = phone.replace(/[\s\-()]/g, '');
+    const phPhoneRegex = /^(09\d{9}|\+639\d{9})$/;
+    if (!phPhoneRegex.test(cleanPhone)) {
+        return {
+            isValid: false,
+            message: 'Enter a valid PH number: 09XXXXXXXXX or +639XXXXXXXXX'
+        };
+    }
+    return { isValid: true };
+}
+
+// ===== COMPONENT =====
 const RegisterScreen = ({ navigation }) => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         phone: '',
-        userType: '',
         password: '',
         confirmPassword: ''
     });
@@ -33,58 +141,111 @@ const RegisterScreen = ({ navigation }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [errors, setErrors] = useState({});
+    const [emailSuggestion, setEmailSuggestion] = useState('');
+    const [emailStatus, setEmailStatus] = useState({ text: '', color: '' });
 
     const updateField = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-        // Clear error for this field when user starts typing
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
         }
+        if (field === 'email') {
+            setEmailSuggestion('');
+            setEmailStatus({ text: '', color: '' });
+        }
     };
 
+    // ===== EMAIL AVAILABILITY (mirrors your web checkEmailAvailability) =====
+    const checkEmailAvailability = async (email) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/users/check-email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+
+            if (!response.ok) return { available: true };
+
+            const data = await response.json();
+
+            if (data.correctedEmail && data.correctedEmail !== email) {
+                setEmailSuggestion(`Did you mean: ${data.correctedEmail}? Tap to apply.`);
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Email check error:', error);
+            return { available: true };
+        }
+    };
+
+    // Triggered on email blur (mirrors web `blur` event)
+    const handleEmailBlur = async () => {
+        const email = formData.email.trim();
+        if (!email) return;
+
+        const emailValidation = validateEmail(email);
+
+        if (!emailValidation.isValid) {
+            setEmailStatus({ text: emailValidation.message, color: '#dc3545' });
+            return;
+        }
+
+        const emailToCheck = emailValidation.correctedEmail || email;
+
+        // Show typo suggestion
+        if (emailValidation.correctedEmail && emailValidation.correctedEmail !== email) {
+            setEmailSuggestion(`Did you mean: ${emailValidation.correctedEmail}? Tap to apply.`);
+        }
+
+        // Check availability
+        const result = await checkEmailAvailability(emailToCheck);
+
+        if (result && result.available === false) {
+            setEmailStatus({ text: '⚠️ Email already registered', color: '#dc3545' });
+        } else if (result) {
+            setEmailStatus({ text: '✓ Email available', color: '#28a745' });
+        }
+    };
+
+    const applyEmailSuggestion = () => {
+        const match = emailSuggestion.match(/Did you mean:\s*(\S+?)\?/);
+        if (match && match[1]) {
+            updateField('email', match[1]);
+            setEmailSuggestion('');
+            setTimeout(handleEmailBlur, 100);
+        }
+    };
+
+    // ===== FORM VALIDATION (mirrors your web submit handler) =====
     const validateForm = () => {
         const newErrors = {};
 
-        // Name validation
         if (!formData.name.trim()) {
             newErrors.name = 'Full name is required';
         } else if (formData.name.trim().length < 2) {
             newErrors.name = 'Name must be at least 2 characters';
         }
 
-        // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!formData.email.trim()) {
-            newErrors.email = 'Email is required';
-        } else if (!emailRegex.test(formData.email)) {
-            newErrors.email = 'Please enter a valid email address';
+        const emailValidation = validateEmail(formData.email.trim());
+        if (!emailValidation.isValid) {
+            newErrors.email = emailValidation.message;
         }
 
-        // Phone validation
-        const phoneRegex = /^[0-9]{10,11}$/;
-        if (!formData.phone.trim()) {
-            newErrors.phone = 'Phone number is required';
-        } else if (!phoneRegex.test(formData.phone.replace(/[^0-9]/g, ''))) {
-            newErrors.phone = 'Please enter a valid 10-11 digit phone number';
+        const passwordValidation = validatePassword(formData.password);
+        if (!passwordValidation.isValid) {
+            newErrors.password = passwordValidation.message;
         }
 
-        // User type validation
-        if (!formData.userType) {
-            newErrors.userType = 'Please select an account type';
-        }
-
-        // Password validation
-        if (!formData.password) {
-            newErrors.password = 'Password is required';
-        } else if (formData.password.length < 6) {
-            newErrors.password = 'Password must be at least 6 characters';
-        }
-
-        // Confirm password validation
         if (!formData.confirmPassword) {
             newErrors.confirmPassword = 'Please confirm your password';
         } else if (formData.password !== formData.confirmPassword) {
             newErrors.confirmPassword = 'Passwords do not match';
+        }
+
+        const phoneValidation = validatePhoneNumber(formData.phone);
+        if (!phoneValidation.isValid) {
+            newErrors.phone = phoneValidation.message;
         }
 
         setErrors(newErrors);
@@ -92,25 +253,33 @@ const RegisterScreen = ({ navigation }) => {
     };
 
     const handleRegister = async () => {
+        if (loading) return;
+
         if (!validateForm()) {
+            Alert.alert('Validation Error', 'Please fix the errors before submitting.');
             return;
         }
 
         setLoading(true);
 
         try {
+            const emailValidation = validateEmail(formData.email.trim());
+            const finalEmail = emailValidation.correctedEmail || formData.email.trim().toLowerCase();
+
+            const payload = {
+                name: formData.name.trim(),
+                email: finalEmail,
+                phone: formData.phone.trim(),
+                password: formData.password,
+                role: 'Customer' // matches your web payload
+            };
+
+            console.log('📤 Sending registration:', payload);
+
             const response = await fetch(`${API_BASE_URL}/users/register`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: formData.name.trim(),
-                    email: formData.email.trim().toLowerCase(),
-                    phone: formData.phone.trim(),
-                    password: formData.password,
-                    role: formData.userType
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
@@ -119,19 +288,16 @@ const RegisterScreen = ({ navigation }) => {
                 Alert.alert(
                     'Registration Successful!',
                     'Your account has been created. Please login to continue.',
-                    [
-                        {
-                            text: 'Go to Login',
-                            onPress: () => navigation.navigate('Login')
-                        }
-                    ]
+                    [{ text: 'Go to Login', onPress: () => navigation.navigate('Login') }]
                 );
             } else {
-                Alert.alert('Registration Failed', data.error || 'Unable to create account. Please try again.');
+                Alert.alert(
+                    'Registration Failed',
+                    data.error || data.message || 'Unable to create account. Please try again.'
+                );
             }
-
         } catch (error) {
-            console.error('Registration error:', error);
+            console.error('❌ Registration error:', error);
             Alert.alert(
                 'Network Error',
                 'Cannot connect to server. Please check your connection and make sure the backend is running.'
@@ -140,13 +306,6 @@ const RegisterScreen = ({ navigation }) => {
             setLoading(false);
         }
     };
-
-    const userTypes = [
-        { label: 'Select account type', value: '' },
-        { label: 'Customer', value: 'customer' },
-        { label: 'Driver', value: 'driver' },
-        { label: 'Dispatcher', value: 'dispatcher' }
-    ];
 
     return (
         <KeyboardAvoidingView
@@ -160,97 +319,92 @@ const RegisterScreen = ({ navigation }) => {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                {/* Navigation Bar */}
+                {/* Navbar */}
                 <View style={styles.navbar}>
                     <View style={styles.navContainer}>
                         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-                            <Text style={styles.navbarBrand}>Tow Assist</Text>
+                            <Text style={styles.navbarBrand}>🎉 GoodWrench</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
 
-                {/* Registration Card */}
                 <View style={styles.card}>
-                    <Text style={styles.title}>Create Account</Text>
+                    <View style={styles.headerContainer}>
+                        <Text style={styles.headerIcon}>📝</Text>
+                        <Text style={styles.title}>Create Account</Text>
+                    </View>
 
-                    {/* Name Input */}
+                    {/* Full Name */}
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Full Name</Text>
                         <TextInput
                             style={[styles.input, errors.name && styles.inputError]}
                             placeholder="Enter your full name"
-                            placeholderTextColor = "#999"
+                            placeholderTextColor="#999"
                             value={formData.name}
-                            onChangeText={(value) => updateField('name', value)}
+                            onChangeText={(v) => updateField('name', v)}
                             autoCapitalize="words"
                             editable={!loading}
                         />
-                        {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+                        {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
                     </View>
 
-                    {/* Email Input */}
+                    {/* Email */}
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Email Address</Text>
                         <TextInput
                             style={[styles.input, errors.email && styles.inputError]}
                             placeholder="Enter your email"
-                            placeholderTextColor = "#999"
+                            placeholderTextColor="#999"
                             value={formData.email}
-                            onChangeText={(value) => updateField('email', value)}
+                            onChangeText={(v) => updateField('email', v)}
+                            onBlur={handleEmailBlur}
                             autoCapitalize="none"
                             keyboardType="email-address"
                             editable={!loading}
                         />
-                        {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+                        {emailSuggestion ? (
+                            <TouchableOpacity onPress={applyEmailSuggestion}>
+                                <Text style={styles.emailSuggestion}>{emailSuggestion}</Text>
+                            </TouchableOpacity>
+                        ) : null}
+                        {emailStatus.text ? (
+                            <Text style={[styles.statusText, { color: emailStatus.color }]}>
+                                {emailStatus.text}
+                            </Text>
+                        ) : null}
+                        {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
                     </View>
 
-                    {/* Phone Input */}
+                    {/* Phone */}
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Phone Number</Text>
                         <TextInput
                             style={[styles.input, errors.phone && styles.inputError]}
-                            placeholder="Enter your phone number"
-                            placeholderTextColor = "#999"
+                            placeholder="09XXXXXXXXX or +639XXXXXXXXX"
+                            placeholderTextColor="#999"
                             value={formData.phone}
-                            onChangeText={(value) => updateField('phone', value)}
+                            onChangeText={(v) => updateField('phone', v)}
                             keyboardType="phone-pad"
                             editable={!loading}
                         />
-                        {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+                        {errors.phone ? <Text style={styles.errorText}>{errors.phone}</Text> : null}
                     </View>
 
-                    {/* Account Type Picker */}
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Account Type</Text>
-                        <View style={[styles.pickerContainer, errors.userType && styles.inputError]}>
-                            <Picker
-                                selectedValue={formData.userType}
-                                onValueChange={(value) => updateField('userType', value)}
-                                enabled={!loading}
-                                style={styles.picker}
-                            >
-                                {userTypes.map((type) => (
-                                    <Picker.Item
-                                        key={type.value}
-                                        label={type.label}
-                                        value={type.value}
-                                    />
-                                ))}
-                            </Picker>
-                        </View>
-                        {errors.userType && <Text style={styles.errorText}>{errors.userType}</Text>}
-                    </View>
-
-                    {/* Password Input */}
+                    {/* Password */}
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Password</Text>
                         <View style={styles.passwordContainer}>
                             <TextInput
-                                style={[styles.input, styles.passwordInput, errors.password && styles.inputError]}
+                                style={[
+                                    styles.input,
+                                    styles.passwordInput,
+                                    errors.password && styles.inputError
+                                ]}
                                 placeholder="Create a password"
-                                placeholderTextColor = "#999"
+                                placeholderTextColor="#999"
                                 value={formData.password}
-                                onChangeText={(value) => updateField('password', value)}
+                                onChangeText={(v) => updateField('password', v)}
                                 secureTextEntry={!showPassword}
                                 editable={!loading}
                                 color="#000"
@@ -264,19 +418,26 @@ const RegisterScreen = ({ navigation }) => {
                                 </Text>
                             </TouchableOpacity>
                         </View>
-                        {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+                        <Text style={styles.helperText}>
+                            Must be 8+ chars with uppercase, lowercase, number, and special character (@$!%*?&)
+                        </Text>
+                        {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
                     </View>
 
-                    {/* Confirm Password Input */}
+                    {/* Confirm Password */}
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Confirm Password</Text>
                         <View style={styles.passwordContainer}>
                             <TextInput
-                                style={[styles.input, styles.passwordInput, errors.confirmPassword && styles.inputError]}
+                                style={[
+                                    styles.input,
+                                    styles.passwordInput,
+                                    errors.confirmPassword && styles.inputError
+                                ]}
                                 placeholder="Confirm your password"
-                                placeholderTextColor = "#999"
+                                placeholderTextColor="#999"
                                 value={formData.confirmPassword}
-                                onChangeText={(value) => updateField('confirmPassword', value)}
+                                onChangeText={(v) => updateField('confirmPassword', v)}
                                 secureTextEntry={!showConfirmPassword}
                                 editable={!loading}
                                 color="#000"
@@ -290,10 +451,12 @@ const RegisterScreen = ({ navigation }) => {
                                 </Text>
                             </TouchableOpacity>
                         </View>
-                        {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+                        {errors.confirmPassword ? (
+                            <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+                        ) : null}
                     </View>
 
-                    {/* Register Button */}
+                    {/* Submit */}
                     <TouchableOpacity
                         style={[styles.registerButton, loading && styles.registerButtonDisabled]}
                         onPress={handleRegister}
@@ -306,14 +469,10 @@ const RegisterScreen = ({ navigation }) => {
                         )}
                     </TouchableOpacity>
 
-                    {/* Footer */}
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>
                             Already have an account?{' '}
-                            <Text
-                                style={styles.link}
-                                onPress={() => navigation.navigate('Login')}
-                            >
+                            <Text style={styles.link} onPress={() => navigation.navigate('Login')}>
                                 Login here
                             </Text>
                         </Text>
@@ -324,6 +483,155 @@ const RegisterScreen = ({ navigation }) => {
     );
 };
 
-
+// ===== STYLES (Caltex palette from your web CSS) =====
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#eaeef2'
+    },
+    scrollContainer: {
+        flexGrow: 1,
+        paddingBottom: 40
+    },
+    navbar: {
+        backgroundColor: '#0046a8',
+        paddingVertical: 14,
+        paddingHorizontal: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3
+    },
+    navContainer: {
+        flexDirection: 'row',
+        alignItems: 'center'
+    },
+    navbarBrand: {
+        color: '#fff',
+        fontSize: 20,
+        fontWeight: '700'
+    },
+    card: {
+        backgroundColor: '#fff',
+        margin: 20,
+        borderRadius: 24,
+        padding: 24,
+        borderWidth: 1,
+        borderColor: '#d3d9e0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.06,
+        shadowRadius: 30,
+        elevation: 4
+    },
+    headerContainer: {
+        alignItems: 'center',
+        marginBottom: 24
+    },
+    headerIcon: {
+        fontSize: 40,
+        marginBottom: 4
+    },
+    title: {
+        fontSize: 26,
+        fontWeight: '800',
+        color: '#0f172a',
+        letterSpacing: -0.5
+    },
+    formGroup: {
+        marginBottom: 16
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#0f172a',
+        marginBottom: 6
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#d3d9e0',
+        borderRadius: 16,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        fontSize: 15,
+        backgroundColor: '#fafcff',
+        color: '#0f172a'
+    },
+    inputError: {
+        borderColor: '#dc3545'
+    },
+    passwordContainer: {
+        position: 'relative',
+        justifyContent: 'center'
+    },
+    passwordInput: {
+        paddingRight: 48
+    },
+    eyeButton: {
+        position: 'absolute',
+        right: 12,
+        padding: 6
+    },
+    eyeButtonText: {
+        fontSize: 18
+    },
+    helperText: {
+        fontSize: 12,
+        color: '#5a6c7d',
+        marginTop: 6,
+        lineHeight: 16
+    },
+    errorText: {
+        color: '#dc3545',
+        fontSize: 13,
+        marginTop: 5
+    },
+    statusText: {
+        fontSize: 13,
+        marginTop: 5
+    },
+    emailSuggestion: {
+        color: '#856404',
+        backgroundColor: '#fff3cd',
+        padding: 8,
+        borderRadius: 4,
+        marginTop: 5,
+        fontSize: 13
+    },
+    registerButton: {
+        backgroundColor: '#e30613',
+        borderRadius: 40,
+        paddingVertical: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 12,
+        shadowColor: '#e30613',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 4
+    },
+    registerButtonDisabled: {
+        opacity: 0.6
+    },
+    registerButtonText: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: '700'
+    },
+    footer: {
+        marginTop: 24,
+        alignItems: 'center'
+    },
+    footerText: {
+        fontSize: 14,
+        color: '#5a6c7d'
+    },
+    link: {
+        color: '#0046a8',
+        fontWeight: '600'
+    }
+});
 
 export default RegisterScreen;

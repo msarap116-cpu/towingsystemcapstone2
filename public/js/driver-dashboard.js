@@ -509,6 +509,17 @@ async function initDriverMap() {
         maxZoom: 19
     }).addTo(map);
 
+    setTimeout(() => {
+    if (typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') {
+        map.invalidateSize();
+    }
+}, 300);
+
+window.addEventListener('resize', () => {
+    if (typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') {
+        map.invalidateSize();
+    }
+});
     if (customerLat && customerLng) {
         customerMarker = L.marker([customerLat, customerLng], { icon: customerIcon })
             .addTo(map)
@@ -756,7 +767,7 @@ async function sendDriverLocation(lat, lng) {
 // ---------- REFRESH MAP ----------
 function refreshMap() {
     initDriverMap();
-    showToast('🔄 Map refreshed');
+    showToast('Map refreshed');
 }
 window.refreshMap = refreshMap;
 
@@ -828,26 +839,28 @@ function setupEventListeners() {
     // });
 
     // Tab switching with map init
-    document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
-        item.addEventListener('click', function () {
-            const tabId = this.getAttribute('data-tab');
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            this.classList.add('active');
-            document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
-            const target = document.getElementById('tab-' + tabId);
-            if (target) {
-                target.style.display = 'flex';
-                if (tabId === 'tracking') {
-                    setTimeout(() => {
-                        initDriverMap();
-                    }, 200);
-                }
-                if (tabId === 'dashboard' && map) {
-                    setTimeout(() => map.invalidateSize(), 100);
-                }
+document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
+    item.addEventListener('click', () => {
+        const tab = item.dataset.tab;
+
+        // hide all tabs
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+        // show selected
+        document.getElementById('tab-' + tab)?.classList.add('active');
+        item.classList.add('active');
+
+        // If opening the tracking tab and map isn't ready, init it
+        if (tab === 'tracking') {
+            if (typeof map === 'undefined' || !map) {
+                initDriverMap();
+            } else {
+                setTimeout(() => map.invalidateSize(), 150);
             }
-        });
+        }
     });
+});
 
     // Search filter
     document.getElementById('dashboardSearch')?.addEventListener('input', function (e) {

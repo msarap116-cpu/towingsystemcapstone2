@@ -61,7 +61,7 @@ const LeafletMap = ({
 
           L.marker([${customerLat}, ${customerLng}], { icon: customerIcon })
             .addTo(map)
-            .bindPopup('${address || "Your Location"}')
+            .bindPopup('${address || "customer"}')
             .openPopup();
 
           // Driver marker if available (red)
