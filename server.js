@@ -146,7 +146,7 @@ app.get('/api/geocode/reverse', async (req, res) => {
     }
 
     const params = new URLSearchParams({
-      key: process.env.LOCATIONIQ_KEY,
+      key: process.env.LOCATION_ID_KEY,
       lat: String(lat),
       lon: String(lng),
       format: 'json',
@@ -178,7 +178,7 @@ app.get('/api/geocode/reverse', async (req, res) => {
   }
 });
 
-
+// Forward geocode: search query → address suggestions
 app.get('/api/geocode/search', async (req, res) => {
   try {
     const { q } = req.query;
@@ -188,7 +188,7 @@ app.get('/api/geocode/search', async (req, res) => {
     }
 
     const params = new URLSearchParams({
-      key: process.env.LOCATIONIQ_ID_KEY,
+      key: process.env.LOCATION_ID_KEY,
       q: `${q}, Philippines`,
       format: 'json',
       addressdetails: '1',
@@ -214,6 +214,7 @@ app.get('/api/geocode/search', async (req, res) => {
     return res.status(500).json({ error: 'Forward geocoding failed', details: error.message });
   }
 });
+
 
 
 async function startServer() {
