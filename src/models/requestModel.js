@@ -191,8 +191,7 @@ const Request = {
     return db.query(sql, [status, paymentId]);
 },
 
- async getLatestByUser(user_id) {
-
+async getLatestByUser(user_id) {
     const sql = `
         SELECT
             r.request_id,
@@ -205,12 +204,15 @@ const Request = {
             r.driver_id,
 
             st.name AS service_type,
-
             v.vehicle_type,
             v.license_plate,
 
             dl.lat AS driver_lat,
-            dl.lng AS driver_lng
+            dl.lng AS driver_lng,
+
+            -- 👇 NEW: driver info
+            du.name AS driver_name,
+            du.phone AS driver_phone
 
         FROM service_requests r
 
@@ -228,18 +230,19 @@ const Request = {
                 WHERE dl2.driver_id = r.driver_id
             )
 
+        -- 👇 NEW: join users to get driver's name/phone
+        LEFT JOIN users du
+            ON du.user_id = r.driver_id
+
         WHERE r.user_id = ?
 
         ORDER BY r.created_at DESC
-
         LIMIT 5
     `;
 
     const rows = await db.query(sql, [user_id]);
-
     return rows;
- },
-
+},
   async getLatestPendingForDriver() {
   const sql = `
     SELECT

@@ -251,7 +251,7 @@ async function loadUserMap() {
                 '<p style="padding:1rem;color:#888">Error loading map. Please refresh.</p>';
         }
     }
-}
+};
 
 // ---------- REFRESH MAP ----------
 function refreshMap() {
@@ -385,12 +385,30 @@ async function pollDriverLocation() {
 
 // Show driver on map and draw route
 async function showDriverOnMap(driverLat, driverLng, customerLat, customerLng) {
+    // Pull driver info from the latest request data
+    const driverName  = latestRequestData?.driver_name  || 'Driver';
+    const driverPhone = latestRequestData?.driver_phone || '';
+    const vehicleType = latestRequestData?.vehicle_type || '';
+    const plate       = latestRequestData?.license_plate || '';
+
+    // Build popup HTML once
+    const popupHtml = `
+        <strong>🚗 ${driverName}</strong><br>
+        ${vehicleType ? `${vehicleType}` : ''}
+        ${plate ? ` • ${plate}` : ''}
+        ${driverPhone ? `<br>📞 ${driverPhone}` : ''}
+        <br><em>On the way</em>
+    `;
+
     if (!driverMarker) {
         driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
             .addTo(map)
-            .bindPopup('<strong>🚗 Driver is on the way</strong>');
+            .bindPopup(popupHtml);
     } else {
         driverMarker.setLatLng([driverLat, driverLng]);
+
+        // Refresh popup content in case driver info changed
+        driverMarker.setPopupContent(popupHtml);
     }
 
     const distance = calculateDistance(driverLat, driverLng, customerLat, customerLng);
