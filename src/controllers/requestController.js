@@ -91,6 +91,22 @@ exports.createRequest = async (req, res) => {
             );
         }
 
+        // 4.5 NOTIFY — new request is waiting, let drivers (and admins) know
+        // try {
+            await Notification.createForRole('driver', {
+                requestId: requestId,
+                type: 'order',
+                message: `New service request #${requestId} is available.`
+            });
+
+            await Notification.createForRole('admin', {
+                requestId: requestId,
+                type: 'order',
+                message: `New service request #${requestId} was submitted.`
+            });
+        // } catch (notifErr) {
+        //     console.error('Notification failed (non-fatal):', notifErr);
+        // }
 
         // 5. SUCCESS
 

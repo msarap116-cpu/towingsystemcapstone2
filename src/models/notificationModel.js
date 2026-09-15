@@ -1,3 +1,4 @@
+//models/notificationModel.js
 const db = require('../database/database');
 
 async function create({ userId, requestId = null, type, message }) {
@@ -17,22 +18,32 @@ async function create({ userId, requestId = null, type, message }) {
 }
 
 // Broadcast to every user with a given role (e.g. all admins)
+// models/notificationModel.js — replace createForRole with this debug version temporarily
 async function createForRole(role, { requestId = null, type, message }) {
   const users = await db.query(
     `SELECT user_id FROM users WHERE role = ? AND is_active = 1`,
     [role]
   );
-  if (!users || users.length === 0) return;
+
+  console.log(`[createForRole] role="${role}" found users:`, users);
+
+  if (!users || users.length === 0) {
+    console.log(`[createForRole] role="${role}" — NO MATCHING USERS, skipping insert`);
+    return;
+  }
 
   const placeholders = users.map(() => '(?, ?, ?, ?)').join(', ');
   const values = users.flatMap(u => [u.user_id, requestId, type, message]);
 
-  await db.query(
+  console.log(`[createForRole] role="${role}" inserting ${values.length / 4} rows`);
+
+  const result = await db.query(
     `INSERT INTO notifications (user_id, request_id, type, message) VALUES ${placeholders}`,
     values
   );
-}
 
+  console.log(`[createForRole] role="${role}" insert result:`, result);
+}
 async function getByUser(userId, limit = 20, offset = 0) {
   return db.query(
     `SELECT * FROM notifications
@@ -67,4 +78,6 @@ async function markAllRead(userId) {
   );
 }
 
-module.exports = { create, createForRole, getByUser, getUnreadCount, markRead, markAllRead };
+
+
+module.exports = { create, createForRole, getByUser, getUnreadCount, markRead, markAllRead,createForRole };

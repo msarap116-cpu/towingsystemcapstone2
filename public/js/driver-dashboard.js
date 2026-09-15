@@ -516,17 +516,20 @@ async function initDriverMap() {
 }, 300);
 
 window.addEventListener('resize', () => {
+
     if (typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') {
         map.invalidateSize();
     }
 });
-    if (customerLat && customerLng) {
-        customerMarker = L.marker([customerLat, customerLng], { icon: customerIcon })
-            .addTo(map)
-            .bindPopup(`<strong>📍 Customer Location</strong><br>${customerAddress || 'Customer'}`)
-            .openPopup();
-        startGPSTracking(customerLat, customerLng);
-    }
+if (customerLat && customerLng) {
+    const customerName = activeTrip.customer_name || 'Customer';
+
+    customerMarker = L.marker([customerLat, customerLng], { icon: customerIcon })
+        .addTo(map)
+        .bindPopup(`<strong>📍 ${customerName}</strong><br>${customerAddress || 'Customer location'}`)
+        .openPopup();
+    startGPSTracking(customerLat, customerLng);
+}
 
     // Always show driver location
     if (navigator.geolocation) {
@@ -599,14 +602,17 @@ function startGPSTracking(customerLat, customerLng) {
 }
 
 async function onDriverLocationUpdate(position, customerLat, customerLng) {
+
     if (!map) return;
     const driverLat = position.coords.latitude;
     const driverLng = position.coords.longitude;
 
+            const user = JSON.parse(sessionStorage.getItem("user") || '{}');
+    const driverName = user.name || 'Customer';
     if (!driverMarker) {
         driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
             .addTo(map)
-            .bindPopup('🚗 You (Driver)');
+            .bindPopup(driverName);
         map.fitBounds(
             L.latLngBounds([driverLat, driverLng], [customerLat, customerLng]),
             { padding: [60, 60] }
@@ -667,6 +673,7 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
     }
 
     try {
+
         const url =
             `https://router.project-osrm.org/route/v1/driving/` +
             `${fromLng},${fromLat};${toLng},${toLat}` +
@@ -676,6 +683,8 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
 
         const response = await fetch(url);
 
+                const user = JSON.parse(sessionStorage.getItem("user") || '{}');
+    const driverName = user.name || 'Customer';
         if (!response.ok) {
             throw new Error(`OSRM HTTP ${response.status}`);
         }
@@ -712,7 +721,7 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
 
         if (driverMarker) {
             driverMarker.setPopupContent(`
-                <strong>🚗 You (Driver)</strong><br>
+                <strong>${driverName}</strong><br>
                 Distance: <strong>${distanceKm} km</strong><br>
                 Est. arrival: <strong>${durationMin} min</strong>
             `);

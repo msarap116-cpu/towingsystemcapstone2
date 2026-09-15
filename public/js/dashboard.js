@@ -108,6 +108,11 @@ async function loadUserMap() {
         return;
     }
 
+       // Get the customer name the same way displayUserInfo() does
+    const user = JSON.parse(sessionStorage.getItem("user") || '{}');
+    const customerName = user.name || 'Customer';
+
+
     try {
         const res = await fetch(`${API_BASE_URL}/requests/latest`, {
             headers: {
@@ -202,10 +207,12 @@ async function loadUserMap() {
             )
                 .addTo(map)
                 .bindPopup(
-                    `<strong>📍 Your Location</strong><br>${
+                    `<strong>📍 ${customerName}</strong><br>${
                         request.address || 'Your requested location'
                     }`
+
                 )
+
                 .openPopup();
 
             setTimeout(() => {
@@ -377,41 +384,28 @@ async function pollDriverLocation() {
 }
 
 // Show driver on map and draw route
-function showDriverOnMap(
-    driverLat,
-    driverLng,
-    customerLat,
-    customerLng
-) {
-    if (!map) {
-        return;
-    }
-
-    const driverPosition = [driverLat, driverLng];
-
+async function showDriverOnMap(driverLat, driverLng, customerLat, customerLng) {
     if (!driverMarker) {
-        driverMarker = L.marker(
-            driverPosition,
-            { icon: driverIcon }
-        )
+        driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
             .addTo(map)
-            .bindPopup('🚗 Driver location');
+            .bindPopup('<strong>🚗 Driver is on the way</strong>');
     } else {
-        driverMarker.setLatLng(driverPosition);
+        driverMarker.setLatLng([driverLat, driverLng]);
     }
 
-    // Optional: keep the driver and customer visible.
-    const bounds = L.latLngBounds([
-        [customerLat, customerLng],
-        driverPosition
-    ]);
+    const distance = calculateDistance(driverLat, driverLng, customerLat, customerLng);
+    if (parseFloat(distance) > 0.05) { // 0.05 km = 50 meters
+        const bounds = L.latLngBounds(
+            [driverLat, driverLng],
+            [customerLat, customerLng]
+        );
+        map.fitBounds(bounds, { padding: [60, 60] });
+    } else {
+        map.setView([customerLat, customerLng], 16);
+    }
 
-    map.fitBounds(bounds, {
-        padding: [50, 50],
-        maxZoom: 16
-    });
+    await drawRoute(driverLat, driverLng, customerLat, customerLng);
 }
-
 
 //draw route in the map
 async function drawRoute(fromLat, fromLng, toLat, toLng) {
@@ -552,60 +546,66 @@ function handleRecenterClick() {
     btn.disabled = true;
     btn.textContent = 'Locating…';
 
-   navigator.geolocation.getCurrentPosition(
-    (position) => {
-        btn.disabled = false;
-        btn.textContent = originalText;
+    // Get the customer name the same way displayUserInfo() does
+    const user = JSON.parse(sessionStorage.getItem("user") || '{}');
+    const customerName = user.name || 'You';
+    const popupText = `<b>${customerName}</b><br>You are here`;
 
-        const { latitude, longitude } = position.coords;
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            btn.disabled = false;
+            btn.textContent = originalText;
 
-        if (map) {
-            map.setView([latitude, longitude], 16);
+            const { latitude, longitude } = position.coords;
 
-            if (myLocationMarker) {
-                myLocationMarker.setLatLng([latitude, longitude]);
+            if (map) {
+                map.setView([latitude, longitude], 16);
+
+                if (myLocationMarker) {
+                    myLocationMarker.setLatLng([latitude, longitude]);
+                    myLocationMarker.setPopupContent(popupText);
+                } else {
+                    myLocationMarker = L.marker([latitude, longitude], { icon: myLocationIcon })
+                        .addTo(map)
+                        .bindPopup(popupText);
+                }
             } else {
+                const mapDiv = document.getElementById('map');
+                if (!mapDiv) return;
+
+                mapDiv.innerHTML = '';
+
+                map = L.map('map').setView([latitude, longitude], 16);
+
+                L.tileLayer(
+                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    {
+                        attribution:
+                            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                        maxZoom: 19
+                    }
+                ).addTo(map);
+
                 myLocationMarker = L.marker([latitude, longitude], { icon: myLocationIcon })
                     .addTo(map)
-                    .bindPopup('You are here');
+                    .bindPopup(popupText)
+                    .openPopup();
             }
-        } else {
-            const mapDiv = document.getElementById('map');
-            if (!mapDiv) return;
+        },
+        (error) => {
+            btn.disabled = false;
+            btn.textContent = originalText;
 
-            mapDiv.innerHTML = '';
-
-            map = L.map('map').setView([latitude, longitude], 16);
-
-            L.tileLayer(
-                'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                {
-                    attribution:
-                        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                    maxZoom: 19
-                }
-            ).addTo(map);
-
-            myLocationMarker = L.marker([latitude, longitude], { icon: myLocationIcon })
-                .addTo(map)
-                .bindPopup('You are here')
-                .openPopup();
-        }
-    },
-    (error) => {
-        btn.disabled = false;
-        btn.textContent = originalText;
-
-        let msg = 'Unable to get your location.';
-        if (error.code === error.PERMISSION_DENIED) {
-            msg = 'Location permission denied. Please enable location access in your browser settings.';
-        } else if (error.code === error.TIMEOUT) {
-            msg = 'Location request timed out. Please try again.';
-        }
-        alert(msg);
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-);
+            let msg = 'Unable to get your location.';
+            if (error.code === error.PERMISSION_DENIED) {
+                msg = 'Location permission denied. Please enable location access in your browser settings.';
+            } else if (error.code === error.TIMEOUT) {
+                msg = 'Location request timed out. Please try again.';
+            }
+            alert(msg);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
 }
 
 // Call this once on page load

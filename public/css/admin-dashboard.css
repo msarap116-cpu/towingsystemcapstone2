@@ -41,7 +41,7 @@
         }
 
         .brand-icon {
-            background: #1d7a4f;
+            /* background: #1d7a4f;
             width: 38px;
             height: 38px;
             border-radius: 12px;
@@ -50,7 +50,8 @@
             justify-content: center;
             font-size: 18px;
             color: white;
-            font-weight: 700;
+            font-weight: 700; */
+            display: none;
         }
 
         .brand h1 {

@@ -1,3 +1,5 @@
+//js/notifications.js
+
 (function () {
   const typeToPath = {
     order: '/requests',
