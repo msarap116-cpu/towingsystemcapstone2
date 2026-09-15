@@ -322,7 +322,7 @@ async function loadAdmins() {
             return;
         }
 
-        container.innerHTML = `
+       container.innerHTML = `
     <div class="table-responsive">
         <table class="drivers-table">
             <thead>
@@ -335,46 +335,37 @@ async function loadAdmins() {
                     <th>Performance</th>
                     <th>Trips</th>
                     <th>Earnings (30d)</th>
+                    <th>Actions</th>  <!-- NEW -->
                 </tr>
             </thead>
 
             <tbody>
                 ${drivers.map(d => `
                     <tr>
-                        <td>
-                            <strong>${d.name || 'Unnamed'}</strong>
-                        </td>
-
-                        <td>
-                            ${d.phone || 'No phone'}
-                        </td>
-
-                        <td>
-                            ${d.email || 'No email'}
-                        </td>
-
-                        <td>
-                            ${d.vehicle_plate || 'No plate'}
-                        </td>
-
+                        <td><strong>${d.name || 'Unnamed'}</strong></td>
+                        <td>${d.phone || 'No phone'}</td>
+                        <td>${d.email || 'No email'}</td>
+                        <td>${d.vehicle_plate || 'No plate'}</td>
                         <td>
                             <span class="status-${d.status || 'inactive'}">
                                 ${d.status || 'Inactive'}
                             </span>
                         </td>
-
                         <td>
                             ${d.rating
-                ? Number(d.rating).toFixed(1) + ' ⭐'
-                : 'No rating'}
+                                ? Number(d.rating).toFixed(1) + ' ⭐'
+                                : 'No rating'}
                         </td>
-
+                        <td>${d.total_completed || 0}</td>
+                        <td>₱${Number(d.earnings_30d || 0).toFixed(2)}</td>
                         <td>
-                            ${d.total_completed || 0}
-                        </td>
-
-                        <td>
-                            ₱${Number(d.earnings_30d || 0).toFixed(2)}
+                            <button
+                                class="btn-delete"
+                                onclick="deleteDriver(${d.user_id})"
+                                title="Delete driver"
+                            >
+                                🗑️
+                            </button>
                         </td>
                     </tr>
                 `).join('')}
