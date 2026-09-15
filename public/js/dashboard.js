@@ -400,16 +400,14 @@ async function showDriverOnMap(driverLat, driverLng, customerLat, customerLng) {
         <br><em>On the way</em>
     `;
 
-    if (!driverMarker) {
-        driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
-            .addTo(map)
-            .bindPopup(popupHtml);
-    } else {
-        driverMarker.setLatLng([driverLat, driverLng]);
-
-        // Refresh popup content in case driver info changed
-        driverMarker.setPopupContent(popupHtml);
-    }
+if (!driverMarker) {
+    driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
+        .addTo(map)
+        .bindPopup(buildDriverPopup());
+} else {
+    driverMarker.setLatLng([driverLat, driverLng]);
+    driverMarker.setPopupContent(buildDriverPopup());
+}
 
     const distance = calculateDistance(driverLat, driverLng, customerLat, customerLng);
     if (parseFloat(distance) > 0.05) { // 0.05 km = 50 meters
@@ -452,7 +450,8 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
         // Calculate distance and duration
         const distanceKm = (data.routes[0].distance / 1000).toFixed(1);
         const durationMin = Math.ceil(data.routes[0].duration / 60);
-// NEW — push real ETA into the badge
+
+        // NEW — push real ETA into the badge
 const etaEl = document.getElementById('etaDisplay');
 if (etaEl) {
     etaEl.style.display = '';
@@ -470,15 +469,9 @@ if (etaEl) {
         }).addTo(map);
 
 
-        if (driverMarker) {
-            driverMarker.setPopupContent(
-                `<strong>🚗 Driver is on the way</strong><br>
-
-                 Distance: <strong>${distanceKm} km</strong><br>
-                 ETA: <strong>${durationMin} min</strong>`
-            );
-        }
-
+if (driverMarker) {
+    driverMarker.setPopupContent(buildDriverPopup({ distanceKm, durationMin }));
+}
 
         const midPoint = getMidpoint(fromLat, fromLng, toLat, toLng);
         const routeSummary = L.popup()
@@ -503,26 +496,18 @@ if (etaEl) {
         // Calculate straight-line distance as fallback
         const straightDistance = calculateDistance(fromLat, fromLng, toLat, toLng);
 
-        if (driverMarker) {
-            driverMarker.setPopupContent(
-                `<strong>🚗 Driver is on the way</strong><br>
-                 Straight line distance: <strong>${straightDistance} km</strong><br>
-                 (Routing temporarily unavailable)`
-            );
-        }
+if (driverMarker) {
+    driverMarker.setPopupContent(buildDriverPopup({ straightDistance }));
+}
         const etaEl = document.getElementById('etaDisplay');
     if (etaEl) {
         etaEl.style.display = '';
         etaEl.textContent = `~${straightDistance} km away`; // no reliable ETA without routing
     }
 
-    if (driverMarker) {
-        driverMarker.setPopupContent(
-            `<strong>🚗 Driver is on the way</strong><br>
-             Straight line distance: <strong>${straightDistance} km</strong><br>
-             (Routing temporarily unavailable)`
-        );
-    }
+if (driverMarker) {
+    driverMarker.setPopupContent(buildDriverPopup({ straightDistance }));
+}
 
     }
 }
@@ -1807,5 +1792,27 @@ function renderReceipts(receipts) {
         : `<span>—</span>`}</td>
     </tr>
   `).join('');
+}
+function buildDriverPopup({ distanceKm, durationMin, straightDistance } = {}) {
+    const driverName  = latestRequestData?.driver_name  || 'Driver';
+    const driverPhone = latestRequestData?.driver_phone || '';
+    const vehicleType = latestRequestData?.vehicle_type || '';
+    const plate       = latestRequestData?.license_plate || '';
+
+    let extra = '';
+    if (durationMin != null && distanceKm != null) {
+        extra = `Distance: <strong>${distanceKm} km</strong><br>
+                 ETA: <strong>${durationMin} min</strong>`;
+    } else if (straightDistance != null) {
+        extra = `Straight line distance: <strong>${straightDistance} km</strong><br>
+                 <em>(Routing temporarily unavailable)</em>`;
+    }
+
+    return `
+        <strong>🚗 ${driverName}</strong><br>
+        ${vehicleType}${plate ? ` • ${plate}` : ''}
+        ${driverPhone ? `<br>📞 ${driverPhone}` : ''}
+        ${extra ? `<hr style="margin:4px 0;border:none;border-top:1px solid #ddd">${extra}` : ''}
+    `;
 }
 
