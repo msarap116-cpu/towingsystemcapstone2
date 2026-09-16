@@ -28,6 +28,13 @@ const customerIcon = L.icon({
     iconAnchor: [18, 36],
     popupAnchor: [0, -36]
 });
+// PENDING ICON — amber, so it reads differently from the assigned customer
+const pendingIcon = L.icon({
+    iconUrl: 'image/waypoint-yellow.png        ',   // or reuse waypoint-blue.png for now
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -30]
+});
 // ---------- SOUTH COTABATO MAP CONFIG (optional) ----------
 const MAP_CONFIG = {
     bounds: {
@@ -235,8 +242,8 @@ function renderDashboardUI() {
 
     const totalEarningsEl = document.getElementById('totalEarnings');
     if (totalEarningsEl) totalEarningsEl.innerText = `₱${totalEarningsValue.toFixed(2)}`;
-
-}
+renderPendingRequests();
+};
 
 // ---------- ACCEPT JOB ----------
 window.acceptJob = async function (requestId) {
@@ -559,6 +566,8 @@ if (customerLat && customerLng) {
     }
 
     console.log('  Map initialized (no boundaries)');
+        renderPendingRequests();
+    console.log('Map initialized (no boundaries)');
 }
 
 // ---------- GPS TRACKING (unchanged) ----------
@@ -929,5 +938,43 @@ async function fetchEarningsSummary() {
     }
 
     return res.json();
+}
+
+let pendingLayer = null;
+
+function renderPendingRequests() {
+    if (!map) return;
+
+    if (pendingLayer) {
+        map.removeLayer(pendingLayer);
+        pendingLayer = null;
+    }
+
+    if (!Array.isArray(pendingRequests) || !pendingRequests.length) return;
+
+    pendingLayer = L.layerGroup().addTo(map);
+
+    pendingRequests.forEach(req => {
+        const lat = Number(req.location_lat ?? req.lat);
+        const lng = Number(req.location_lng ?? req.lng);
+
+        if (!isFinite(lat) || !isFinite(lng)) {
+            console.warn('Pending request has no usable coords:', req.request_id, req);
+            return;
+        }
+
+        L.marker([lat, lng], { icon: pendingIcon })
+            .bindPopup(`
+                <strong>Request #${req.request_id}</strong><br>
+                ${req.customer_name || 'Customer'}<br>
+                <span style="color:#5c728b">${req.service_type || ''} ${req.vehicle_type ? '· ' + req.vehicle_type : ''}</span><br>
+                📍 ${req.location || 'No address'}<br>
+                <strong>₱${req.amount || 0}</strong><br>
+                <button onclick="acceptJob(${req.request_id})" style="margin-top:6px">Accept</button>
+            `)
+            .addTo(pendingLayer);
+    });
+
+    console.log('Pending markers drawn:', pendingLayer.getLayers().length);
 }
 console.log('🚛 Driver Dashboard loaded with API integration');

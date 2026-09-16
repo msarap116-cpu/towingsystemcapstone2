@@ -36,6 +36,11 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+});
+
 // API routes
 app.use('/api/users/', userroutes);
 app.use('/api/requests', requestsRoute);

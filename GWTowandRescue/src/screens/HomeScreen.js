@@ -330,23 +330,28 @@ const HomeScreen = () => {
     );
   };
 
-  const reverseGeocode = async (lat, lng) => {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
-      );
+const reverseGeocode = async (latitude, longitude) => {
+  const url =
+    'https://goodwrench-towing-rescue.onrender.com/api/geocode/reverse' +
+    `?lat=${encodeURIComponent(latitude)}` +
+    `&lng=${encodeURIComponent(longitude)}`;
 
-      if (!response.ok) {
-        throw new Error(`Nominatim responded with ${response.status}`);
-      }
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  });
 
-      const data = await response.json();
-      return data.display_name || null;
-    } catch (error) {
-      console.error('reverseGeocode error:', error);
-      return null;
-    }
-  };
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `Reverse geocoding failed: ${response.status} ${responseText.substring(0, 200)}`
+    );
+  }
+
+  const data = JSON.parse(responseText);
+  return data.address || null;
+};
 
   const searchAddressLocations = async (query) => {
     if (!query || query.trim().length < 3) {

@@ -15,6 +15,7 @@ import {
   FlatList,
   Platform,
   PermissionsAndroid,
+
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LeafletMap from '../components/LeafletMap';
@@ -627,7 +628,6 @@ const runSearch = async (query) => {
   };
 
 
-
   // ===== RENDER FUNCTIONS — BOTTOM TAB BAR =====
 // Profile Card (moved to top above content)
 const renderProfileHeader = () => (
@@ -1028,7 +1028,7 @@ return (
   </View>
 );
 };
-// ===== STYLES =====
+
 
 
 export default DashboardScreen;

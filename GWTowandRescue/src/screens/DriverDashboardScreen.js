@@ -14,7 +14,8 @@ import {
   FlatList,
   Platform,
   Image,
-  PermissionsAndroid
+  PermissionsAndroid,
+  Linking
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LeafletMap from '../components/LeafletMap';
@@ -46,6 +47,11 @@ const DriverDashboardScreen = ({ navigation }) => {
   const [completedTripsList, setCompletedTripsList] = useState([]);
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [activeRequestId, setActiveRequestId] = useState(null);
+  // Cancel-trip modal state
+const [cancelModalVisible, setCancelModalVisible] = useState(false);
+const [cancelReason, setCancelReason] = useState('');
+const [cancelRequestId, setCancelRequestId] = useState(null);
+
   // Map state
   const [mapRegion, setMapRegion] = useState({
     latitude: 6.3,
@@ -124,8 +130,6 @@ const stopGPSTracking = () => {
     Geolocation.clearWatch(watchIdRef.current);
     watchIdRef.current = null;
   }
-
-  Geolocation.stopObserving();
 
   console.log('GPS tracking stopped');
 };
@@ -281,6 +285,7 @@ const loadDriverDashboardData = async () => {
     console.log('active trips:', active);
     const completed = trips.filter(t => t.status === 'completed');
     setMyTrips(active);
+    setCompletedTripsList(completed);
    setPaymentHistory(completed.slice(0, 10));
     setAvailableJobs(pending.length);
     setActiveTrips(active.length);
@@ -289,7 +294,7 @@ const loadDriverDashboardData = async () => {
     setTotalEarnings(earnings.allTime || 0);
 
     //  FIX: use completedTripsList, not `completed` (which is .length!)
-    setPaymentHistory(completedTripsList.slice(0, 10));
+    // setPaymentHistory(completedTripsList.slice(0, 10));
     // ⚠️ note: completedTripsList here is still the OLD state value (stale closure) —
     // setCompletedTripsList(completed) above hasn't applied yet. Consider using
     // `completed.slice(0, 10)` directly instead.
@@ -319,50 +324,28 @@ const loadDriverDashboardData = async () => {
   // ===== MAP FUNCTIONS =====
 const initDriverMap = async () => {
   try {
-    if (Platform.OS === 'android') {
-      const finePermission = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+    // Use the extracted helper instead of inline PermissionsAndroid calls
+    const hasPermission = await requestLocationPermission();
+    if (!hasPermission) {
+      Alert.alert(
+        'Permission denied',
+        'Please allow location access for live tracking.'
       );
-
-      const coarsePermission = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION
-      );
-
-      const locationGranted =
-        finePermission === PermissionsAndroid.RESULTS.GRANTED ||
-        coarsePermission === PermissionsAndroid.RESULTS.GRANTED;
-
-      if (!locationGranted) {
-        Alert.alert(
-          'Permission denied',
-          'Please allow location access for live tracking.'
-        );
-        return;
-      }
+      return;
     }
 
     let position;
-
     try {
-      // First attempt: GPS/high accuracy
       position = await getInitialLocation();
     } catch (error) {
-      console.warn(
-        'High-accuracy location failed. Trying network location:',
-        error
-      );
-
-      // Second attempt: Wi-Fi/mobile-network location
+      console.warn('High-accuracy location failed. Trying network location:', error);
       position = await new Promise((resolve, reject) => {
-        Geolocation.getCurrentPosition(
-          resolve,
-          reject,
-          {
-            enableHighAccuracy: false,
-            timeout: 30000,
-            maximumAge: 300000,
-          }
-        );
+        Geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: false,
+          timeout: 30000,
+          maximumAge: 300000,
+        });
+
       });
     }
 
@@ -389,6 +372,11 @@ const initDriverMap = async () => {
     startGPSTracking();
   } catch (error) {
     console.error('Unable to obtain initial location:', error);
+      if (error?.code === 2) {
+    promptEnableLocation();
+  } else {
+    Alert.alert('Location error', 'Unable to get your current location.');
+  }
   }
 };
 
@@ -448,68 +436,75 @@ const startGPSTracking = () => {
         }
       }
     },
-    error => {
-      console.error('GPS watch error:', error);
-    },
-    {
-      enableHighAccuracy: true,
-      maximumAge: 10000,
-      timeout: 60000,
-      distanceFilter: 5,
-      interval: 5000,
-      fastestInterval: 3000,
-    }
-  );
+
+  error => { console.error('GPS watch error:', error); },
+  {
+    enableHighAccuracy: false, // relaxed to match your fallback behavior
+    maximumAge: 10000,
+    timeout: 30000, // shorter, since network location is faster
+    distanceFilter: 5,
+    interval: 5000,
+    fastestInterval: 3000,
+  }
+);
 };
 
 
 
 
   //  FIXED OSRM URL — proper format: lon,lat;lon,lat
-  const drawRoute = async (fromLat, fromLng, toLat, toLng) => {
-    try {
-      // OSRM REQUIRES format: longitude,latitude;longitude,latitude
-      const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
-      console.log('OSRM URL:', url); // debug
-      const response = await fetch(url);
-      const data = await response.json();
-      if (data.code === 'Ok') {
-        const coordinates = data.routes[0].geometry.coordinates;
-        const coords = coordinates.map(coord => ({
-          latitude: coord[1],
-          longitude: coord[0]
-        }));
-        setRouteCoordinates(coords);
-      } else {
-        console.warn('OSRM returned:', data.code, data.message);
+const drawRoute = async (fromLat, fromLng, toLat, toLng) => {
+  try {
+    console.log('drawRoute called with:', fromLat, fromLng, toLat, toLng);
+    const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+    const response = await fetch(url);
+    console.log('OSRM response status:', response.status);
+    const data = await response.json();
+    console.log('OSRM response code:', data.code, 'routes found:', data.routes?.length);
+
+    if (data.code === 'Ok') {
+      const coordinates = data.routes[0].geometry.coordinates;
+      console.log('Route points:', coordinates.length);
+      const coords = coordinates.map(coord => ({
+        latitude: coord[1],
+        longitude: coord[0]
+      }));
+      setRouteCoordinates(coords);
+      // ...
+    } else {
+      console.warn('OSRM returned non-Ok code:', data.code, data.message);
+    }
+  } catch (error) {
+    console.error('Route drawing error:', error);
+  }
+};
+
+const requestLocationPermission = async () => {
+  if (Platform.OS !== 'android') return true;
+
+  try {
+    const fine = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      {
+        title: 'Location Permission',
+        message: 'Tow the Rescue needs your location for live driver tracking.',
+        buttonPositive: 'Allow',
+        buttonNegative: 'Deny',
       }
-    } catch (error) {
-      console.error('Route drawing error:', error);
-    }
-  };
+    );
+    const coarse = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION
+    );
+    return (
+      fine === PermissionsAndroid.RESULTS.GRANTED ||
+      coarse === PermissionsAndroid.RESULTS.GRANTED
+    );
+  } catch (error) {
+    console.error('Location permission error:', error);
+    return false;
+  }
+};
 
-  const requestLocationPermission = async () => {
-    if (Platform.OS !== 'android') {
-      return true;
-    }
-
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        {
-          title: 'Location Permission',
-          message: 'Tow the Rescue needs your location for live driver tracking.',
-          buttonPositive: 'Allow',
-          buttonNegative: 'Deny',
-        }
-      );
-
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (error) {
-      console.error('Location permission error:', error);
-      return false;
-    }
-  };
   const sendDriverLocation = async (lat, lng) => {
     const now = Date.now();
     if (now - lastSentRef.current < DRIVER_LOCATION_INTERVAL) return;
@@ -533,6 +528,7 @@ const startGPSTracking = () => {
   // ===== JOB ACTIONS =====
   const acceptJob = async (requestId) => {
     const token = await AsyncStorage.getItem('token');
+
     if (!token) {
       Alert.alert('Error', 'Please log in again.');
       return;
@@ -553,7 +549,7 @@ const startGPSTracking = () => {
       Alert.alert('Success', `Job #${requestId} accepted!`);
       await loadDriverDashboardData();
       setActiveTab('tracking');
-      initDriverMap();
+
     } catch (error) {
       console.error('Accept error:', error);
       Alert.alert('Error', 'Failed to accept job: ' + error.message);
@@ -620,55 +616,57 @@ const startGPSTracking = () => {
     );
   };
 
-  //  FIXED: Alert.prompt → Alert.alert with TextInput (React Native compliant)
-  const cancelTrip = async (requestId) => {
-    const token = await AsyncStorage.getItem('token');
-    if (!token) {
-      Alert.alert('Error', 'Please log in again.');
-      return;
+// ===== CANCEL TRIP (uses Modal, not Alert.prompt) =====
+const openCancelModal = (requestId) => {
+  setCancelRequestId(requestId);
+  setCancelReason('');
+  setCancelModalVisible(true);
+};
+
+const confirmCancelTrip = async () => {
+  const requestId = cancelRequestId;
+  if (!requestId) return;
+
+  const token = await AsyncStorage.getItem('token');
+  if (!token) {
+    Alert.alert('Error', 'Please log in again.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/requests/${requestId}/cancel`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ reason: cancelReason || 'Cancelled by driver' }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Cancel failed');
+
+    Alert.alert('Success', `Job #${requestId} cancelled.`);
+    setCancelModalVisible(false);
+    setCancelRequestId(null);
+    setCancelReason('');
+
+    await loadDriverDashboardData();
+
+    if (Number(activeRequestId) === Number(requestId)) {
+      setActiveRequestId(null);
+      setCustomerLocation(null);
+      setRouteCoordinates([]);
+      if (watchIdRef.current) {
+        Geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      setTrackingStatus('No active job – waiting for assignment.');
     }
-    let reasonInput = '';
-    Alert.alert(
-      'Cancel Trip',
-      'Enter reason for cancellation:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: async () => {
-            try {
-              const res = await fetch(`${API_BASE_URL}/requests/${requestId}/cancel`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ reason: reasonInput || 'Cancelled by driver' })
-              });
-              const data = await res.json();
-              if (!res.ok) {
-                throw new Error(data.error || 'Cancel failed');
-              }
-              Alert.alert('Success', `Job #${requestId} cancelled.`);
-              await loadDriverDashboardData();
-              if (Number(activeRequestId) === Number(requestId)) {
-                setActiveRequestId(null);
-                setCustomerLocation(null);
-                setRouteCoordinates([]);
-                if (watchIdRef.current) {
-                  Geolocation.clearWatch(watchIdRef.current);
-                }
-              }
-            } catch (error) {
-              console.error('Cancel error:', error);
-              Alert.alert('Error', 'Failed to cancel trip');
-            }
-          }
-        }
-      ],
-      { placeholder: 'Reason (optional)', onInput: (text) => { reasonInput = text; } }
-    );
-  };
+  } catch (error) {
+    console.error('Cancel error:', error);
+    Alert.alert('Error', 'Failed to cancel trip: ' + error.message);
+  }
+};
 
   // ===== HELPERS =====
   const updateClock = () => {
@@ -685,65 +683,57 @@ const startGPSTracking = () => {
     return `₱${Number(amount || 0).toFixed(2)}`;
   };
 
+const promptEnableLocation = () => {
+  Alert.alert(
+    'Location is turned off',
+    'Please turn on Location to enable live tracking.',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Open Settings',
+        onPress: () => {
+          if (Platform.OS === 'android') {
+            Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS');
+          } else {
+            Linking.openURL('app-settings:');
+          }
+        },
+      },
+    ]
+  );
+};
+const onRefresh = async () => {
+  setRefreshing(true);
+  try { await loadDriverDashboardData(); }
+  finally { setRefreshing(false); }
+};
   // ===== RENDER FUNCTIONS — BOTTOM TAB BAR =====
-  const renderProfileHeader = () => (
-    <View style={styles.profileHeader}>
-      <View style={styles.avatarContainer}>
-        <Text style={styles.avatarInitials}>
-          {user ? getInitials(user.name) : 'AD'}
-        </Text>
-      </View>
-      <View style={styles.profileInfo}>
-        <Text style={styles.profileName}>{user?.name || 'Driver'}</Text>
-        <View style={styles.roleBadge}>
-          <Text style={styles.roleText}>🚛 Driver</Text>
-        </View>
+const renderProfileHeader = () => (
+  <View style={styles.profileHeader}>
+    <View style={styles.avatarContainer}>
+      <Text style={styles.avatarInitials}>
+        {user ? getInitials(user.name) : 'AD'}
+      </Text>
+    </View>
+    <View style={styles.profileInfo}>
+      <Text style={styles.profileName}>{user?.name || 'Driver'}</Text>
+      <View style={styles.roleBadge}>
+        <Text style={styles.roleText}>🚛 Driver</Text>
       </View>
     </View>
-  );
+  </View>
+);
 
-  const renderBottomTabBar = () => (
-    <View style={styles.bottomTabBar}>
-      <TouchableOpacity
-        style={[styles.tabItem, activeTab === 'dashboard' && styles.tabItemActive]}
-        onPress={() => setActiveTab('dashboard')}
-      >
-        <Text style={styles.tabIcon}>📊</Text>
-        <Text style={[styles.tabText, activeTab === 'dashboard' && styles.tabTextActive]}>Dashboard</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tabItem, activeTab === 'tracking' && styles.tabItemActive]}
-        onPress={() => setActiveTab('tracking')}
-      >
-        <Text style={styles.tabIcon}>📍</Text>
-        <Text style={[styles.tabText, activeTab === 'tracking' && styles.tabTextActive]}>Tracking</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tabItem, activeTab === 'trips' && styles.tabItemActive]}
-        onPress={() => setActiveTab('trips')}
-      >
-        <Text style={styles.tabIcon}>🚗</Text>
-        <Text style={[styles.tabText, activeTab === 'trips' && styles.tabTextActive]}>Trips</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tabItem, activeTab === 'earnings' && styles.tabItemActive]}
-        onPress={() => setActiveTab('earnings')}
-      >
-        <Text style={styles.tabIcon}>💰</Text>
-        <Text style={[styles.tabText, activeTab === 'earnings' && styles.tabTextActive]}>Earnings</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tabItem, styles.tabLogout]}
-        onPress={handleLogout}
-      >
-        <Text style={styles.tabIcon}>🚪</Text>
-        <Text style={styles.logoutTabText}>Logout</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
+const renderBottomTabBar = () => (
+  <View style={styles.bottomBar}>
+    {renderTabItem('dashboard', '📊', 'Dashboard')}
+    {renderTabItem('tracking',  '📍', 'Tracking')}
+    {renderTabItem('trips',     '🚗', 'Trips')}
+    {renderTabItem('earnings',  '💰', 'Earnings')}
+    {renderTabItem('logout',    '🚪', 'Logout')}
+  </View>
+);
   // ===== RENDER TABS =====
- // DASHBOARD
 const renderDashboard = () => (
   <View style={{ flex: 1 }}>
     <View style={styles.gridRow}>
@@ -756,6 +746,7 @@ const renderDashboard = () => (
         <Text style={styles.statValue}>{activeTrips ?? 0}</Text>
       </View>
     </View>
+
     <View style={styles.gridRow}>
       <View style={styles.statCard}>
         <Text style={styles.statLabel}>Trips Completed</Text>
@@ -769,19 +760,46 @@ const renderDashboard = () => (
 
     <View style={styles.whiteCard}>
       <Text style={styles.cardTitle}>Available Requests</Text>
+
       {pendingRequests?.length ? (
         <FlatList
           data={pendingRequests}
           keyExtractor={(item) => String(item.request_id)}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={loadDriverDashboardData} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={loadDriverDashboardData}
+            />
           }
-          renderItem={({ item }) => <Text>{item.customer_name}</Text>}
+          renderItem={({ item }) => (
+            <View style={styles.requestItem}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.requestName}>{item.customer_name}</Text>
+                {!!item.location && (
+                  <Text style={styles.requestLocation}>📍 {item.location}</Text>
+                )}
+                {!!item.amount && (
+                  <Text style={styles.requestAmount}>
+                    {formatPrice(item.amount)}
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                style={styles.acceptBtn}
+                onPress={() => acceptJob(item.request_id)}
+              >
+                <Text style={styles.acceptBtnText}>Accept</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         />
-      ) : <Text style={styles.emptyMsg}>No pending requests</Text>}
+      ) : (
+        <Text style={styles.emptyMsg}>No pending requests</Text>
+      )}
     </View>
   </View>
 );
+
 // Helper for bottom bar tabs
 const renderTabItem = (tabKey, icon, label) => {
   const isActive = activeTab === tabKey;
@@ -813,8 +831,22 @@ const renderTracking = () => (
     <Text style={{ color: '#64748b', marginBottom: 12 }}>
       {trackingStatus || 'No active job – tracking idle.'}
     </Text>
-    {/*  NABALIK NA ANG MAP CONTAINER! */}
-    <View style={[styles.mapContainer, { height: 300, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#e2e8f0' }]}>
+    {/* INCREASED MAP HEIGHT — pick one option below */}
+    <View style={[
+      styles.mapContainer,
+      {
+        // Option A: Fixed height (easy control)
+        height: 500, // change from 300 → 450 / 500 / 550 / 600
+
+        // Option B: Fill available space (BEST for React Native)
+        // flex: 1, // uncomment this, remove height above
+
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#e2e8f0'
+      }
+    ]}>
       <LeafletMap
         driverLocation={driverLocation}
         customerLocation={customerLocation}
@@ -824,7 +856,17 @@ const renderTracking = () => (
     </View>
   </View>
 );
+  const tripStatusStyle = (status) => {
+  switch (status) {
+    case 'assigned':    return { backgroundColor: '#dbeafe', color: '#1e40af' };
+    case 'in progress': return { backgroundColor: '#fef3c7', color: '#92400e' };
+    case 'completed':   return { backgroundColor: '#dcfce7', color: '#166534' };
+    case 'cancelled':   return { backgroundColor: '#fee2e2', color: '#991b1b' };
+    default:            return { backgroundColor: '#e2e8f0', color: '#334155' };
+  }
+};
 const renderTrips = () => {
+
   const allTrips = [...(myTrips || []), ...(completedTripsList || [])];
   return (
     <View style={{ flex: 1 }}>
@@ -841,13 +883,50 @@ const renderTrips = () => {
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={loadDriverDashboardData} />
             }
-            renderItem={({ item }) => (
-              <View style={styles.whiteCard}>
-                <Text style={{ fontWeight: 'bold' }}>#{item.request_id}</Text>
-                <Text>{item.location}</Text>
-                <Text>{formatPrice(item.amount)}</Text>
-              </View>
-            )}
+            renderItem={({ item }) => {
+  const status = item.status;
+  return (
+    <View style={styles.whiteCard}>
+      <View style={styles.tripHeaderRow}>
+        <Text style={styles.tripId}>#{item.request_id}</Text>
+        <Text style={[styles.tripStatusPill, tripStatusStyle(status)]}>
+          {status}
+        </Text>
+      </View>
+      <Text style={styles.tripLocation}>📍 {item.location || '—'}</Text>
+      <Text style={styles.tripAmount}>{formatPrice(item.amount)}</Text>
+
+      <View style={styles.tripActions}>
+        {status === 'assigned' && (
+          <TouchableOpacity
+            style={[styles.tripBtn, styles.tripBtnPrimary]}
+            onPress={() => updateTripStatus(item.request_id, 'in progress')}
+          >
+            <Text style={styles.tripBtnPrimaryText}>Start Trip</Text>
+          </TouchableOpacity>
+        )}
+
+        {status === 'in progress' && (
+          <TouchableOpacity
+            style={[styles.tripBtn, styles.tripBtnSuccess]}
+            onPress={() => updateTripStatus(item.request_id, 'completed')}
+          >
+            <Text style={styles.tripBtnSuccessText}>Complete</Text>
+          </TouchableOpacity>
+        )}
+
+        {(status === 'assigned' || status === 'in progress') && (
+          <TouchableOpacity
+            style={[styles.tripBtn, styles.tripBtnDanger]}
+            onPress={() => openCancelModal(item.request_id)}
+          >
+            <Text style={styles.tripBtnDangerText}>Cancel</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+}}
           />
         )}
       </View>
@@ -919,12 +998,7 @@ return (
         </View>
       </View>
 
-      {/* Profile Avatar */}
-      <View style={styles.avatarRow}>
-        <View style={styles.avatarCircle}>
-          <Text style={styles.avatarLetter}>J</Text>
-        </View>
-      </View>
+{renderProfileHeader()}
 
       {/*  MAIN CONTENT — flex:1 ang naa sa styles */}
       <View style={styles.contentArea}>
@@ -935,16 +1009,48 @@ return (
       </View>
 
       {/* Bottom Tab Bar */}
-      <View style={styles.bottomBar}>
-        {renderTabItem('dashboard', '📊', 'Dashboard')}
-        {renderTabItem('tracking', '📍', 'Tracking')}
-        {renderTabItem('trips', '🚗', 'Trips')}
-        {renderTabItem('earnings', '💰', 'Earnings')}
-        {renderTabItem('logout', '🚪', 'Logout')}
+{renderBottomTabBar()}
+      {/* Cancel Trip Modal */}
+<Modal
+  visible={cancelModalVisible}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setCancelModalVisible(false)}
+>
+  <View style={styles.modalBackdrop}>
+    <View style={styles.modalCard}>
+      <Text style={styles.modalTitle}>Cancel Trip</Text>
+      <Text style={styles.modalSubtitle}>
+        Job #{cancelRequestId} — enter a reason (optional)
+      </Text>
+      <TextInput
+        style={styles.modalInput}
+        placeholder="Reason for cancellation"
+        value={cancelReason}
+        onChangeText={setCancelReason}
+        multiline
+      />
+      <View style={styles.modalActions}>
+        <TouchableOpacity
+          style={[styles.modalBtn, styles.modalBtnGhost]}
+          onPress={() => setCancelModalVisible(false)}
+        >
+          <Text style={styles.modalBtnGhostText}>Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.modalBtn, styles.modalBtnDanger]}
+          onPress={confirmCancelTrip}
+        >
+          <Text style={styles.modalBtnDangerText}>Confirm Cancel</Text>
+        </TouchableOpacity>
       </View>
+    </View>
+  </View>
+</Modal>
     </SafeAreaView>
   </SafeAreaProvider>
 );
+
 
 };
 

@@ -150,5 +150,93 @@ const styles = StyleSheet.create({
   logoutText: {
     color: '#b91c1c',
   },
+
+
+  modalBackdrop: {
+  flex: 1, backgroundColor: 'rgba(0,0,0,0.45)',
+  justifyContent: 'center', alignItems: 'center', padding: 20,
+},
+modalCard: {
+  width: '100%', backgroundColor: '#fff', borderRadius: 14,
+  padding: 20, elevation: 6,
+},
+modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 6 },
+modalSubtitle: { color: '#64748b', marginBottom: 12 },
+modalInput: {
+  borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8,
+  padding: 10, minHeight: 70, textAlignVertical: 'top',
+},
+modalActions: {
+  flexDirection: 'row', justifyContent: 'flex-end',
+  marginTop: 16, gap: 10,
+},
+modalBtn: {
+  paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8,
+},
+modalBtnGhost: { backgroundColor: '#f1f5f9' },
+modalBtnGhostText: { color: '#334155', fontWeight: '600' },
+modalBtnDanger: { backgroundColor: '#dc2626' },
+modalBtnDangerText: { color: '#fff', fontWeight: '600' },
+
+requestItem: {
+  flexDirection: 'row', alignItems: 'center',
+  paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9',
+},
+requestName: { fontWeight: '600', fontSize: 15 },
+requestLocation: { color: '#64748b', fontSize: 13, marginTop: 2 },
+requestAmount: { color: '#16a34a', fontWeight: '600', marginTop: 4 },
+acceptBtn: {
+  backgroundColor: '#1a4b6d', paddingVertical: 8,
+  paddingHorizontal: 14, borderRadius: 8, marginLeft: 10,
+},
+acceptBtnText: { color: '#fff', fontWeight: '600' },
+
+tripHeaderRow: {
+  flexDirection: 'row', justifyContent: 'space-between',
+  alignItems: 'center', marginBottom: 6,
+},
+tripId: { fontWeight: '700', fontSize: 15 },
+tripStatusPill: {
+  fontSize: 11, fontWeight: '700', textTransform: 'uppercase',
+  paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
+  overflow: 'hidden',
+},
+tripLocation: { color: '#475569', marginBottom: 4 },
+tripAmount: { color: '#16a34a', fontWeight: '600' },
+tripActions: {
+  flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap',
+},
+tripBtn: {
+  paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8,
+},
+tripBtnPrimary: { backgroundColor: '#1a4b6d' },
+tripBtnPrimaryText: { color: '#fff', fontWeight: '600' },
+tripBtnSuccess: { backgroundColor: '#16a34a' },
+tripBtnSuccessText: { color: '#fff', fontWeight: '600' },
+tripBtnDanger: { backgroundColor: '#fee2e2' },
+tripBtnDangerText: { color: '#b91c1c', fontWeight: '600' },
+
+profileHeader: {
+  flexDirection: 'row', alignItems: 'center',
+  paddingHorizontal: 16, paddingVertical: 10,
+  backgroundColor: '#fff',
+},
+avatarContainer: {
+  width: 44, height: 44, borderRadius: 22,
+  backgroundColor: '#1a4b6d',
+  alignItems: 'center', justifyContent: 'center', marginRight: 12,
+},
+avatarInitials: { color: '#fff', fontWeight: '700', fontSize: 16 },
+profileInfo: { flex: 1 },
+profileName: { fontWeight: '700', fontSize: 16, color: '#0f172a' },
+roleBadge: {
+  alignSelf: 'flex-start', marginTop: 4,
+  paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999,
+  backgroundColor: '#e0f2fe',
+},
+roleText: { color: '#0369a1', fontSize: 11, fontWeight: '600' },
+
+
+
 });
 export default styles;

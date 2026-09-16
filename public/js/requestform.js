@@ -251,11 +251,8 @@ function selectAddressResult(result) {
 async function searchAddressLocations(query) {
 
     if (!query || query.trim().length < 3) {
-
         addressSuggestions.innerHTML = '';
-
         addressSuggestions.classList.remove('show');
-
         return;
     }
 
@@ -264,107 +261,80 @@ async function searchAddressLocations(query) {
         addressSearchController.abort();
     }
 
-    addressSearchController =
-        new AbortController();
+    addressSearchController = new AbortController();
 
     addressSuggestions.innerHTML = `
         <div class="address-loading">
-            🔍 Searching locations...
+             Searching locations...
         </div>
     `;
 
     addressSuggestions.classList.add('show');
 
     try {
-
-        const encodedQuery =
-            encodeURIComponent(
-                `${query}, Philippines`
-            );
-
+        // NOTE: server already appends ", Philippines" and sets countrycodes=ph,
+        // so we send the raw query here.
         const url =
-            `https://nominatim.openstreetmap.org/search` +
-            `?q=${encodedQuery}` +
-            `&format=json` +
-            `&addressdetails=1` +
-            `&limit=5` +
-            `&countrycodes=ph`;
+            'https://goodwrench-towing-rescue.onrender.com/api/geocode/search' +
+            `?q=${encodeURIComponent(query)}`;
 
         const response = await fetch(url, {
-            signal: addressSearchController.signal
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            signal: addressSearchController.signal,
         });
+
+        const responseText = await response.text();
 
         if (!response.ok) {
             throw new Error(
-                `Search failed: ${response.status}`
+                `Search failed: ${response.status} ${responseText.substring(0, 200)}`
             );
         }
 
-        const results =
-            await response.json();
+        const results = JSON.parse(responseText);
 
-        if (!results || results.length === 0) {
-
+        if (!Array.isArray(results) || results.length === 0) {
             addressSuggestions.innerHTML = `
                 <div class="address-no-results">
                     No locations found.
                 </div>
             `;
-
             return;
         }
 
         addressSuggestions.innerHTML = '';
 
         results.forEach(result => {
-
-            const item =
-                document.createElement('div');
-
-            item.className =
-                'address-suggestion';
+            const item = document.createElement('div');
+            item.className = 'address-suggestion';
 
             item.innerHTML = `
                 <strong>
-                    📍 ${escapeHtml(
-                result.display_name.split(',')[0]
-            )}
+                    📍 ${escapeHtml(result.display_name.split(',')[0])}
                 </strong>
-
                 <small>
-                    ${escapeHtml(
-                result.display_name
-            )}
+                    ${escapeHtml(result.display_name)}
                 </small>
             `;
 
             item.addEventListener('click', () => {
-
                 selectAddressResult(result);
-
             });
 
             addressSuggestions.appendChild(item);
         });
 
     } catch (error) {
-
-        if (error.name === 'AbortError') {
-            return;
-        }
-
-        console.error(
-            'Address search error:',
-            error
-        );
-
+        if (error.name === 'AbortError') return;
+        console.error('Address search error:', error);
         addressSuggestions.innerHTML = `
             <div class="address-no-results">
                 ⚠️ Unable to search locations.
             </div>
         `;
     }
-}
+};
 //load vehicle
 async function loadVehiclesForRequest() {
     const select = document.getElementById('vehicleId');
@@ -443,18 +413,28 @@ function getCurrentLocation() {
 // Coordinates human-readable address (fills the address textarea)
 async function reverseGeocode(lat, lng, statusEl) {
     try {
-        const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
-        );
+        const url =
+            'https://goodwrench-towing-rescue.onrender.com/api/geocode/reverse' +
+            `?lat=${encodeURIComponent(lat)}` +
+            `&lng=${encodeURIComponent(lng)}`;
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+        });
+
+        const responseText = await response.text();
 
         if (!response.ok) {
-            throw new Error(`Nominatim responded with ${response.status}`);
+            throw new Error(
+                `Reverse geocoding failed: ${response.status} ${responseText.substring(0, 200)}`
+            );
         }
 
-        const data = await response.json();
+        const data = JSON.parse(responseText);
 
-        if (data && data.display_name) {
-            document.getElementById('address').value = data.display_name;
+        if (data && data.address) {
+            document.getElementById('address').value = data.address;
             if (statusEl) statusEl.textContent = '📍 Location captured';
         } else {
             if (statusEl) statusEl.textContent = '📍 Location captured (address lookup unavailable — please check the address below)';
