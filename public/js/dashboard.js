@@ -873,6 +873,28 @@ if (cancelPaymentBtn) {
         closePaymentModalFunction
     );
 }
+async function loadMyPayments() {
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/payments/mine`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const payments = await response.json();
+
+        console.log('Loaded payments:', payments);
+
+        // TODO: render `payments` into whatever list/table element
+        // shows payment history on the dashboard
+
+    } catch (error) {
+        console.error('Failed to load payments:', error);
+    }
+}
 //loads the payment info
 function loadPaymentRequestInfo() {
     if (!latestRequestData) {

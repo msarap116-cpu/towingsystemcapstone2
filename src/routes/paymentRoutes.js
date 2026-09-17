@@ -88,155 +88,155 @@ router.post(
         }
     }
 );
-    // CASH PAYMENT
-    router.post(
-        '/cash',
-        authenticateToken,
-        async (req, res) => {
+// CASH PAYMENT
+router.post(
+    '/cash',
+    authenticateToken,
+    async (req, res) => {
 
-            try {
+        try {
 
-                const { request_id } = req.body;
-                const userId = req.user.id;
+            const { request_id } = req.body;
+            const userId = req.user.id;
 
-                if (!request_id) {
-                    return res.status(400).json({
+            if (!request_id) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'request_id is required.'
+                });
+            }
+
+            // Confirm that the request belongs to this customer
+            const request =
+                await Payment.getRequestPaymentInfo(
+                    request_id,
+                    userId
+                );
+
+            if (!request) {
+                return res.status(404).json({
+                    success: false,
+                    message:
+                        'Request not found or does not belong to you.'
+                });
+            }
+
+            // Check whether a payment already exists
+            const existingPayment =
+                await Payment.getPaymentByRequest(
+                    request_id,
+                    userId
+                );
+
+            if (existingPayment) {
+
+                if (existingPayment.status === 'completed') {
+                    return res.status(409).json({
                         success: false,
-                        message: 'request_id is required.'
+                        message: 'This request has already been paid.',
+                        payment: existingPayment
                     });
                 }
 
-                // Confirm that the request belongs to this customer
-                const request =
-                    await Payment.getRequestPaymentInfo(
-                        request_id,
-                        userId
-                    );
-
-                if (!request) {
-                    return res.status(404).json({
-                        success: false,
-                        message:
-                            'Request not found or does not belong to you.'
+                if (
+                    existingPayment.payment_method === 'cash' &&
+                    existingPayment.status === 'awaiting_cash'
+                ) {
+                    return res.json({
+                        success: true,
+                        message: 'Cash payment is already selected.',
+                        payment: existingPayment,
+                        existing: true
                     });
                 }
 
-                // Check whether a payment already exists
-                const existingPayment =
-                    await Payment.getPaymentByRequest(
-                        request_id,
-                        userId
-                    );
-
-               if (existingPayment) {
-
-    if (existingPayment.status === 'completed') {
-        return res.status(409).json({
-            success: false,
-            message: 'This request has already been paid.',
-            payment: existingPayment
-        });
-    }
-
-    if (
-        existingPayment.payment_method === 'cash' &&
-        existingPayment.status === 'awaiting_cash'
-    ) {
-        return res.json({
-            success: true,
-            message: 'Cash payment is already selected.',
-            payment: existingPayment,
-            existing: true
-        });
-    }
-
-    if (existingPayment.status === 'pending') {
-        // proof already submitted for gcash, awaiting admin review — don't let them switch silently
-        return res.status(409).json({
-            success: false,
-            message: 'A payment proof is already awaiting verification for this request.',
-            payment: existingPayment
-        });
-    }
-
-    // Any other incomplete payment (e.g. abandoned gcash intent, status 'awaiting_payment')
-    // can be switched over to cash.
-    await Payment.switchToCash(existingPayment.payment_id);
-
-    const payment = {
-        ...existingPayment,
-        payment_method: 'cash',
-        status: 'awaiting_cash'
-    };
-
-    if (request.driver_id) {
-        await Notification.create({
-            userId: request.driver_id,
-            requestId: request_id,
-            type: 'payment',
-            message: `Customer selected cash payment for request #${request_id}.`
-        });
-    }
-
-    return res.json({
-        success: true,
-        message: 'Cash payment selected successfully.',
-        payment,
-        existing: false
-    });
-}
-                // Create cash payment
-                const paymentId =
-                    await Payment.createCashPayment({
-                        requestId: request.request_id,
-                        userId,
-                        amount: Number(request.amount)
+                if (existingPayment.status === 'pending') {
+                    // proof already submitted for gcash, awaiting admin review — don't let them switch silently
+                    return res.status(409).json({
+                        success: false,
+                        message: 'A payment proof is already awaiting verification for this request.',
+                        payment: existingPayment
                     });
+                }
+
+                // Any other incomplete payment (e.g. abandoned gcash intent, status 'awaiting_payment')
+                // can be switched over to cash.
+                await Payment.switchToCash(existingPayment.payment_id);
 
                 const payment = {
-                    payment_id: paymentId,
-                    request_id: request.request_id,
-                    user_id: userId,
-                    amount: Number(request.amount),
+                    ...existingPayment,
                     payment_method: 'cash',
                     status: 'awaiting_cash'
                 };
 
-                // Notify the driver
                 if (request.driver_id) {
-
                     await Notification.create({
                         userId: request.driver_id,
                         requestId: request_id,
                         type: 'payment',
-                        message:
-                            `Customer selected cash payment for request #${request_id}.`
+                        message: `Customer selected cash payment for request #${request_id}.`
                     });
                 }
 
                 return res.json({
                     success: true,
-                    message:
-                        'Cash payment selected successfully.',
+                    message: 'Cash payment selected successfully.',
                     payment,
                     existing: false
                 });
+            }
+            // Create cash payment
+            const paymentId =
+                await Payment.createCashPayment({
+                    requestId: request.request_id,
+                    userId,
+                    amount: Number(request.amount)
+                });
 
-            } catch (error) {
+            const payment = {
+                payment_id: paymentId,
+                request_id: request.request_id,
+                user_id: userId,
+                amount: Number(request.amount),
+                payment_method: 'cash',
+                status: 'awaiting_cash'
+            };
 
-                console.error(
-                    'Cash payment error:',
-                    error
-                );
+            // Notify the driver
+            if (request.driver_id) {
 
-                return res.status(500).json({
-                    success: false,
+                await Notification.create({
+                    userId: request.driver_id,
+                    requestId: request_id,
+                    type: 'payment',
                     message:
-                        'Unable to process cash payment.'
+                        `Customer selected cash payment for request #${request_id}.`
                 });
             }
+
+            return res.json({
+                success: true,
+                message:
+                    'Cash payment selected successfully.',
+                payment,
+                existing: false
+            });
+
+        } catch (error) {
+
+            console.error(
+                'Cash payment error:',
+                error
+            );
+
+            return res.status(500).json({
+                success: false,
+                message:
+                    'Unable to process cash payment.'
+            });
         }
-    );
+    }
+);
 router.post(
     '/gcash/submit-proof',
     authenticateToken,
@@ -463,6 +463,71 @@ router.put(
         }
     }
 );
+// DRIVER CONFIRMS CASH RECEIVED
+router.put(
+    '/:paymentId/cash-received',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            if (req.user.role !== 'driver') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Driver access required.'
+                });
+            }
+
+            const { paymentId } = req.params;
+
+            const payment = await Payment.getPaymentById(paymentId);
+
+            if (!payment) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Payment not found.'
+                });
+            }
+
+            if (payment.payment_method !== 'cash') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'This payment is not a cash payment.'
+                });
+            }
+
+            if (payment.status !== 'awaiting_cash') {
+                return res.status(400).json({
+                    success: false,
+                    message: `Payment is already ${payment.status}.`
+                });
+            }
+
+            const receiptNumber =
+                `TTR-${new Date().getFullYear()}-${String(payment.payment_id).padStart(6, '0')}`;
+
+            await Payment.approvePayment(paymentId, receiptNumber);
+
+            await Notification.create({
+                userId: payment.user_id,
+                requestId: payment.request_id,
+                type: 'payment',
+                message: `Your cash payment of ₱${payment.amount} has been confirmed. Receipt: ${receiptNumber}`
+            });
+
+            return res.json({
+                success: true,
+                message: 'Cash payment confirmed.',
+                receipt_number: receiptNumber
+            });
+
+        } catch (error) {
+            console.error('Cash confirmation error:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to confirm cash payment.'
+            });
+        }
+    }
+);
 
 //11:11-082626
 router.get('/mine', authenticateToken, async (req, res) => {
@@ -479,24 +544,15 @@ router.get(
     '/:paymentId',
     authenticateToken,
     async (req, res) => {
-
         try {
+            console.log('🔎 PAYMENT ID FROM URL:', req.params.paymentId);
 
-            console.log(
-                '🔎 PAYMENT ID FROM URL:',
-                req.params.paymentId
-            );
+            // 1. Fetch the payment record first
+            const payment = await Payment.getPaymentById(req.params.paymentId);
 
-            const payment =
-                await Payment.getPaymentById(
-                    req.params.paymentId
-                );
+            console.log('🔎 PAYMENT FROM MODEL:', payment);
 
-            console.log(
-                '🔎 PAYMENT FROM MODEL:',
-                payment
-            );
-
+            // 2. Check if the payment exists
             if (!payment) {
                 return res.status(404).json({
                     success: false,
@@ -504,19 +560,27 @@ router.get(
                 });
             }
 
-            res.json({
+            // 3. Authorize AFTER confirming the payment exists
+            const isAdmin = req.user.role === 'admin';
+            const isOwner = String(payment.user_id) === String(req.user.id);
+
+            if (!isAdmin && !isOwner) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Not authorized to view this payment.'
+                });
+            }
+
+            // 4. Return response
+            return res.json({
                 success: true,
                 payment
             });
 
         } catch (error) {
+            console.error('Get payment error:', error);
 
-            console.error(
-                'Get payment error:',
-                error
-            );
-
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: 'Failed to load payment.'
             });

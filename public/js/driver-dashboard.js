@@ -977,4 +977,137 @@ function renderPendingRequests() {
 
     console.log('Pending markers drawn:', pendingLayer.getLayers().length);
 }
+async function confirmCashReceived(paymentId) {
+
+    const confirmed = confirm(
+        'Confirm that you received cash payment from the customer?'
+    );
+
+    if (!confirmed) return;
+
+    const token = sessionStorage.getItem('token');
+
+    if (!token) {
+        alert('Please log in again.');
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/payments/${paymentId}/cash-received`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            alert(data.message || 'Unable to confirm cash payment.');
+            return;
+        }
+
+        alert(`Cash payment confirmed. Receipt: ${data.receipt_number}`);
+
+        // refresh whatever list/view shows this driver's active requests
+        loadDriverRequests();
+
+    } catch (error) {
+        console.error('Cash confirmation error:', error);
+        alert('Unable to confirm cash payment.');
+    }
+}
+async function loadPaymentHistory() {
+
+    const token = sessionStorage.getItem('token');
+    const container = document.getElementById('paymentHistory');
+
+    if (!token || !container) return;
+
+    try {
+
+        const response = await fetch(`${API_BASE_URL}/payments/mine`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const payments = await response.json();
+
+        if (!payments || payments.length === 0) {
+            container.innerHTML = `<div class="empty-state">No payments yetsasa</div>`;
+            return;
+        }
+
+        container.innerHTML = payments.map(p => `
+            <div class="payment-item">
+                <div class="payment-info">
+                    <strong>#${p.request_id}</strong>
+                    <span>₱${Number(p.amount || 0).toFixed(2)}</span>
+                    <span class="status-badge status-${p.status}">${p.status}</span>
+                    <span>${p.payment_method}</span>
+                </div>
+                ${p.payment_method === 'cash' && p.status === 'awaiting_cash'
+                    ? `<button class="btn-primary" onclick="confirmCashReceived(${p.payment_id})">
+                           Mark Cash Received
+                       </button>`
+                    : ''}
+            </div>
+        `).join('');
+
+    } catch (error) {
+        console.error('Failed to load payment history:', error);
+        container.innerHTML = `<div class="empty-state">Failed to load payments</div>`;
+    }
+}
+
+async function confirmCashReceived(paymentId) {
+
+    const confirmed = confirm(
+        'Confirm that you received cash payment from the customer?'
+    );
+
+    if (!confirmed) return;
+
+    const token = sessionStorage.getItem('token');
+
+    if (!token) {
+        alert('Please log in again.');
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/payments/${paymentId}/cash-received`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            alert(data.message || 'Unable to confirm cash payment.');
+            return;
+        }
+
+        alert(`Cash payment confirmed. Receipt: ${data.receipt_number}`);
+
+        loadPaymentHistory();
+
+    } catch (error) {
+        console.error('Cash confirmation error:', error);
+        alert('Unable to confirm cash payment.');
+    }
+}
 console.log('🚛 Driver Dashboard loaded with API integration');

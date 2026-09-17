@@ -1004,3 +1004,38 @@
             bottom: -5px;
             /* rest stays same */
         }
+        #proofModal.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+#proofModal.modal.show {
+    display: flex;
+}
+
+#proofModal .modal-content {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    width: 90%;
+}
+
+#proofModal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+#proofModal .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+}

@@ -35,7 +35,7 @@ router.patch('/payments/:id/mark-paid', authenticateToken, adminController.markP
 
 router.delete('/requests/:id', authenticateToken, adminController.deleteRequest);
 
-router.delete('/customers/:id',authenticateToken,adminController.deleteCustomer);
+router.delete('/customers/:id', authenticateToken, adminController.deleteCustomer);
 router.delete(
     '/customers/:id',
     authenticateToken,
@@ -74,7 +74,7 @@ router.put(
     adminController.assignDriver
 );
 
-router.post('/admins',adminController.createAdmin);
+router.post('/admins', adminController.createAdmin);
 
 
 router.put(
@@ -84,7 +84,7 @@ router.put(
 
         try {
             console.log('🔐 APPROVE AUTH USER:', req.user);
-console.log('🔐 USER ROLE:', req.user?.role);
+            console.log('🔐 USER ROLE:', req.user?.role);
 
             if (req.user.role !== 'admin') {
                 return res.status(403).json({
@@ -122,11 +122,11 @@ console.log('🔐 USER ROLE:', req.user?.role);
                 receiptNumber
             );
             await Notification.create({
-  userId: payment.user_id,
-  requestId: payment.request_id,
-  type: 'payment',
-  message: `Your payment of ₱${payment.amount} has been approved. Receipt: ${receiptNumber}`
-});
+                userId: payment.user_id,
+                requestId: payment.request_id,
+                type: 'payment',
+                message: `Your payment of ₱${payment.amount} has been approved. Receipt: ${receiptNumber}`
+            });
 
             res.json({
                 success: true,
@@ -187,12 +187,12 @@ router.put(
             await Payment.rejectPayment(
                 paymentId,
                 reason || 'Payment proof was rejected.'
-            );await Notification.create({
-  userId: payment.user_id,
-  requestId: payment.request_id,
-  type: 'payment',
-  message: `Your payment proof was rejected. Reason: ${reason || 'Payment proof was rejected.'}`
-});
+            ); await Notification.create({
+                userId: payment.user_id,
+                requestId: payment.request_id,
+                type: 'payment',
+                message: `Your payment proof was rejected. Reason: ${reason || 'Payment proof was rejected.'}`
+            });
 
             res.json({
                 success: true,

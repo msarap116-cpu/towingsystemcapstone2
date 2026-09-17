@@ -72,31 +72,31 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
 
-async function loadDrivers() {
-    try {
+    async function loadDrivers() {
+        try {
 
-        drivers = await apiFetch("/admin/drivers");
+            drivers = await apiFetch("/admin/drivers");
 
-        console.log("Drivers loaded:", drivers);
+            console.log("Drivers loaded:", drivers);
 
-        renderDrivers();
+            renderDrivers();
 
-        await loadAdmins();
+            await loadAdmins();
 
-        if (map) {
-            updateMapMarkers();
+            if (map) {
+                updateMapMarkers();
+            }
+
+        } catch (err) {
+
+            console.error("Failed to load drivers:", err);
+
+            showAlert(
+                "Could not load drivers",
+                "danger"
+            );
         }
-
-    } catch (err) {
-
-        console.error("Failed to load drivers:", err);
-
-        showAlert(
-            "Could not load drivers",
-            "danger"
-        );
     }
-}
     async function loadCustomers() {
         try {
             customers = await apiFetch('/admin/customers');
@@ -105,27 +105,27 @@ async function loadDrivers() {
             console.error('Failed to load customers:', error);
         }
     }
-async function loadAdmins() {
-    try {
-        const result = await apiFetch("/admin/admins");
+    async function loadAdmins() {
+        try {
+            const result = await apiFetch("/admin/admins");
 
-        console.log("FULL ADMIN API RESULT:", result);
-        console.log("result.admins:", result.admins);
-        console.log("Is result.admins an array?", Array.isArray(result.admins));
+            console.log("FULL ADMIN API RESULT:", result);
+            console.log("result.admins:", result.admins);
+            console.log("Is result.admins an array?", Array.isArray(result.admins));
 
-        admins = result.admins || [];
+            admins = result.admins || [];
 
-        console.log("FINAL admins variable:", admins);
-        console.log("Is admins an array?", Array.isArray(admins));
-        console.log("Number of admins:", admins.length);
+            console.log("FINAL admins variable:", admins);
+            console.log("Is admins an array?", Array.isArray(admins));
+            console.log("Number of admins:", admins.length);
 
-        renderAdmins();
+            renderAdmins();
 
-    } catch (error) {
-        console.error("Failed to load admins:", error);
-        showAlert("Could not load admins", "danger");
+        } catch (error) {
+            console.error("Failed to load admins:", error);
+            showAlert("Could not load admins", "danger");
+        }
     }
-}
     window.loadPayments = async function () {
         try {
             payments = await apiFetch('/admin/payments');
@@ -322,7 +322,7 @@ async function loadAdmins() {
             return;
         }
 
-       container.innerHTML = `
+        container.innerHTML = `
     <div class="table-responsive">
         <table class="drivers-table">
             <thead>
@@ -353,8 +353,8 @@ async function loadAdmins() {
                         </td>
                         <td>
                             ${d.rating
-                                ? Number(d.rating).toFixed(1) + ' ⭐'
-                                : 'No rating'}
+                ? Number(d.rating).toFixed(1) + ' ⭐'
+                : 'No rating'}
                         </td>
                         <td>${d.total_completed || 0}</td>
                         <td>₱${Number(d.earnings_30d || 0).toFixed(2)}</td>
@@ -504,68 +504,56 @@ async function loadAdmins() {
         }
 
         tbody.innerHTML = payments.map(p => `
-        <tr>
-            <td>${p.receipt_number || '—'}</td>
+    <tr>
+        <td>${p.receipt_number || '—'}</td>
 
-            <td>#${p.request_id || '—'}</td>
+        <td>#${p.request_id || '—'}</td>
 
-            <td>${p.customer || '—'}</td>
+        <td>${p.customer || '—'}</td>
 
-            <td>₱${Number(p.amount || 0).toFixed(2)}</td>
+        <td>₱${Number(p.amount || 0).toFixed(2)}</td>
 
-            <td>${p.payment_method || '—'}</td>
+        <td>${p.payment_method || '—'}</td>
 
-            <td>
-                ${p.payment_date
+        <td>
+            ${p.payment_date
                 ? new Date(p.payment_date).toLocaleDateString()
                 : '—'}
-            </td>
+        </td>
 
-            <td>
-                <span class="status-badge status-${p.status || 'unknown'}">
-                    ${p.status || '—'}
-                </span>
-            </td>
+        <td>
+            <span class="status-badge status-${p.status || 'unknown'}">
+                ${p.status || '—'}
+            </span>
+        </td>
 
-            <td>
-                <div class="overflow-menu">
+        <td>
+            <div class="overflow-menu">
 
-                    <button
-                        class="btn-icon overflow-trigger"
-                        title="Actions"
-                    >
-                        ⋮
-                    </button>
+                <button class="btn-icon overflow-trigger" title="Actions">
+                    ⋮
+                </button>
 
-                    <div class="overflow-dropdown">
+                <div class="overflow-dropdown">
 
-                        <button
-                            class="dropdown-item"
-                            onclick="viewPaymentProof(${p.payment_id})"
-                        >
-                            View Proof
-                        </button>
-
-                        <button
-                            class="dropdown-item"
-                            onclick="approvePayment(${p.payment_id})"
-                        >
-                            Approve
-                        </button>
-
-                        <button
-                            class="dropdown-item"
-                            onclick="rejectPayment(${p.payment_id})"
-                        >
-                            Reject
-                        </button>
-
-                    </div>
+                    ${p.payment_method === 'cash'
+                ? `<span class="dropdown-item disabled">Awaiting driver confirmation</span>`
+                : `
+                            <button class="dropdown-item" onclick="viewPaymentProof(${p.payment_id})">
+                                View Proof
+                            </button>
+                            ${p.status === 'pending'
+                    ? `<button class="dropdown-item" onclick="approvePayment(${p.payment_id})">Approve</button>
+                                   <button class="dropdown-item" onclick="rejectPayment(${p.payment_id})">Reject</button>`
+                    : ''}
+                        `
+            }
 
                 </div>
-            </td>
-        </tr>
-    `).join('');
+            </div>
+        </td>
+    </tr>
+`).join('');
     }
 
 
@@ -1151,7 +1139,7 @@ async function loadAdmins() {
         document.getElementById('adminModal').style.display = 'flex';
     }
 
-   window.saveAdmin = async function () {
+    window.saveAdmin = async function () {
 
         const id =
             document.getElementById('editAdminId').value;
@@ -1227,28 +1215,28 @@ async function loadAdmins() {
         }
     }
 
-function renderAdmins() {
-    console.log("admin data:", admins);
+    function renderAdmins() {
+        console.log("admin data:", admins);
 
-    const container = document.getElementById("adminsListContainer");
+        const container = document.getElementById("adminsListContainer");
 
-    if (!container) {
-        console.error("❌ adminListContainer NOT FOUND");
-        return;
-    }
+        if (!container) {
+            console.error("❌ adminListContainer NOT FOUND");
+            return;
+        }
 
-    console.log("✅ Admin container found");
+        console.log("✅ Admin container found");
 
-    if (!Array.isArray(admins) || admins.length === 0) {
-        container.innerHTML = `
+        if (!Array.isArray(admins) || admins.length === 0) {
+            container.innerHTML = `
             <p style="text-align:center; padding:2rem; color:#666;">
                 No admins found
             </p>
         `;
-        return;
-    }
+            return;
+        }
 
-    container.innerHTML = `
+        container.innerHTML = `
         <div class="table-responsive">
             <table class="drivers-table">
                 <thead>
@@ -1272,8 +1260,8 @@ function renderAdmins() {
                             </td>
                             <td>
                                 ${admin.created_at
-                                    ? new Date(admin.created_at).toLocaleDateString()
-                                    : '--'}
+                ? new Date(admin.created_at).toLocaleDateString()
+                : '--'}
                             </td>
                         </tr>
                     `).join('')}
@@ -1281,7 +1269,7 @@ function renderAdmins() {
             </table>
         </div>
     `;
-};
+    };
 
     async function init() {
         // Load user from sessionStorage (set during login)
@@ -1357,7 +1345,6 @@ window.viewPaymentProof = async function (paymentId) {
         let proofPath =
             payment.proof_image_path.replace(/\\/g, '/');
 
-        // Remove leading slash if present
         proofPath = proofPath.replace(/^\/+/, '');
 
         const backendBase =
@@ -1368,7 +1355,12 @@ window.viewPaymentProof = async function (paymentId) {
 
         console.log('Proof image:', imageUrl);
 
-        window.open(imageUrl, '_blank');
+        document.getElementById('proofImage').src = imageUrl;
+
+        document.getElementById('proofMeta').textContent =
+            `Reference: ${payment.reference_number || '—'} · ₱${Number(payment.amount || 0).toFixed(2)}`;
+
+        document.getElementById('proofModal').classList.add('show');
 
     } catch (error) {
 
@@ -1381,9 +1373,19 @@ window.viewPaymentProof = async function (paymentId) {
 
     }
 
-
-
 };
+
+function closeProofModal() {
+    document.getElementById('proofModal').classList.remove('show');
+    document.getElementById('proofImage').src = '';
+}
+  document.getElementById('proofImage').onerror = function () {
+      this.onerror = null;
+      document.getElementById('proofMeta').textContent = 'Proof image could not be loaded.';
+  };
+    document.getElementById('proofModal').addEventListener('click', function (e) {
+      if (e.target === this) closeProofModal();
+  });
 
 
 window.approvePayment = async function (paymentId) {
