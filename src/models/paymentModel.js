@@ -88,7 +88,7 @@ const Payment = {
        return rows[0] || null;
     },
 
-   async approvePayment(paymentId, receiptNumber) {
+async approvePayment(paymentId, receiptNumber) {
 
     const sql = `
         UPDATE payments
@@ -98,13 +98,15 @@ const Payment = {
             payment_date = NOW(),
             updated_at = NOW()
         WHERE payment_id = ?
-          AND status = 'pending'
+          AND status IN ('pending', 'awaiting_cash')
     `;
 
-    return await db.query(sql, [
+    const result = await db.query(sql, [
         receiptNumber,
         paymentId
     ]);
+
+    return result;
 },
 
     async getPendingPayments() {

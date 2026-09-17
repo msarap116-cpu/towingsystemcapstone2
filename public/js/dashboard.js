@@ -814,7 +814,7 @@ const useCurrentEditLocationBtn = document.getElementById('useCurrentEditLocatio
 
 //payments
 const paymentNavBtn = document.getElementById('paymentNavBtn');
-const paymentModal = document.getElementById('paymentModal');
+const paymentModal = document.getElementById('gcashPaymentSection');
 const closePaymentModal = document.getElementById('closePaymentModal');
 const cancelPaymentBtn = document.getElementById('cancelPaymentBtn');
 const paymentRequestId = document.getElementById('paymentRequestId');

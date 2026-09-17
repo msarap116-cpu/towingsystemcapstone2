@@ -917,6 +917,10 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Auto-refresh failed:', err);
         });
     }, 10000);
+
+    loadPaymentHistory().catch(err =>{
+        console.error('failed to load loadpaymenthistory');
+    });
 });
 
 
