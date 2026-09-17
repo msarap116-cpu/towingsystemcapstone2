@@ -128,38 +128,63 @@ router.post(
                         userId
                     );
 
-                if (existingPayment) {
+               if (existingPayment) {
 
-                    if (existingPayment.status === 'completed') {
-                        return res.status(409).json({
-                            success: false,
-                            message:
-                                'This request has already been paid.',
-                            payment: existingPayment
-                        });
-                    }
+    if (existingPayment.status === 'completed') {
+        return res.status(409).json({
+            success: false,
+            message: 'This request has already been paid.',
+            payment: existingPayment
+        });
+    }
 
-                    if (
-                        existingPayment.payment_method === 'cash' &&
-                        existingPayment.status === 'awaiting_cash'
-                    ) {
-                        return res.json({
-                            success: true,
-                            message:
-                                'Cash payment is already selected.',
-                            payment: existingPayment,
-                            existing: true
-                        });
-                    }
+    if (
+        existingPayment.payment_method === 'cash' &&
+        existingPayment.status === 'awaiting_cash'
+    ) {
+        return res.json({
+            success: true,
+            message: 'Cash payment is already selected.',
+            payment: existingPayment,
+            existing: true
+        });
+    }
 
-                    return res.status(409).json({
-                        success: false,
-                        message:
-                            'A payment already exists for this request.',
-                        payment: existingPayment
-                    });
-                }
+    if (existingPayment.status === 'pending') {
+        // proof already submitted for gcash, awaiting admin review — don't let them switch silently
+        return res.status(409).json({
+            success: false,
+            message: 'A payment proof is already awaiting verification for this request.',
+            payment: existingPayment
+        });
+    }
 
+    // Any other incomplete payment (e.g. abandoned gcash intent, status 'awaiting_payment')
+    // can be switched over to cash.
+    await Payment.switchToCash(existingPayment.payment_id);
+
+    const payment = {
+        ...existingPayment,
+        payment_method: 'cash',
+        status: 'awaiting_cash'
+    };
+
+    if (request.driver_id) {
+        await Notification.create({
+            userId: request.driver_id,
+            requestId: request_id,
+            type: 'payment',
+            message: `Customer selected cash payment for request #${request_id}.`
+        });
+    }
+
+    return res.json({
+        success: true,
+        message: 'Cash payment selected successfully.',
+        payment,
+        existing: false
+    });
+}
                 // Create cash payment
                 const paymentId =
                     await Payment.createCashPayment({

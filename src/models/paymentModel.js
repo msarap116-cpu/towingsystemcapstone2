@@ -272,8 +272,16 @@ async submitProof({
     ]);
 
     return result;
-}
-
+},
+async switchToCash(paymentId) {
+    const sql = `
+        UPDATE payments
+        SET payment_method = 'cash',
+            status = 'awaiting_cash'
+        WHERE payment_id = ?
+    `;
+    return db.query(sql, [paymentId]);
+},
 
 };
 
