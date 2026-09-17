@@ -528,6 +528,25 @@ router.put(
         }
     }
 );
+router.get('/driver/mine', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'driver') {
+            return res.status(403).json({
+                success: false,
+                message: 'Driver access required.'
+            });
+        }
+
+        const driverId = req.user.id;
+        const payments = await Payment.getPaymentsByDriver(driverId);
+
+        res.json(payments);
+
+    } catch (err) {
+        console.error('Failed to fetch driver payments:', err);
+        res.status(500).json({ message: 'Failed to fetch payments' });
+    }
+});
 
 //11:11-082626
 router.get('/mine', authenticateToken, async (req, res) => {
@@ -629,6 +648,9 @@ router.get(
         }
     },
 
+
 );
+
+
 
 module.exports = router;

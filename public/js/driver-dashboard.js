@@ -242,7 +242,7 @@ function renderDashboardUI() {
 
     const totalEarningsEl = document.getElementById('totalEarnings');
     if (totalEarningsEl) totalEarningsEl.innerText = `₱${totalEarningsValue.toFixed(2)}`;
-renderPendingRequests();
+    renderPendingRequests();
 };
 
 // ---------- ACCEPT JOB ----------
@@ -517,26 +517,26 @@ async function initDriverMap() {
     }).addTo(map);
 
     setTimeout(() => {
-    if (typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') {
-        map.invalidateSize();
+        if (typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') {
+            map.invalidateSize();
+        }
+    }, 300);
+
+    window.addEventListener('resize', () => {
+
+        if (typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') {
+            map.invalidateSize();
+        }
+    });
+    if (customerLat && customerLng) {
+        const customerName = activeTrip.customer_name || 'Customer';
+
+        customerMarker = L.marker([customerLat, customerLng], { icon: customerIcon })
+            .addTo(map)
+            .bindPopup(`<strong>📍 ${customerName}</strong><br>${customerAddress || 'Customer location'}`)
+            .openPopup();
+        startGPSTracking(customerLat, customerLng);
     }
-}, 300);
-
-window.addEventListener('resize', () => {
-
-    if (typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') {
-        map.invalidateSize();
-    }
-});
-if (customerLat && customerLng) {
-    const customerName = activeTrip.customer_name || 'Customer';
-
-    customerMarker = L.marker([customerLat, customerLng], { icon: customerIcon })
-        .addTo(map)
-        .bindPopup(`<strong>📍 ${customerName}</strong><br>${customerAddress || 'Customer location'}`)
-        .openPopup();
-    startGPSTracking(customerLat, customerLng);
-}
 
     // Always show driver location
     if (navigator.geolocation) {
@@ -566,7 +566,7 @@ if (customerLat && customerLng) {
     }
 
     console.log('  Map initialized (no boundaries)');
-        renderPendingRequests();
+    renderPendingRequests();
     console.log('Map initialized (no boundaries)');
 }
 
@@ -616,7 +616,7 @@ async function onDriverLocationUpdate(position, customerLat, customerLng) {
     const driverLat = position.coords.latitude;
     const driverLng = position.coords.longitude;
 
-            const user = JSON.parse(sessionStorage.getItem("user") || '{}');
+    const user = JSON.parse(sessionStorage.getItem("user") || '{}');
     const driverName = user.name || 'Customer';
     if (!driverMarker) {
         driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
@@ -692,8 +692,8 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
 
         const response = await fetch(url);
 
-                const user = JSON.parse(sessionStorage.getItem("user") || '{}');
-    const driverName = user.name || 'Customer';
+        const user = JSON.parse(sessionStorage.getItem("user") || '{}');
+        const driverName = user.name || 'Customer';
         if (!response.ok) {
             throw new Error(`OSRM HTTP ${response.status}`);
         }
@@ -857,28 +857,28 @@ function setupEventListeners() {
     // });
 
     // Tab switching with map init
-document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
-    item.addEventListener('click', () => {
-        const tab = item.dataset.tab;
+    document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
+        item.addEventListener('click', () => {
+            const tab = item.dataset.tab;
 
-        // hide all tabs
-        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            // hide all tabs
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
-        // show selected
-        document.getElementById('tab-' + tab)?.classList.add('active');
-        item.classList.add('active');
+            // show selected
+            document.getElementById('tab-' + tab)?.classList.add('active');
+            item.classList.add('active');
 
-        // If opening the tracking tab and map isn't ready, init it
-        if (tab === 'tracking') {
-            if (typeof map === 'undefined' || !map) {
-                initDriverMap();
-            } else {
-                setTimeout(() => map.invalidateSize(), 150);
+            // If opening the tracking tab and map isn't ready, init it
+            if (tab === 'tracking') {
+                if (typeof map === 'undefined' || !map) {
+                    initDriverMap();
+                } else {
+                    setTimeout(() => map.invalidateSize(), 150);
+                }
             }
-        }
+        });
     });
-});
 
     // Search filter
     document.getElementById('dashboardSearch')?.addEventListener('input', function (e) {
@@ -1031,7 +1031,7 @@ async function loadPaymentHistory() {
 
     try {
 
-        const response = await fetch(`${API_BASE_URL}/payments/mine`, {
+        const response = await fetch(`${API_BASE_URL}/payments/driver/mine`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -1053,10 +1053,10 @@ async function loadPaymentHistory() {
                     <span>${p.payment_method}</span>
                 </div>
                 ${p.payment_method === 'cash' && p.status === 'awaiting_cash'
-                    ? `<button class="btn-primary" onclick="confirmCashReceived(${p.payment_id})">
+                ? `<button class="btn-primary" onclick="confirmCashReceived(${p.payment_id})">
                            Mark Cash Received
                        </button>`
-                    : ''}
+                : ''}
             </div>
         `).join('');
 

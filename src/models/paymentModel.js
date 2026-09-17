@@ -282,6 +282,25 @@ async switchToCash(paymentId) {
     `;
     return db.query(sql, [paymentId]);
 },
+async getPaymentsByDriver(driverId) {
+    const sql = `
+        SELECT
+            p.*,
+            u.name AS customer_name,
+            sr.driver_id
+        FROM payments p
+        JOIN service_requests sr
+            ON sr.request_id = p.request_id
+        LEFT JOIN users u
+            ON u.user_id = p.user_id
+        WHERE sr.driver_id = ?
+        ORDER BY p.payment_date DESC
+    `;
+
+    const rows = await db.query(sql, [driverId]);
+
+    return rows;
+},
 
 };
 
