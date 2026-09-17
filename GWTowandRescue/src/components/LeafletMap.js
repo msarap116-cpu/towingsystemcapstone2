@@ -6,13 +6,23 @@ const LeafletMap = ({
   customerLocation,
   driverLocation,
   routeCoordinates,
-  address
+  address,
+  customerName,
+  driverName
 }) => {
   const generateMapHtml = () => {
     const customerLat = customerLocation?.latitude || 6.1167;
     const customerLng = customerLocation?.longitude || 124.9;
     const driverLat = driverLocation?.latitude;
     const driverLng = driverLocation?.longitude;
+
+    // Safely escape strings for injection into the HTML/JS template
+    const customerPopupText = JSON.stringify(
+      `📍 ${customerName || 'Customer'}<br>${address || 'Customer location'}`
+    );
+    const driverPopupText = JSON.stringify(
+      `🚗 ${driverName || 'Driver'}`
+    );
 
     // Generate route polyline coordinates
     let routeCoords = '[]';
@@ -61,7 +71,7 @@ const LeafletMap = ({
 
           L.marker([${customerLat}, ${customerLng}], { icon: customerIcon })
             .addTo(map)
-            .bindPopup('${address || "customer"}')
+            .bindPopup(${customerPopupText})
             .openPopup();
 
           // Driver marker if available (red)
@@ -75,7 +85,7 @@ const LeafletMap = ({
 
             L.marker([${driverLat}, ${driverLng}], { icon: driverIcon })
               .addTo(map)
-              .bindPopup('Driver Location');
+              .bindPopup(${driverPopupText});
 
             var bounds = L.latLngBounds(
               [${customerLat}, ${customerLng}],
@@ -112,6 +122,7 @@ const LeafletMap = ({
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

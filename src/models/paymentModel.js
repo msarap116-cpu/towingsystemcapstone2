@@ -190,12 +190,20 @@ async findActivePayment(requestId, userId) {
         FROM payments
         WHERE request_id = ?
           AND user_id = ?
-          AND status IN ('awaiting_payment', 'pending', 'completed')
+          AND status IN (
+              'awaiting_payment',
+              'awaiting_cash',
+              'pending',
+              'completed'
+          )
         ORDER BY payment_id DESC
         LIMIT 1
     `;
 
-    const rows = await db.query(sql, [requestId, userId]);
+    const rows = await db.query(
+        sql,
+        [requestId, userId]
+    );
 
     return rows[0] || null;
 },
@@ -216,7 +224,26 @@ async createPaymentIntent({ requestId, userId, amount }) {
 
     return result.insertId;
 },
+async createCashPayment({ requestId, userId, amount }) {
 
+    const sql = `
+        INSERT INTO payments (
+            request_id,
+            user_id,
+            amount,
+            payment_method,
+            status
+        )
+        VALUES (?, ?, ?, 'cash', 'awaiting_cash')
+    `;
+
+    const result = await db.query(
+        sql,
+        [requestId, userId, amount]
+    );
+
+    return result.insertId;
+},
 async submitProof({
     requestId,
     userId,

@@ -929,15 +929,8 @@ paymentMethodButtons.forEach(button => {
 
 //selecting and displaying the payment method dal a imo ankol
 async function processPaymentMethod(method, requestId) {
-    console.log(
-        'processPaymentMethod() called:',
-        method
-    );
-
-    console.log(
-        'Payment request ID:',
-        requestId
-    );
+    console.log('processPaymentMethod() called:', method);
+    console.log('Payment request ID:', requestId);
 
     if (!requestId) {
         paymentMessage.textContent =
@@ -976,42 +969,81 @@ async function processPaymentMethod(method, requestId) {
 
         console.log('Existing payment:', payment);
 
-        if (payment) {
-            if (payment.status === 'awaiting_payment') {
-                await startGCashPayment(requestId);
-                return;
+        // =========================
+        // CASH PAYMENT
+        // =========================
+        if (method === 'cash') {
+
+            if (payment) {
+
+                if (payment.status === 'completed') {
+                    paymentMessage.textContent =
+                        'This request has already been paid.';
+                    return;
+                }
+
+                if (payment.status === 'awaiting_cash') {
+                    paymentMessage.textContent =
+                        'Cash payment is selected. Please pay the driver.';
+                    return;
+                }
+
+                if (payment.status === 'refunded') {
+                    paymentMessage.textContent =
+                        'This payment was refunded.';
+                    return;
+                }
             }
 
-            if (payment.status === 'pending') {
-                paymentMessage.textContent =
-                    'Proof was already submitted and is awaiting verification.';
-                return;
-            }
-
-            if (payment.status === 'completed') {
-                paymentMessage.textContent =
-                    'This request has already been paid.';
-                return;
-            }
-
-            if (payment.status === 'failed') {
-                paymentMessage.textContent =
-                    'Your previous proof was rejected. You may submit proof again.';
-                await startGCashPayment(requestId);
-                return;
-            }
-
-            if (payment.status === 'refunded') {
-                paymentMessage.textContent =
-                    'This payment was refunded.';
-                return;
-            }
+            await selectCashPayment(requestId);
+            return;
         }
 
-        // No payment record yet
-        await startGCashPayment(requestId);
+        // =========================
+        // GCASH PAYMENT
+        // =========================
+        if (method === 'gcash') {
+
+            if (payment) {
+
+                if (payment.status === 'awaiting_payment') {
+                    await startGCashPayment(requestId);
+                    return;
+                }
+
+                if (payment.status === 'pending') {
+                    paymentMessage.textContent =
+                        'Proof was already submitted and is awaiting verification.';
+                    return;
+                }
+
+                if (payment.status === 'completed') {
+                    paymentMessage.textContent =
+                        'This request has already been paid.';
+                    return;
+                }
+
+                if (payment.status === 'failed') {
+                    paymentMessage.textContent =
+                        'Your previous proof was rejected. You may submit proof again.';
+
+                    await startGCashPayment(requestId);
+                    return;
+                }
+
+                if (payment.status === 'refunded') {
+                    paymentMessage.textContent =
+                        'This payment was refunded.';
+                    return;
+                }
+            }
+
+            // No GCash payment yet
+            await startGCashPayment(requestId);
+        }
 
     } catch (error) {
+
         console.error(
             'Payment status check failed:',
             error
@@ -1114,82 +1146,89 @@ async function submitProofOfPayment(requestId, referenceNumber, fileInput) {
         paymentMessage.textContent = 'Unable to submit proof of payment.';
     }
 }
-// async function selectCashPayment(requestId) {
-
-//     const confirmed =
-//         confirm(
-//             'Do you want to pay in cash to the driver?'
-//         );
-
-//     if (!confirmed) return;
-
-//     const token =
-//         sessionStorage.getItem('token');
-
-//     try {
-
-//         const response = await fetch(
-//             `${API_BASE_URL}/payments/cash`,
-//             {
-//                 method: 'POST',
-
-//                 headers: {
-//                     'Content-Type':
-//                         'application/json',
-
-//                     'Authorization':
-//                         `Bearer ${token}`
-//                 },
-
-//                 body: JSON.stringify({
-//                     request_id: requestId
-//                 })
-//             }
-//         );
-
-//         const data =
-//             await response.json();
-
-//         if (!response.ok || !data.success) {
-
-//             paymentMessage.textContent =
-//                 data.message ||
-//                 'Unable to select cash payment.';
-
-//             return;
-//         }
-
-//         paymentMessage.textContent =
-//             'Cash payment selected. Please pay the driver.';
-
-//         loadMyPayments();
-
-//     } catch (error) {
-
-//         console.error(
-//             'Cash payment error:',
-//             error
-//         );
-
-//     }
-// }
-
-//when selecting gcash payment
 async function selectCashPayment(requestId) {
 
-    console.log(
-        '💵 CASH FUNCTION HIT'
+    const confirmed = confirm(
+        'Do you want to pay in cash to the driver?'
     );
 
-    console.log(
-        'Request ID:',
-        requestId
-    );
+    if (!confirmed) return;
 
-    paymentMessage.textContent =
-        `Cash selected for Request #${requestId}.`;
+    const token = sessionStorage.getItem('token');
 
+    if (!token) {
+        paymentMessage.textContent =
+            'Please log in again.';
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/payments/cash`,
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+
+                body: JSON.stringify({
+                    request_id: requestId
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+
+            paymentMessage.textContent =
+                data.message ||
+                'Unable to select cash payment.';
+
+            return;
+        }
+
+        paymentMessage.textContent =
+            'Cash payment selected. Please pay the driver when the service is completed.';
+
+        console.log(
+            'Cash payment created:',
+            data.payment
+        );
+
+        loadMyPayments();
+
+    } catch (error) {
+
+        console.error(
+            'Cash payment error:',
+            error
+        );
+
+        paymentMessage.textContent =
+            'Unable to select cash payment.';
+    }
 }
+
+//when selecting gcash payment
+// async function selectCashPayment(requestId) {
+
+//     console.log(
+//         '💵 CASH FUNCTION HIT'
+//     );
+
+//     console.log(
+//         'Request ID:',
+//         requestId
+//     );
+
+//     paymentMessage.textContent =
+//         `Cash selected for Request #${requestId}.`;
+
+// }
 async function startPayMayaPayment(requestId) {
 
     console.log(

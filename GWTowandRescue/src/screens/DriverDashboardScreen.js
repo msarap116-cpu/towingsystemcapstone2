@@ -450,8 +450,6 @@ const startGPSTracking = () => {
 };
 
 
-
-
   //  FIXED OSRM URL — proper format: lon,lat;lon,lat
 const drawRoute = async (fromLat, fromLng, toLat, toLng) => {
   try {
@@ -847,12 +845,14 @@ const renderTracking = () => (
         borderColor: '#e2e8f0'
       }
     ]}>
-      <LeafletMap
-        driverLocation={driverLocation}
-        customerLocation={customerLocation}
-        routeCoordinates={routeCoordinates}
-        mapRegion={mapRegion}
-      />
+<LeafletMap
+  driverLocation={driverLocation}
+  customerLocation={customerLocation}
+  routeCoordinates={routeCoordinates}
+  mapRegion={mapRegion}
+  customerName={customerName}
+  driverName={driverName}
+/>
     </View>
   </View>
 );
