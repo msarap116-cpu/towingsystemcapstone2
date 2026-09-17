@@ -435,12 +435,12 @@ router.put(
             );
             const result = await Payment.approvePayment(paymentId, receiptNumber);
 
-if (result.affectedRows === 0) {
-    return res.status(409).json({
-        success: false,
-        message: 'Payment could not be confirmed. It may have already been processed.'
-    });
-}
+            if (result.affectedRows === 0) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'Payment could not be confirmed. It may have already been processed.'
+                });
+            }
 
             await Notification.create({
                 userId: payment.user_id,
@@ -512,16 +512,15 @@ router.put(
             const receiptNumber =
                 `TTR-${new Date().getFullYear()}-${String(payment.payment_id).padStart(6, '0')}`;
 
-            await Payment.approvePayment(paymentId, receiptNumber);
 
             const result = await Payment.approvePayment(paymentId, receiptNumber);
 
-if (result.affectedRows === 0) {
-    return res.status(409).json({
-        success: false,
-        message: 'Payment could not be confirmed. It may have already been processed.'
-    });
-}
+            if (result.affectedRows === 0) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'Payment could not be confirmed. It may have already been processed.'
+                });
+            }
 
             await Notification.create({
                 userId: payment.user_id,

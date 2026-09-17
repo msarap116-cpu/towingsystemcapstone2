@@ -912,15 +912,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 2. ADD THIS: The auto-refresh timer
     // This checks for updates from the Admin every 10 seconds
-    setInterval(() => {
-        loadDriverDashboardData().catch(err => {
-            console.error('Auto-refresh failed:', err);
-        });
-    }, 10000);
+setInterval(() => {
+    loadDriverDashboardData().catch(err => console.error(err));
+    loadPaymentHistory().catch(err => console.error(err));
+}, 10000);
 
-    loadPaymentHistory().catch(err =>{
-        console.error('failed to load loadpaymenthistory');
-    });
 });
 
 
@@ -998,7 +994,7 @@ async function confirmCashReceived(paymentId) {
 
     try {
 
-        const response = await fetch(
+        const response = await apiFetch(
             `${API_BASE_URL}/payments/${paymentId}/cash-received`,
             {
                 method: 'PUT',

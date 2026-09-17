@@ -108,7 +108,7 @@ async function loadUserMap() {
         return;
     }
 
-       // Get the customer name the same way displayUserInfo() does
+    // Get the customer name the same way displayUserInfo() does
     const user = JSON.parse(sessionStorage.getItem("user") || '{}');
     const customerName = user.name || 'Customer';
 
@@ -207,8 +207,7 @@ async function loadUserMap() {
             )
                 .addTo(map)
                 .bindPopup(
-                    `<strong>📍 ${customerName}</strong><br>${
-                        request.address || 'Your requested location'
+                    `<strong>📍 ${customerName}</strong><br>${request.address || 'Your requested location'
                     }`
 
                 )
@@ -265,7 +264,7 @@ function showTab(tabId) {
     document.querySelectorAll('.tab-panel').forEach(panel => {
         panel.hidden = true;
     });
-     document.getElementById(tabId).hidden = false;
+    document.getElementById(tabId).hidden = false;
 
     // Show the selected one
     const activePanel = document.getElementById(tabId);
@@ -386,10 +385,10 @@ async function pollDriverLocation() {
 // Show driver on map and draw route
 async function showDriverOnMap(driverLat, driverLng, customerLat, customerLng) {
     // Pull driver info from the latest request data
-    const driverName  = latestRequestData?.driver_name  || 'Driver';
+    const driverName = latestRequestData?.driver_name || 'Driver';
     const driverPhone = latestRequestData?.driver_phone || '';
     const vehicleType = latestRequestData?.vehicle_type || '';
-    const plate       = latestRequestData?.license_plate || '';
+    const plate = latestRequestData?.license_plate || '';
 
     // Build popup HTML once
     const popupHtml = `
@@ -400,14 +399,14 @@ async function showDriverOnMap(driverLat, driverLng, customerLat, customerLng) {
         <br><em>On the way</em>
     `;
 
-if (!driverMarker) {
-    driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
-        .addTo(map)
-        .bindPopup(buildDriverPopup());
-} else {
-    driverMarker.setLatLng([driverLat, driverLng]);
-    driverMarker.setPopupContent(buildDriverPopup());
-}
+    if (!driverMarker) {
+        driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
+            .addTo(map)
+            .bindPopup(buildDriverPopup());
+    } else {
+        driverMarker.setLatLng([driverLat, driverLng]);
+        driverMarker.setPopupContent(buildDriverPopup());
+    }
 
     const distance = calculateDistance(driverLat, driverLng, customerLat, customerLng);
     if (parseFloat(distance) > 0.05) { // 0.05 km = 50 meters
@@ -452,11 +451,11 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
         const durationMin = Math.ceil(data.routes[0].duration / 60);
 
         // NEW — push real ETA into the badge
-const etaEl = document.getElementById('etaDisplay');
-if (etaEl) {
-    etaEl.style.display = '';
-    etaEl.textContent = `ETA ${durationMin} min`;
-}
+        const etaEl = document.getElementById('etaDisplay');
+        if (etaEl) {
+            etaEl.style.display = '';
+            etaEl.textContent = `ETA ${durationMin} min`;
+        }
 
         // Update or create route layer
         if (routeLayer) map.removeLayer(routeLayer);
@@ -469,9 +468,9 @@ if (etaEl) {
         }).addTo(map);
 
 
-if (driverMarker) {
-    driverMarker.setPopupContent(buildDriverPopup({ distanceKm, durationMin }));
-}
+        if (driverMarker) {
+            driverMarker.setPopupContent(buildDriverPopup({ distanceKm, durationMin }));
+        }
 
         const midPoint = getMidpoint(fromLat, fromLng, toLat, toLng);
         const routeSummary = L.popup()
@@ -496,18 +495,18 @@ if (driverMarker) {
         // Calculate straight-line distance as fallback
         const straightDistance = calculateDistance(fromLat, fromLng, toLat, toLng);
 
-if (driverMarker) {
-    driverMarker.setPopupContent(buildDriverPopup({ straightDistance }));
-}
+        if (driverMarker) {
+            driverMarker.setPopupContent(buildDriverPopup({ straightDistance }));
+        }
         const etaEl = document.getElementById('etaDisplay');
-    if (etaEl) {
-        etaEl.style.display = '';
-        etaEl.textContent = `~${straightDistance} km away`; // no reliable ETA without routing
-    }
+        if (etaEl) {
+            etaEl.style.display = '';
+            etaEl.textContent = `~${straightDistance} km away`; // no reliable ETA without routing
+        }
 
-if (driverMarker) {
-    driverMarker.setPopupContent(buildDriverPopup({ straightDistance }));
-}
+        if (driverMarker) {
+            driverMarker.setPopupContent(buildDriverPopup({ straightDistance }));
+        }
 
     }
 }
@@ -668,7 +667,7 @@ async function loadRecentActivity() {
         // console.log("Recent activities:", activities);
 
         renderRecentActivity(activities);
-         emergencyBtn
+        emergencyBtn
     } catch (err) {
         console.error("Failed to load recent activity:", err);
     }
@@ -814,7 +813,8 @@ const useCurrentEditLocationBtn = document.getElementById('useCurrentEditLocatio
 
 //payments
 const paymentNavBtn = document.getElementById('paymentNavBtn');
-const paymentModal = document.getElementById('gcashPaymentSection');
+const paymentModal = document.getElementById('paymentSection');
+const gcashPaymentSection = document.getElementById('gcashPaymentSection');
 const closePaymentModal = document.getElementById('closePaymentModal');
 const cancelPaymentBtn = document.getElementById('cancelPaymentBtn');
 const paymentRequestId = document.getElementById('paymentRequestId');
@@ -853,11 +853,12 @@ function openPaymentModal(requestId) {
     loadPaymentRequestInfo(requestId);
 }
 function closePaymentModalFunction() {
-    console.log('closepaymentmodalfunction is active');
-    if (!paymentModal) return;
+    console.log('Closing GCash payment section dfdf');
 
-    paymentModal.classList.remove('show');
-}
+    if (gcashPaymentSection) {
+        gcashPaymentSection.style.display = 'none';
+    }
+};
 if (closePaymentModal) {
 
     closePaymentModal.addEventListener(
@@ -1831,17 +1832,17 @@ async function loadMyReceipts() {
     }
 }
 function renderReceipts(receipts) {
-  const tbody = document.getElementById('receiptsTableBody');
-  if (!receipts || receipts.length === 0) {
-    tbody.innerHTML = `
+    const tbody = document.getElementById('receiptsTableBody');
+    if (!receipts || receipts.length === 0) {
+        tbody.innerHTML = `
       <tr>
         <td colspan="6" class="text-center">No receipts found</td>
       </tr>
     `;
-    return;
-  }
+        return;
+    }
 
-  tbody.innerHTML = receipts.map(receipt => `
+    tbody.innerHTML = receipts.map(receipt => `
     <tr>
       <td>${receipt.receipt_number || '—'}</td>
       <td>#${receipt.request_id || '—'}</td>
@@ -1849,16 +1850,16 @@ function renderReceipts(receipts) {
       <td>${receipt.payment_date ? new Date(receipt.payment_date).toLocaleDateString() : '—'}</td>
       <td><span class="status-badge status-${receipt.status || 'unknown'}">${receipt.status || '—'}</span></td>
       <td>${receipt.status === 'completed'
-        ? `<button class="btn btn-sm" onclick="downloadReceipt(${receipt.payment_id})">Generate Receipt</button>`
-        : `<span>—</span>`}</td>
+            ? `<button class="btn btn-sm" onclick="downloadReceipt(${receipt.payment_id})">Generate Receipt</button>`
+            : `<span>—</span>`}</td>
     </tr>
   `).join('');
 }
 function buildDriverPopup({ distanceKm, durationMin, straightDistance } = {}) {
-    const driverName  = latestRequestData?.driver_name  || 'Driver';
+    const driverName = latestRequestData?.driver_name || 'Driver';
     const driverPhone = latestRequestData?.driver_phone || '';
     const vehicleType = latestRequestData?.vehicle_type || '';
-    const plate       = latestRequestData?.license_plate || '';
+    const plate = latestRequestData?.license_plate || '';
 
     let extra = '';
     if (durationMin != null && distanceKm != null) {
