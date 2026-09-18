@@ -27,7 +27,7 @@
         .form-container {
             background: #fff;
             padding: 32px 36px;
-            border-radius: 0;
+            border-radius: 12px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.06);
             border: 1px solid #eef2f6;
             margin-bottom: 24px;
@@ -116,6 +116,57 @@
                 flex-direction: column;
             }
         }
+        /* ===== CHECKBOX (default vehicle) ===== */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #111827;
+    cursor: pointer;
+    margin-bottom: 0;
+    user-select: none;
+}
+
+/* Reset checkbox to a normal, plain size — overrides global input rules */
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    margin: 0;
+    padding: 0;
+    border: 1.5px solid #111827;
+    border-radius: 3px;
+    background: #fff;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: none;
+    transition: none;
+}
+
+/* Black tick when checked */
+.checkbox-label input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 5px;
+    height: 10px;
+    border: solid #000;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Remove the red focus ring you had on inputs */
+.checkbox-label input[type="checkbox"]:focus {
+    outline: none;
+    border-color: #111827;
+    box-shadow: none;
+}
     </style>
 </head>
 <body>
@@ -123,7 +174,7 @@
     <nav class="navbar">
         <div class="nav-container">
             <a class="navbar-brand" href="index">
-                <span class="brand-icon">🎉</span>
+                <!-- <span class="brand-icon">🎉</span> -->
                 <span class="brand-text">GoodWrench</span>
             </a>
             <ul class="nav-menu">
@@ -144,47 +195,47 @@
 
         <!-- Add vehicle form -->
         <div class="form-container">
-            <h3 style="margin-top:0;">➕ Add a Vehicle</h3>
+            <h3 style="margin-top:0;"> Add a Vehicle</h3>
             <form id="vehicleForm">
                 <div class="row">
                     <div class="form-group">
-                        <label for="vehicleType">🚗 Vehicle Type</label>
+                        <label for="vehicleType">Vehicle Type</label>
                         <input type="text" id="vehicleType" placeholder="e.g. Sedan, SUV, Truck" required>
                     </div>
                     <div class="form-group">
-                        <label for="year">📅 Year</label>
+                        <label for="year">Year Model</label>
                         <input type="number" id="year" placeholder="e.g. 2020" min="1980" max="2100">
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="form-group">
-                        <label for="make">🏭 Make</label>
+                        <label for="make">Model</label>
                         <input type="text" id="make" placeholder="e.g. Toyota" required>
                     </div>
                     <div class="form-group">
-                        <label for="model">🚙 Model</label>
+                        <label for="model">Brand</label>
                         <input type="text" id="model" placeholder="e.g. Vios" required>
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="form-group">
-                        <label for="color">🎨 Color</label>
+                        <label for="color">Color</label>
                         <input type="text" id="color" placeholder="e.g. White" required>
                     </div>
                     <div class="form-group">
-                        <label for="licensePlate">🔢 License Plate</label>
+                        <label for="licensePlate">License Plate</label>
                         <input type="text" id="licensePlate" placeholder="e.g. ABC 1234" required>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="isDefault">
-                        Set as default vehicle
-                    </label>
-                </div>
+<div class="form-group checkbox-group">
+    <label class="checkbox-label">
+        <input type="checkbox" id="isDefault">
+        <span>Set as default vehicle</span>
+    </label>
+</div>
 
                 <button type="submit" class="btn-submit">Add Vehicle</button>
             </form>

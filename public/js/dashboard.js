@@ -700,7 +700,7 @@ function renderRecentActivity(activities) {
                 <span>${a.status || "Unknown"}</span>
                 ${canCancel ? `
                     <button class="btn btn-danger btn-sm" onclick="cancelRequest(${a.request_id})">
-                        🗑️ Cancel
+                        Cancel
                     </button>
                 ` : ""}
             </div>
@@ -823,6 +823,20 @@ const paymentMessage = document.getElementById('paymentMessage');
 
 
 //============================================================= payment section ======================================================
+function closePaymentModalFunction(event) {
+    console.log('Closing ONLY GCash payment section');
+
+    // Stop this click from reaching the payment-section/tab handler
+    event.stopPropagation();
+    event.preventDefault();
+
+    if (gcashPaymentSection) {
+        gcashPaymentSection.style.display = 'none';
+        console.log('GCash section hidden');
+    } else {
+        console.error('gcashPaymentSection NOT FOUND');
+    }
+}
 const paymentMethodButtons =
     document.querySelectorAll(
         '.payment-method-btn'
@@ -868,11 +882,12 @@ if (closePaymentModal) {
     console.log('closepaymentmodafunction is hit')
 }
 if (cancelPaymentBtn) {
+    cancelPaymentBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
 
-    cancelPaymentBtn.addEventListener(
-        'click',
-        closePaymentModalFunction
-    );
+        gcashPaymentSection.style.display = 'none';
+    });
 }
 async function loadMyPayments() {
     const token = sessionStorage.getItem('token');
@@ -1617,7 +1632,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ========== PAYMENT ==========
     paymentNavBtn?.addEventListener('click', () => showPanel(paymentSection, paymentNavBtn));
     document.getElementById('closePaymentSection')?.addEventListener('click', () => showPanel(dashboardPanel, dashboardNav));
-    document.getElementById('cancelPaymentBtn')?.addEventListener('click', () => showPanel(dashboardPanel, dashboardNav));
+    // document.getElementById('cancelPaymentBtn')?.addEventListener('click', () => showPanel(dashboardPanel, dashboardNav));
 
     // ==============================================
     // EDIT ADDRESS NAV BUTTON — NOW WORKS!

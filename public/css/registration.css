@@ -241,24 +241,28 @@
 
         /* ===== SUBMIT BUTTON - Caltex red ===== */
         .btn-submit {
-            width: 100%;
-            padding: 14px;
-            background: #e30613;
-            color: #fff;
-            border: none;
-            border-radius: 40px;
-            font-size: 18px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.2s;
-            font-family: inherit;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            box-shadow: 0 4px 12px rgba(227, 6, 19, 0.3);
-            margin-top: 12px;
-        }
+    /* Keep your existing styles */
+    width: 200px;
+    padding: 14px;
+    background: #e30613;
+    color: #fff;
+    border: none;
+    border-radius: 40px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+    font-family: inherit;
+    display: flex;         /* Kept this */
+    align-items: center;    /* Kept this */
+    justify-content: center;/* Kept this */
+    gap: 10px;
+    box-shadow: 0 4px 12px rgba(227, 6, 19, 0.3);
+
+    /* CHANGE THESE LINES */
+    margin: 12px auto 0 auto; /* 12px top, auto left/right, 0 bottom */
+}
+
 
         .btn-submit:hover {
             background: #b8000f;

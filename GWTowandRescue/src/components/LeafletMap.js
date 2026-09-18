@@ -8,7 +8,9 @@ const LeafletMap = ({
   routeCoordinates,
   address,
   customerName,
-  driverName
+  driverName,
+  distanceKm,
+  durationMin
 }) => {
   const generateMapHtml = () => {
     const customerLat = customerLocation?.latitude || 6.1167;
@@ -16,13 +18,23 @@ const LeafletMap = ({
     const driverLat = driverLocation?.latitude;
     const driverLng = driverLocation?.longitude;
 
-    // Safely escape strings for injection into the HTML/JS template
     const customerPopupText = JSON.stringify(
       `📍 ${customerName || 'Customer'}<br>${address || 'Customer location'}`
     );
-    const driverPopupText = JSON.stringify(
-      `🚗 ${driverName || 'Driver'}`
-    );
+
+    let driverPopupHtml = `<strong>🚗 ${driverName || 'Driver'}</strong>`;
+    if (distanceKm && durationMin) {
+      driverPopupHtml += `<br>Distance: <strong>${distanceKm} km</strong><br>Est. arrival: <strong>${durationMin} min</strong>`;
+    } else if (distanceKm) {
+      driverPopupHtml += `<br>~${distanceKm} km away`;
+    } else {
+      driverPopupHtml += `<br>Calculating route…`;
+    }
+    const driverPopupText = JSON.stringify(driverPopupHtml);
+
+    // ...rest unchanged, but replace bindPopup(...) lines with:
+    // .bindPopup(${customerPopupText})
+    // .bindPopup(${driverPopupText})
 
     // Generate route polyline coordinates
     let routeCoords = '[]';

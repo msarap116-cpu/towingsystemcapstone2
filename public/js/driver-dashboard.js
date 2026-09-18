@@ -217,7 +217,7 @@ function renderDashboardUI() {
 
                                     <option value="completed" ${trip.status === 'completed' ? 'selected' : ''}>Completed</option></select>
 
-                                    <button class="btn btn-danger btn-sm" onclick="cancelTrip(${trip.request_id})">🗑️ Cancel</button>
+                                    <button class="btn btn-danger btn-sm" onclick="cancelTrip(${trip.request_id})">Cancel</button>
                     </div>
                 </div>
             `).join('');
@@ -641,6 +641,7 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
     fromLng = parseFloat(fromLng);
     toLat = parseFloat(toLat);
     toLng = parseFloat(toLng);
+
 
     console.log("🗺️ drawRoute coordinates:", {
         fromLat,

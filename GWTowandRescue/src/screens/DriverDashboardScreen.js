@@ -29,7 +29,8 @@ import { SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 const DRIVER_LOCATION_INTERVAL = 5000;
 
 const DriverDashboardScreen = ({ navigation }) => {
-  // ===== STATE =====
+  // ===== STATE OF THE NATION =====
+  const [activeTripData, setActiveTripData] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -53,6 +54,7 @@ const [cancelReason, setCancelReason] = useState('');
 const [cancelRequestId, setCancelRequestId] = useState(null);
 
   // Map state
+  const [routeInfo, setRouteInfo] = useState({ distanceKm: null, durationMin: null });
   const [mapRegion, setMapRegion] = useState({
     latitude: 6.3,
     longitude: 124.7,
@@ -304,6 +306,8 @@ const loadDriverDashboardData = async () => {
     console.log('activeTrip:', activeTrip);
     if (activeTrip) {
       setActiveRequestId(activeTrip.request_id);
+      setActiveTripData(activeTrip);
+
       console.log('lat/lng:', activeTrip.location_lat, activeTrip.location_lng);
       if (activeTrip.location_lat && activeTrip.location_lng) {
         setCustomerLocation({
@@ -314,6 +318,7 @@ const loadDriverDashboardData = async () => {
       }
     } else {
       setActiveRequestId(null);
+      setActiveTripData(null);
       setTrackingStatus('No active job – waiting for assignment.');
     }
   } catch (error) {
@@ -449,6 +454,16 @@ const startGPSTracking = () => {
 );
 };
 
+const calculateDistance = (lat1, lng1, lat2, lng2) => {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return (R * c).toFixed(1);
+};
 
   //  FIXED OSRM URL — proper format: lon,lat;lon,lat
 const drawRoute = async (fromLat, fromLng, toLat, toLng) => {
@@ -468,12 +483,27 @@ const drawRoute = async (fromLat, fromLng, toLat, toLng) => {
         longitude: coord[0]
       }));
       setRouteCoordinates(coords);
-      // ...
+
+      const distanceKm = (data.routes[0].distance / 1000).toFixed(1);
+      const durationMin = Math.ceil(data.routes[0].duration / 60);
+      setRouteInfo({ distanceKm, durationMin });
     } else {
       console.warn('OSRM returned non-Ok code:', data.code, data.message);
+      const straightDistance = calculateDistance(fromLat, fromLng, toLat, toLng);
+      setRouteInfo({ distanceKm: straightDistance, durationMin: null });
+      setRouteCoordinates([
+        { latitude: fromLat, longitude: fromLng },
+        { latitude: toLat, longitude: toLng }
+      ]);
     }
   } catch (error) {
     console.error('Route drawing error:', error);
+    const straightDistance = calculateDistance(fromLat, fromLng, toLat, toLng);
+    setRouteInfo({ distanceKm: straightDistance, durationMin: null });
+    setRouteCoordinates([
+      { latitude: fromLat, longitude: fromLng },
+      { latitude: toLat, longitude: toLng }
+    ]);
   }
 };
 
@@ -598,7 +628,9 @@ const requestLocationPermission = async () => {
               if (newStatus === 'completed' && Number(activeRequestId) === Number(requestId)) {
                 setActiveRequestId(null);
                 setCustomerLocation(null);
+                setActiveTripData(null);
                 setRouteCoordinates([]);
+setRouteInfo({ distanceKm: null, durationMin: null });   // add this
                 if (watchIdRef.current) {
                   Geolocation.clearWatch(watchIdRef.current);
                 }
@@ -654,6 +686,7 @@ const confirmCancelTrip = async () => {
       setActiveRequestId(null);
       setCustomerLocation(null);
       setRouteCoordinates([]);
+      setRouteInfo({ distanceKm: null, durationMin: null });   // add this
       if (watchIdRef.current) {
         Geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
@@ -850,8 +883,11 @@ const renderTracking = () => (
   customerLocation={customerLocation}
   routeCoordinates={routeCoordinates}
   mapRegion={mapRegion}
-  customerName={customerName}
-  driverName={driverName}
+  customerName={activeTripData?.customer_name}
+  driverName={user?.name}
+  address={activeTripData?.location}
+  distanceKm={routeInfo.distanceKm}
+  durationMin={routeInfo.durationMin}
 />
     </View>
   </View>

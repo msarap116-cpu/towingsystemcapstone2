@@ -73,12 +73,12 @@ async function downloadReceipt(req, res) {
         doc
             .fontSize(11)
             .font('Helvetica')
-            .text('Tow The Rescue', {
+            .text('GoodWrench', {
                 align: 'center'
             });
 
         doc
-            .text('Recu for oistoiesfga', {
+            .text('Thank your for choosing us', {
                 align: 'center'
             });
 
@@ -187,7 +187,7 @@ async function downloadReceipt(req, res) {
             .fontSize(10)
             .font('Helvetica')
             .text(
-                'Thank you for using Tow The Rescue.',
+                'Thank you for choosing GoodWrench',
                 {
                     align: 'center'
                 }
