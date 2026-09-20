@@ -510,3 +510,39 @@ exports.cancelRequest = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+const requestModel = require('../models/requestModel');
+
+exports.addAdditionalCharge = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { description, amount } = req.body;
+        const added_by = req.user?.user_id || null; // from authMiddleware
+
+        await requestModel.addAdditionalCharge({
+            request_id: id,
+            description,
+            amount,
+            added_by
+        });
+
+        res.json({ success: true, message: 'Additional charge added' });
+
+    } catch (error) {
+        console.error('Add additional charge error:', error);
+        res.status(400).json({ error: error.message });
+    }
+};
+
+exports.getReceipt = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const receipt = await requestModel.getReceiptData(id);
+
+        res.json({ success: true, receipt });
+
+    } catch (error) {
+        console.error('Get receipt error:', error);
+        res.status(400).json({ error: error.message });
+    }
+};

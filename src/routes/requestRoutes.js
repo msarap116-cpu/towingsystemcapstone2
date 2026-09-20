@@ -87,7 +87,6 @@ router.put('/:id/address', authenticateToken, requestController.updateAddress);
 
 // Accept a request (assign driver, set status = 'assigned')
 
-
 // router.put('/:id/status', authenticateToken, async (req, res) => {
 //     const driver_id = req.user.id;
 //     const { id } = req.params;
@@ -155,7 +154,18 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Failed to delete request: ' + err.message });
     }
 });
+router.post(
+    '/:id/charges',
+    authenticateToken,
+    requireRole(['driver', 'admin']),
+    requestController.addAdditionalCharge
+);
 
+router.get(
+    '/:id/receipt',
+    authenticateToken,
+    requestController.getReceipt
+);
 
 
 

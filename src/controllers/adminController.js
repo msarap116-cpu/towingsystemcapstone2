@@ -223,7 +223,7 @@ exports.createDriver = async (req, res) => {
         await connection.commit();
 
         console.log(
-            `🚛 Driver created: user_id=${userId}`
+            `Driver created: user_id=${userId}`
         );
 
         res.status(201).json({

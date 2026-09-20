@@ -171,6 +171,7 @@ function renderDashboardUI() {
         if (pendingRequests.length === 0) {
             availableList.innerHTML = '<div class="empty-state">No pending requests right now.</div>';
         } else {
+console.log('First pending request raw:', pendingRequests[0]);
             availableList.innerHTML = pendingRequests.map(req => `
                 <div class="request-item" data-id="${req.request_id}">
                     <div class="top-line">
@@ -179,7 +180,7 @@ function renderDashboardUI() {
                     </div>
                     <div class="location">📍 ${req.location || 'No address'}</div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
-                        <span class="price">₱${req.amount || 0}</span>
+                        <span class="price">₱${req.total_amount || req.amount || 0}</span>
                         <span style="font-size:0.7rem; color:#5c728b;">${req.vehicle_type || ''}</span>
                     </div>
                     <div class="actions">
@@ -813,7 +814,7 @@ function displayUserInfo() {
     }
 
     if (userType) {
-        userType.textContent = user.role || '🚛 Driver';
+        userType.textContent = user.role || 'Driver';
     }
 
     CURRENT_DRIVER.id = user.id;
@@ -970,7 +971,7 @@ function renderPendingRequests() {
                 ${req.customer_name || 'Customer'}<br>
                 <span style="color:#5c728b">${req.service_type || ''} ${req.vehicle_type ? '· ' + req.vehicle_type : ''}</span><br>
                 📍 ${req.location || 'No address'}<br>
-                <strong>₱${req.amount || 0}</strong><br>
+                <span class="price">₱${req.total_amount || req.amount || 0}</span>
                 <button onclick="acceptJob(${req.request_id})" style="margin-top:6px">Accept</button>
             `)
             .addTo(pendingLayer);
@@ -1111,4 +1112,4 @@ async function confirmCashReceived(paymentId) {
         alert('Unable to confirm cash payment.');
     }
 }
-console.log('🚛 Driver Dashboard loaded with API integration');
+console.log('Driver Dashboard loaded with API integration');

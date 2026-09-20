@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function loadCustomers() {
         try {
             customers = await apiFetch('/admin/customers');
-            renderCustomers();
+            renderCustomers(customers);
         } catch (error) {
             console.error('Failed to load customers:', error);
         }
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
                 marker.bindPopup(`
-                <b>🚛 ${d.name || 'Driver'}</b>
+                <b>${d.name || 'Driver'}</b>
                 <br>Vehicle: ${d.vehicle || 'N/A'}
                 <br>Status: ${d.status}
                 <br>Rating: ${d.rating || 'N/A'} ⭐
@@ -375,24 +375,23 @@ document.addEventListener('DOMContentLoaded', function () {
 `;
     }
 
-    function renderCustomers() {
-        console.log('Customers data:', customers);
+    function renderCustomers(dataToRender) {
         const tbody = document.getElementById('customersTable');
+        console.trace();
         if (!tbody) return;
 
-        if (!Array.isArray(customers) || customers.length === 0) {
+        if (!Array.isArray(dataToRender) || dataToRender.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem;">No customers found</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = customers.map(c => `<tr>
+        tbody.innerHTML = dataToRender.map(c => `<tr>
         <td>${c.id}</td>
         <td>${c.name || '—'}</td>
         <td>${c.phone || '—'}</td>
         <td>${c.email || 0}</td>
         <td>₱${Number(c.total_spent || 0).toFixed(2)}</td>
         <td>
-            <!-- Overflow Menu: Edit + Delete -->
             <div class="overflow-menu">
                 <button class="btn-icon overflow-trigger" title="Actions">⋮</button>
                 <div class="overflow-dropdown">
@@ -571,7 +570,7 @@ document.addEventListener('DOMContentLoaded', function () {
        <tr>
         <td><strong>#${r.request_id}</strong></td>
         <td>
-            <div><strong>${r.customer_name || 'mark toto'}</strong></div>
+            <div><strong>${r.customer_name || 'Unknown'}</strong></div>
             <div style="font-size:0.9em; color:#666;">${r.customer_phone || '123'}</div>
         </td>
         <td style="max-width:300px; white-space:normal; word-wrap:break-word;">${r.location || 'Unknown'}</td>
@@ -589,7 +588,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ? `<button
                         class="dropdown-item"
                         onclick="openAssignDriverModal(${r.request_id})">
-                        🚛 Assign Driver
+                         Assign Driver
                     </button>`
                 : ''
             }
@@ -636,6 +635,118 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 
+
+
+    window.handleGlobalSearch = async function (term) {
+        const clearBtn = document.getElementById('clearSearch');
+        clearBtn.style.display = term ? 'inline-block' : 'none';
+
+        const matchedRequests = filterRequests(term);
+        const matchedUsers = filterUsers(term);
+
+        console.log('term:', term);
+        console.log('matchedRequests count:', matchedRequests.length, matchedRequests);
+
+        const activePanel = document.querySelector('.tab-panel.active')?.id;
+        console.log('activePanel:', activePanel);
+
+        if (activePanel === 'requestsPanel') {
+            renderRequests(matchedRequests);
+        } else if (activePanel === 'usersPanel') {
+            renderCustomers(matchedUsers);
+        }
+
+        updateSearchHint(term, activePanel, matchedRequests, matchedUsers);
+    };
+    function updateSearchHint(term, activePanel, matchedRequests, matchedUsers) {
+        const hint = document.getElementById('searchHint');
+
+        if (!term.trim()) {
+            hint.style.display = 'none';
+            return;
+        }
+
+        if (activePanel === 'requestsPanel' && matchedUsers.length > 0) {
+            hint.style.display = 'block';
+            hint.innerHTML = `${matchedUsers.length} matching customer(s) — <a href="#" onclick="switchPanel('usersPanel', 'Customers'); return false;">view</a>`;
+        } else if (activePanel === 'usersPanel' && matchedRequests.length > 0) {
+            hint.style.display = 'block';
+            hint.innerHTML = `${matchedRequests.length} matching request(s) — <a href="#" onclick="switchPanel('requestsPanel', 'Service Requests'); return false;">view</a>`;
+        } else {
+            hint.style.display = 'none';
+        }
+    }
+    window.switchTab = function (tabName) {
+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+
+        document.getElementById(tabName + 'Pane').classList.add('active');
+        document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
+
+        const term = document.getElementById('globalSearch').value;
+        if (tabName === 'requests') {
+            renderRequests(filterRequests(term));
+        } else if (tabName === 'users') {
+            renderCustomers(filterUsers(term));
+        }
+    }
+    window.clearGlobalSearch = function () {
+        const input = document.getElementById('globalSearch');
+        input.value = '';
+        handleGlobalSearch('');
+        input.focus();
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+            e.preventDefault();
+            document.getElementById('globalSearch').focus();
+        }
+    });
+    function filterRequests(term) {
+        term = (term || '').toLowerCase().trim();
+        if (!term) return requests; // <-- replace `requests` with your actual variable name
+        return requests.filter(r =>
+            String(r.request_id).includes(term) ||
+            (r.customer_name || '').toLowerCase().includes(term) ||
+            (r.customer_phone || '').toLowerCase().includes(term) ||
+            (r.location || '').toLowerCase().includes(term) ||
+            (r.driver_name || '').toLowerCase().includes(term) ||
+            (r.status || '').toLowerCase().includes(term)
+        );
+    }
+
+    function filterUsers(term) {
+        term = (term || '').toLowerCase().trim();
+        if (!term) return customers; // <-- replace `users` with your actual variable name
+        return customers.filter(u =>
+            (u.name || '').toLowerCase().includes(term) ||
+            (u.phone || '').toLowerCase().includes(term) ||
+            (u.email || '').toLowerCase().includes(term)
+        );
+    }
+
+    // function updateSearchHint(term, matchedRequests, matchedUsers) {
+    //     const hint = document.getElementById('searchHint');
+    //     if (!term.trim()) {
+    //         hint.style.display = 'none';
+    //         return;
+    //     }
+
+    //     const currentlyShowing = activeModal === 'users'
+    //         ? 'users'
+    //         : document.querySelector('.tab.active')?.dataset.tab;
+
+    //     let html = '';
+    //     if (currentlyShowing !== 'requests') {
+    //         html += `${matchedRequests.length} request(s) — <a href="#" onclick="switchTab('requests'); return false;">view</a><br>`;
+    //     }
+    //     if (currentlyShowing !== 'users') {
+    //         html += `${matchedUsers.length} customer(s) — <a href="#" onclick="switchTab('users'); return false;">view</a>`;
+    //     }
+
+    //     hint.innerHTML = html;
+    //     hint.style.display = html ? 'block' : 'none';
+    // }
 
     function updateStats() {
         const statRequests = document.getElementById('statRequests');
@@ -914,10 +1025,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-
-    // GETTING THE MODAL ID'S
-
-
     // ========== PAYMENTS ==========
     async function addDemoPayment() {
         try {
@@ -933,107 +1040,43 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // // ========== UI NAVIGATION ==========
     // ========== UI NAVIGATION ==========
-    function switchPanel(panelId, title) {
+    async function switchPanel(panelId, title) {
 
-        // Hide all panels
-        document.querySelectorAll('.tab-panel')
-            .forEach(p => p.classList.remove('active'));
-
-        // Show selected panel
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         const panel = document.getElementById(panelId);
+        if (panel) panel.classList.add('active');
 
-        if (panel) {
-            panel.classList.add('active');
-        }
+        document.querySelectorAll('.nav-item').forEach(link => link.classList.remove('active'));
+        const navLink = document.querySelector(`.nav-item[data-tab="${panelId.replace('Panel', '').toLowerCase()}"]`);
+        if (navLink) navLink.classList.add('active');
 
-        // Update active sidebar item
-        document.querySelectorAll('.nav-item')
-            .forEach(link => link.classList.remove('active'));
-
-        const navLink = document.querySelector(
-            `.nav-item[data-tab="${panelId.replace('Panel', '').toLowerCase()}"]`
-        );
-
-        if (navLink) {
-            navLink.classList.add('active');
-        }
-
-        // Dashboard
         if (panelId === 'dashboardPanel') {
-
-            if (map) {
-                setTimeout(() => map.invalidateSize(), 100);
-            }
-
+            if (map) setTimeout(() => map.invalidateSize(), 100);
             updateMapMarkers();
         }
 
-        // Requests
         if (panelId === 'requestsPanel') {
-            loadRequests();
+            await loadRequests();
         }
-
-        // Drivers
         if (panelId === 'driversPanel') {
-            loadDrivers();
+            await loadDrivers();
         }
-
-        // Customers
         if (panelId === 'usersPanel') {
-            loadCustomers();
+            await loadCustomers();
         }
-
-        // Payments
         if (panelId === 'paymentsPanel') {
-            loadPayments();
+            await loadPayments();
         }
-
-        // Service Prices
         if (panelId === 'servicePricesPanel') {
-            loadServicePrices();
+            await loadServicePrices();
         }
-    }
 
-
-    // ========== SEARCH ==========
-    function setupSearch() {
-        const searchInput = document.getElementById('globalSearch');
-        if (!searchInput) return;
-
-        searchInput.addEventListener('input', function (e) {
-            let term = e.target.value.toLowerCase();
-            let requestsPanel = document.getElementById('requestsPanel');
-            if (!requestsPanel) return;
-
-            if (requestsPanel.classList.contains('active')) {
-                let filtered = requests.filter(r =>
-                    r.customer.toLowerCase().includes(term) ||
-                    r.location.toLowerCase().includes(term) ||
-                    r.service.toLowerCase().includes(term)
-                );
-                const tbody = document.getElementById('requestsTable');
-                if (!tbody) return;
-
-                tbody.innerHTML = filtered.map(r => {
-                    let driver = drivers.find(d => d.id === r.driverId);
-                    return `<tr>
-                        <td>#${r.id}</td>
-                        <td><strong>${r.customer}</strong><br><small>${r.phone}</small></td>
-                        <td>${r.location}</td>
-                        <td>${driver ? driver.name : '—'}</td>
-                        <td><span class="status-badge status-${r.status.replace(' ', '')}">${r.status}</span></td>
-                        <td>${r.payment === 'paid' ? '  Paid' : '⏳ Pending'}</td>
-                        <td>
-                            <button class="btn btn-outline" style="padding:4px 10px; margin:2px;" onclick="editRequest(${r.id})">✏️</button>
-                            <button class="btn btn-outline" style="padding:4px 10px; margin:2px;" onclick="assignDriverPrompt(${r.id})">👤</button>
-                            ${r.status === 'completed' && r.payment !== 'paid' ? `<button class="btn btn-success" style="padding:4px 10px; margin:2px;" onclick="markPayment(${r.id},${r.amount})">💳</button>` : ''}
-                        </td>
-                    </tr>`;
-                }).join('');
-            }
-        });
+        // Now runs AFTER the data has actually finished loading
+        const term = document.getElementById('globalSearch')?.value || '';
+        if (term) {
+            handleGlobalSearch(term);
+        }
     }
 
     // ========== EXPOSE FUNCTIONS TO GLOBAL SCOPE ==========
@@ -1057,34 +1100,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ========== EVENT LISTENERS ==========
     function setupNavigation() {
-
         document.querySelectorAll('.nav-item[data-tab]').forEach(link => {
-
             link.addEventListener('click', function (e) {
-
                 const tab = this.getAttribute('data-tab');
 
                 if (tab === 'dashboard') {
                     switchPanel('dashboardPanel', 'Dashboard');
-
                 } else if (tab === 'requests') {
                     switchPanel('requestsPanel', 'Service Requests');
-
                 } else if (tab === 'drivers') {
                     switchPanel('driversPanel', 'Tow Drivers');
-
                 } else if (tab === 'users') {
                     switchPanel('usersPanel', 'Customers');
-
                 } else if (tab === 'payments') {
                     switchPanel('paymentsPanel', 'Payments & Receipts');
-
                 } else if (tab === 'serviceprices') {
                     switchPanel('servicePricesPanel', 'Service Prices');
                 }
-
             });
-
         });
     }
 
@@ -1221,11 +1254,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const container = document.getElementById("adminsListContainer");
 
         if (!container) {
-            console.error("❌ adminListContainer NOT FOUND");
+            console.error("adminListContainer NOT FOUND");
             return;
         }
 
-        console.log("✅ Admin container found");
+        console.log(" Admin container found");
 
         if (!Array.isArray(admins) || admins.length === 0) {
             container.innerHTML = `
@@ -1292,7 +1325,6 @@ document.addEventListener('DOMContentLoaded', function () {
         await loadDrivers();
         await loadCustomers();
         await loadPayments();
-        setupSearch();
         setupNavigation();
         setupLogout();
 
@@ -1379,13 +1411,13 @@ function closeProofModal() {
     document.getElementById('proofModal').classList.remove('show');
     document.getElementById('proofImage').src = '';
 }
-  document.getElementById('proofImage').onerror = function () {
-      this.onerror = null;
-      document.getElementById('proofMeta').textContent = 'Proof image could not be loaded.';
-  };
-    document.getElementById('proofModal').addEventListener('click', function (e) {
-      if (e.target === this) closeProofModal();
-  });
+document.getElementById('proofImage').onerror = function () {
+    this.onerror = null;
+    document.getElementById('proofMeta').textContent = 'Proof image could not be loaded.';
+};
+document.getElementById('proofModal').addEventListener('click', function (e) {
+    if (e.target === this) closeProofModal();
+});
 
 
 window.approvePayment = async function (paymentId) {

@@ -14,16 +14,7 @@
 }
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        /* 🎯 Vertical fade: Top+BOTTOM faded → CENTER clear */
-    background:
-        linear-gradient(
-            to bottom,
-            rgba(234, 238, 242, 0.5),  /* Top: heavily faded → barely visible image */
-            rgba(234, 238, 242, 0.95),  /* Upper-middle: clear image */
-            rgba(234, 238, 242, 0.95),  /* Lower-middle: clear image */
-            rgba(234, 238, 242, 0.5)   /* Bottom: heavily faded → barely visible image */
-        ),
-        url('../image/unnamed.png') no-repeat center center fixed;
+
     background-size: cover, cover;
     background-blend-mode: normal;
     color: #0f172a;

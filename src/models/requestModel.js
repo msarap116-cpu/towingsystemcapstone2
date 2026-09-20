@@ -2,108 +2,95 @@
 const db = require('../database/database');
 
 const Request = {
-  async create({
-        user_id,
-        service_type_id,
-        vehicle_id,
-        location_lat,
-        location_lng,
-        address
-    }) {
 
-        if (!user_id) {
-            throw new Error('user_id is required');
-        }
+ async create({
+    user_id,
+    service_type_id,
+    vehicle_id,
+    location_lat,
+    location_lng,
+    address
+}) {
 
-        if (!service_type_id) {
-            throw new Error('service_type_id is required');
-        }
+    if (!user_id) {
+        throw new Error('user_id is required');
+    }
 
+    if (!service_type_id) {
+        throw new Error('service_type_id is required');
+    }
 
-        // Get the official service price
+    // Get the official service price
+    const serviceSql = `
+        SELECT
+            service_type_id,
+            name,
+            base_price
+        FROM service_types
+        WHERE service_type_id = ?
+        LIMIT 1
+    `;
 
-        const serviceSql = `
-            SELECT
-                service_type_id,
-                name,
-                base_price
-            FROM service_types
-            WHERE service_type_id = ?
-            LIMIT 1
-        `;
+    const serviceResult = await db.query(serviceSql, [service_type_id]);
 
-        const serviceResult = await db.query(
-            serviceSql,
-            [service_type_id]
-        );
+    const serviceRows = Array.isArray(serviceResult[0])
+        ? serviceResult[0]
+        : Array.isArray(serviceResult)
+            ? serviceResult
+            : [];
 
-        const serviceRows = Array.isArray(serviceResult[0])
-            ? serviceResult[0]
-            : Array.isArray(serviceResult)
-                ? serviceResult
-                : [];
+    const service = serviceRows[0];
 
-        const service = serviceRows[0];
+    if (!service) {
+        throw new Error('Invalid service type');
+    }
 
-        if (!service) {
-            throw new Error('Invalid service type');
-        }
+    const basePrice = Number(service.base_price);
 
-        const amount = Number(service.base_price);
+    if (!Number.isFinite(basePrice) || basePrice <= 0) {
+        throw new Error('Service price has not been configured');
+    }
 
-        if (!Number.isFinite(amount) || amount <= 0) {
-            throw new Error(
-                'Service price has not been configured'
-            );
-        }
+    console.log('Service:', service.name);
+    console.log('Service price:', basePrice);
 
-        console.log(
-            'Service:',
-            service.name
-        );
-
-        console.log(
-            'Service price:',
-            amount
-        );
-
-
-
-        // Create request
-
-
-        const sql = `
-            INSERT INTO service_requests
-            (
-                user_id,
-                service_type_id,
-                vehicle_id,
-                location_lat,
-                location_lng,
-                address,
-                status,
-                amount,
-                created_at,
-                updated_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, NOW(), NOW())
-        `;
-
-        const result = await db.query(sql, [
+    // Create request — base_amount and total_amount start equal
+    // (total_amount grows later via addAdditionalCharge)
+    const sql = `
+        INSERT INTO service_requests
+        (
             user_id,
             service_type_id,
-            vehicle_id || null,
-            location_lat || null,
-            location_lng || null,
-            address || null,
-            amount
-        ]);
+            vehicle_id,
+            location_lat,
+            location_lng,
+            address,
+            status,
+            amount,
+            base_amount,
+            total_amount,
+            created_at,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NOW(), NOW())
+    `;
 
-        return result?.insertId ||
-               result?.[0]?.insertId ||
-               null;
-    },
+    const result = await db.query(sql, [
+        user_id,
+        service_type_id,
+        vehicle_id || null,
+        location_lat || null,
+        location_lng || null,
+        address || null,
+        basePrice,   // amount (kept for backward compatibility)
+        basePrice,   // base_amount
+        basePrice    // total_amount
+    ]);
 
+    return result?.insertId ||
+           result?.[0]?.insertId ||
+           null;
+},
    async getActiveByUser(user_id) {
     const sql = `
         SELECT
@@ -260,8 +247,8 @@ async getLatestByUser(user_id) {
   const result = await db.query(sql);
   return Array.isArray(result) ? result[0] : result;
  },
-
 async findPendingUnassigned() {
+    console.log('>>> findPendingUnassigned CALLED - NEW VERSION');
     const sql = `
         SELECT
             r.request_id,
@@ -274,7 +261,10 @@ async findPendingUnassigned() {
             r.location_lat,
             r.location_lng,
             r.status,
-            r.created_at
+            r.created_at,
+            r.base_amount,
+            r.total_amount,
+            r.amount
         FROM service_requests r
         JOIN users u ON r.user_id = u.user_id
         LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
@@ -309,7 +299,6 @@ async findByDriverId(driverId) {
 
     return db.query(sql, [driverId]);
 },
-
 
 
   async updateDriverLocation(request_id, driver_id, lat, lng) {
@@ -612,6 +601,7 @@ async claimAndAssign(requestId, driverId) {
 // (the transaction body is identical to claimAndAssign — call it directly)
 
 async findPendingUnassignedForDriver(driverId) {
+
     const sql = `
         SELECT
             r.request_id, u.name AS customer_name, u.phone AS customer_phone,
@@ -643,7 +633,72 @@ async findPendingUnassignedForDriver(driverId) {
     `;
     return db.query(sql, [driverId, driverId, driverId]);
 },
+async addAdditionalCharge({
+    request_id,
+    description,
+    amount,
+    added_by
+}) {
 
+    if (!request_id) {
+        throw new Error('request_id is required');
+    }
+
+    if (!description) {
+        throw new Error('description is required');
+    }
+
+    const chargeAmount = Number(amount);
+
+    if (!Number.isFinite(chargeAmount) || chargeAmount <= 0) {
+        throw new Error('Please provide a valid charge amount');
+    }
+
+    const checkSql = `
+        SELECT request_id, total_amount, status
+        FROM service_requests
+        WHERE request_id = ?
+        LIMIT 1
+    `;
+
+    const checkResult = await db.query(checkSql, [request_id]);
+    const checkRows = Array.isArray(checkResult[0]) ? checkResult[0] : checkResult;
+    const request = checkRows[0];
+
+    if (!request) {
+        throw new Error('Service request not found');
+    }
+
+    const insertSql = `
+        INSERT INTO additional_charges
+        (request_id, description, amount, added_by, created_at)
+        VALUES (?, ?, ?, ?, NOW())
+    `;
+
+    await db.query(insertSql, [
+        request_id,
+        description,
+        chargeAmount,
+        added_by
+    ]);
+
+    const updateSql = `
+        UPDATE service_requests sr
+        SET total_amount = (
+            SELECT sr2.base_amount + COALESCE(SUM(ac.amount), 0)
+            FROM service_requests sr2
+            LEFT JOIN additional_charges ac
+                ON ac.request_id = sr2.request_id
+            WHERE sr2.request_id = ?
+        ),
+        updated_at = NOW()
+        WHERE sr.request_id = ?
+    `;
+
+    await db.query(updateSql, [request_id, request_id]);
+
+    return true;
+},
 };//const Request
 
 

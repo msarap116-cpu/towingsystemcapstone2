@@ -292,12 +292,14 @@ async claimAndAssign(requestId, driverId) {
 // (the transaction body is identical to claimAndAssign — call it directly)
 
 async findPendingUnassignedForDriver(driverId) {
+
     const sql = `
         SELECT
             r.request_id, u.name AS customer_name, u.phone AS customer_phone,
             st.name AS service_type, v.vehicle_type, v.license_plate,
             r.address AS location, r.location_lat, r.location_lng,
-            r.status, r.created_at
+            r.status, r.created_at,
+            r.base_amount, r.total_amount
         FROM service_requests r
         JOIN users u ON r.user_id = u.user_id
         LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
