@@ -519,7 +519,7 @@ exports.addAdditionalCharge = async (req, res) => {
     try {
         const { id } = req.params;
         const { description, amount } = req.body;
-        const added_by = req.user?.user_id || null; // from authMiddleware
+        const added_by = req.user?.id || null; // from authMiddleware
 
         await requestModel.addAdditionalCharge({
             request_id: id,

@@ -4,8 +4,6 @@ const router = express.Router();
 const requestController = require('../controllers/requestController');
 const authenticateToken = require('../middleware/authMiddleware');
 const Request = require('../models/requestModel');
-const db = require('../database/database');
-const Notification = require('../models/notificationModel');
 const requireRole = require('../middleware/requireRole');
 
 router.use((req, res, next) => {
@@ -39,9 +37,6 @@ router.get('/latest', authenticateToken, async (req, res) => {
         });
     }
 });
-
-
-
 
 // GET /pending all unassigned pending requests for drivers This MUST come before GET /:id
 router.get(
@@ -157,7 +152,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 router.post(
     '/:id/charges',
     authenticateToken,
-    requireRole(['driver', 'admin']),
+    requireRole('driver', 'admin'),
     requestController.addAdditionalCharge
 );
 

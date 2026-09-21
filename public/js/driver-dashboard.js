@@ -79,9 +79,9 @@ async function fetchPendingRequests() {
 
             cache: 'no-store'
         });
-        console.log('Pending response status:', res.status);
+        // console.log('Pending response status:', res.status);
         const data = await res.json();
-        console.log('Pending data:', data);
+        // console.log('Pending data:', data);
         return data;
     } catch (err) {
         console.error('fetchPendingRequests error:', err);
@@ -101,7 +101,7 @@ async function fetchMyTrips() {
             }
         });
 
-        console.log('My trips response status:', res.status);
+        // console.log('My trips response status:', res.status);
 
         if (!res.ok) {
             throw new Error('Failed to fetch my trips');
@@ -109,7 +109,7 @@ async function fetchMyTrips() {
 
         const data = await res.json();
 
-        console.log('MY TRIPS DATA:', data);
+        // console.log('MY TRIPS DATA:', data);
 
         return data;
 
@@ -162,7 +162,8 @@ async function loadDriverDashboardData() {
 // ---------- RENDER UI ----------
 function renderDashboardUI() {
 
-console.log('>>> renderDashboardUI CALLED');
+    console.log(sessionStorage.getItem('token'));
+
     console.log("Pending:", pendingRequests.length, pendingRequests);
     console.log("Active:", myActiveTrips.length, myActiveTrips);
     console.log("Completed:", completedTrips.length);
