@@ -15,7 +15,7 @@ const Payment = {
         user_id,
         status,
         address,
-        amount
+        total_amount
     FROM service_requests
     WHERE request_id = ?
       AND user_id = ?
@@ -36,14 +36,27 @@ const Payment = {
 
 
     async createPendingPayment({
-    requestId,
-    userId,
-    amount,
-    referenceNumber,
-    proofImagePath
-}) {
+        requestId,
+        userId,
+        referenceNumber,
+        proofImagePath
+    }) {
 
-    const sql = `
+        // Pull the authoritative total from the request itself
+        const requestSql = `
+        SELECT total_amount FROM service_requests WHERE request_id = ? LIMIT 1
+    `;
+        const requestResult = await db.query(requestSql, [requestId]);
+        const requestRows = Array.isArray(requestResult[0]) ? requestResult[0] : requestResult;
+        const request = requestRows[0];
+
+        if (!request) {
+            throw new Error('Service request not found');
+        }
+
+        const amount = Number(request.total_amount);
+
+        const sql = `
         INSERT INTO payments (
             request_id,
             user_id,
@@ -57,15 +70,15 @@ const Payment = {
         VALUES (?, ?, ?, 'gcash', ?, ?, ?, 'pending')
     `;
 
-    return await db.query(sql, [
-        requestId,
-        userId,
-        amount,
-        referenceNumber,
-        referenceNumber,
-        proofImagePath
-    ]);
-},
+        return await db.query(sql, [
+            requestId,
+            userId,
+            amount,
+            referenceNumber,
+            referenceNumber,
+            proofImagePath
+        ]);
+    },
 
     async getPaymentById(paymentId) {
 
@@ -85,12 +98,12 @@ const Payment = {
         console.log('🔎 getPaymentById:', paymentId);
         console.log('🔎 Payment rows:', rows);
 
-       return rows[0] || null;
+        return rows[0] || null;
     },
 
-async approvePayment(paymentId, receiptNumber) {
+    async approvePayment(paymentId, receiptNumber) {
 
-    const sql = `
+        const sql = `
         UPDATE payments
         SET
             status = 'completed',
@@ -101,13 +114,13 @@ async approvePayment(paymentId, receiptNumber) {
           AND status IN ('pending', 'awaiting_cash')
     `;
 
-    const result = await db.query(sql, [
-        receiptNumber,
-        paymentId
-    ]);
+        const result = await db.query(sql, [
+            receiptNumber,
+            paymentId
+        ]);
 
-    return result;
-},
+        return result;
+    },
 
     async getPendingPayments() {
 
@@ -131,12 +144,12 @@ async approvePayment(paymentId, receiptNumber) {
         ORDER BY p.created_at DESC
     `;
 
-  const rows = await db.query(sql);
-    return rows;
+        const rows = await db.query(sql);
+        return rows;
     },
 
     async getPaymentByRequest(requestId, userId) {
-    const sql = `
+        const sql = `
         SELECT *
         FROM payments
         WHERE request_id = ?
@@ -145,14 +158,14 @@ async approvePayment(paymentId, receiptNumber) {
         LIMIT 1
     `;
 
-    const rows = await db.query(sql, [requestId, userId]);
+        const rows = await db.query(sql, [requestId, userId]);
 
-    return rows[0] || null;
-},
+        return rows[0] || null;
+    },
 
-async rejectPayment(paymentId, reason) {
+    async rejectPayment(paymentId, reason) {
 
-    const sql = `
+        const sql = `
         UPDATE payments
         SET
             status = 'failed',
@@ -162,13 +175,13 @@ async rejectPayment(paymentId, reason) {
           AND status = 'pending'
     `;
 
-    return await db.query(sql, [
-        reason,
-        paymentId
-    ]);
-},
-async getPaymentsByUser(userId) {
-    const sql = `
+        return await db.query(sql, [
+            reason,
+            paymentId
+        ]);
+    },
+    async getPaymentsByUser(userId) {
+        const sql = `
         SELECT
             p.*,
             u.name AS customer_name
@@ -179,15 +192,15 @@ async getPaymentsByUser(userId) {
         ORDER BY p.payment_date DESC
     `;
 
-    const rows = await db.query(sql, [userId]);
+        const rows = await db.query(sql, [userId]);
 
-    console.log('🔎 getPaymentsByUser:', userId, rows.length);
+        console.log('🔎 getPaymentsByUser:', userId, rows.length);
 
-    return rows;
-},
+        return rows;
+    },
 
-async findActivePayment(requestId, userId) {
-    const sql = `
+    async findActivePayment(requestId, userId) {
+        const sql = `
         SELECT *
         FROM payments
         WHERE request_id = ?
@@ -202,16 +215,16 @@ async findActivePayment(requestId, userId) {
         LIMIT 1
     `;
 
-    const rows = await db.query(
-        sql,
-        [requestId, userId]
-    );
+        const rows = await db.query(
+            sql,
+            [requestId, userId]
+        );
 
-    return rows[0] || null;
-},
+        return rows[0] || null;
+    },
 
-async createPaymentIntent({ requestId, userId, amount }) {
-    const sql = `
+    async createPaymentIntent({ requestId, userId, amount }) {
+        const sql = `
         INSERT INTO payments (
             request_id,
             user_id,
@@ -222,13 +235,13 @@ async createPaymentIntent({ requestId, userId, amount }) {
         VALUES (?, ?, ?, 'gcash', 'awaiting_payment')
     `;
 
-    const result = await db.query(sql, [requestId, userId, amount]);
+        const result = await db.query(sql, [requestId, userId, amount]);
 
-    return result.insertId;
-},
-async createCashPayment({ requestId, userId, amount }) {
+        return result.insertId;
+    },
+    async createCashPayment({ requestId, userId, amount }) {
 
-    const sql = `
+        const sql = `
         INSERT INTO payments (
             request_id,
             user_id,
@@ -239,20 +252,20 @@ async createCashPayment({ requestId, userId, amount }) {
         VALUES (?, ?, ?, 'cash', 'awaiting_cash')
     `;
 
-    const result = await db.query(
-        sql,
-        [requestId, userId, amount]
-    );
+        const result = await db.query(
+            sql,
+            [requestId, userId, amount]
+        );
 
-    return result.insertId;
-},
-async submitProof({
-    requestId,
-    userId,
-    referenceNumber,
-    proofImagePath
-}) {
-    const sql = `
+        return result.insertId;
+    },
+    async submitProof({
+        requestId,
+        userId,
+        referenceNumber,
+        proofImagePath
+    }) {
+        const sql = `
         UPDATE payments
         SET
             reference_number = ?,
@@ -265,27 +278,30 @@ async submitProof({
           AND status = 'awaiting_payment'
     `;
 
-    const result = await db.query(sql, [
-        referenceNumber,
-        referenceNumber,
-        proofImagePath,
-        requestId,
-        userId
-    ]);
+        const result = await db.query(sql, [
+            referenceNumber,
+            referenceNumber,
+            proofImagePath,
+            requestId,
+            userId
+        ]);
 
-    return result;
-},
-async switchToCash(paymentId) {
-    const sql = `
-        UPDATE payments
-        SET payment_method = 'cash',
-            status = 'awaiting_cash'
-        WHERE payment_id = ?
+        return result;
+    },
+    async switchToCash(paymentId, requestId) {
+        const sql = `
+        UPDATE payments p
+        JOIN service_requests sr ON sr.request_id = ?
+        SET
+            p.payment_method = 'cash',
+            p.status = 'awaiting_cash',
+            p.amount = sr.total_amount
+        WHERE p.payment_id = ?
     `;
-    return db.query(sql, [paymentId]);
-},
-async getPaymentsByDriver(driverId) {
-    const sql = `
+        return db.query(sql, [requestId, paymentId]);
+    },
+    async getPaymentsByDriver(driverId) {
+        const sql = `
         SELECT
             p.*,
             u.name AS customer_name,
@@ -299,10 +315,58 @@ async getPaymentsByDriver(driverId) {
         ORDER BY p.payment_date DESC
     `;
 
-    const rows = await db.query(sql, [driverId]);
+        const rows = await db.query(sql, [driverId]);
 
-    return rows;
-},
+        return rows;
+    },
+    async getReceiptDetails(paymentId) {
+
+        const sql = `
+        SELECT
+            p.payment_id,
+            p.request_id,
+            p.user_id,
+            p.amount AS payment_amount,
+            p.payment_method,
+            p.reference_number,
+            p.transaction_id,
+            p.receipt_number,
+            p.payment_date,
+            p.status,
+            u.name AS customer_name,
+            r.base_amount,
+            r.total_amount
+        FROM payments p
+        JOIN service_requests r ON r.request_id = p.request_id
+        JOIN users u ON u.user_id = p.user_id
+        WHERE p.payment_id = ?
+        LIMIT 1
+    `;
+
+        const result = await db.query(sql, [paymentId]);
+        const rows = Array.isArray(result[0]) ? result[0] : result;
+        const payment = rows[0];
+
+        if (!payment) return null;
+
+        const chargesSql = `
+        SELECT description, amount, created_at
+        FROM additional_charges
+        WHERE request_id = ?
+        ORDER BY created_at ASC
+    `;
+
+        const chargesResult = await db.query(chargesSql, [payment.request_id]);
+        const charges = Array.isArray(chargesResult[0]) ? chargesResult[0] : chargesResult;
+
+        payment.additional_charges = charges.map(c => ({
+            description: c.description,
+            amount: Number(c.amount)
+        }));
+
+        return payment;
+    },
+
 
 };
 

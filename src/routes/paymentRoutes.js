@@ -88,7 +88,7 @@ router.post(
         }
     }
 );
-// CASH PAYMENT
+// paymentRoute.js
 router.post(
     '/cash',
     authenticateToken,
@@ -161,14 +161,14 @@ router.post(
 
                 // Any other incomplete payment (e.g. abandoned gcash intent, status 'awaiting_payment')
                 // can be switched over to cash.
-                await Payment.switchToCash(existingPayment.payment_id);
+                await Payment.switchToCash(existingPayment.payment_id, request_id);
 
                 const payment = {
                     ...existingPayment,
+                    amount: Number(request.total_amount),
                     payment_method: 'cash',
                     status: 'awaiting_cash'
                 };
-
                 if (request.driver_id) {
                     await Notification.create({
                         userId: request.driver_id,
@@ -190,14 +190,14 @@ router.post(
                 await Payment.createCashPayment({
                     requestId: request.request_id,
                     userId,
-                    amount: Number(request.amount)
+                    amount: Number(request.total_amount)   // was request.amount
                 });
 
             const payment = {
                 payment_id: paymentId,
                 request_id: request.request_id,
                 user_id: userId,
-                amount: Number(request.amount),
+                amount: Number(request.total_amount),   // was request.amount
                 payment_method: 'cash',
                 status: 'awaiting_cash'
             };

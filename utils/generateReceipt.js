@@ -1,3 +1,4 @@
+// utils/generateReceipt.js
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
@@ -80,12 +81,34 @@ async function generateReceipt(payment) {
 
         doc.moveDown();
 
-        doc
-            .fontSize(15)
-            .font('Helvetica-Bold')
-            .text(`Amount Paid: PHP ${Number(payment.amount).toFixed(2)}`);
+doc.moveDown();
 
-        doc.moveDown(2);
+doc
+    .font('Helvetica-Bold')
+    .text('Charges');
+
+doc
+    .font('Helvetica')
+    .text(`Service Fee: PHP ${Number(payment.base_amount || 0).toFixed(2)}`);
+
+if (payment.additional_charges && payment.additional_charges.length > 0) {
+    doc.moveDown(0.3);
+    doc.font('Helvetica-Bold').text('Additional Charges:');
+    doc.font('Helvetica');
+
+    payment.additional_charges.forEach(charge => {
+        doc.text(`  - ${charge.description}: PHP ${charge.amount.toFixed(2)}`);
+    });
+}
+
+doc.moveDown();
+
+doc
+    .fontSize(15)
+    .font('Helvetica-Bold')
+    .text(`Amount Paid: PHP ${Number(payment.total_amount || payment.amount || 0).toFixed(2)}`);
+
+doc.moveDown(2);
 
         doc
             .fontSize(10)

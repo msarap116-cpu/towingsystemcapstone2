@@ -162,6 +162,7 @@ async function loadDriverDashboardData() {
 // ---------- RENDER UI ----------
 function renderDashboardUI() {
 
+console.log('>>> renderDashboardUI CALLED');
     console.log("Pending:", pendingRequests.length, pendingRequests);
     console.log("Active:", myActiveTrips.length, myActiveTrips);
     console.log("Completed:", completedTrips.length);
@@ -171,7 +172,7 @@ function renderDashboardUI() {
         if (pendingRequests.length === 0) {
             availableList.innerHTML = '<div class="empty-state">No pending requests right now.</div>';
         } else {
-console.log('First pending request raw:', pendingRequests[0]);
+            console.log('First pending request raw:', pendingRequests[0]);
             availableList.innerHTML = pendingRequests.map(req => `
                 <div class="request-item" data-id="${req.request_id}">
                     <div class="top-line">
@@ -196,42 +197,52 @@ console.log('First pending request raw:', pendingRequests[0]);
         if (myActiveTrips.length === 0) {
             tripsList.innerHTML = '<div class="empty-state">No active trips</div>';
         } else {
-            tripsList.innerHTML = myActiveTrips.map(trip => `
-                <div class="request-item">
-                    <div class="top-line">
-                        <span class="customer">${trip.customer_name || 'Customer'}</span>
-                        <span class="service">${trip.service_type || 'Service'}</span>
-                    </div>
-                    <div class="location">📍 ${trip.location || 'No address'}</div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
-                        <span class="status-badge ${trip.status}">${trip.status}</span>
-                        <span class="price">₱${trip.amount || 0}</span>
-                    </div>
-                    <div class="actions">
-                        <select class="status-select" onchange="updateTripStatus(${trip.request_id}, this.value)">
+           tripsList.innerHTML = myActiveTrips.map(trip => `
+    <div class="request-item">
+        <div class="top-line">
+            <span class="customer">${trip.customer_name || 'Customer'}</span>
+            <span class="service">${trip.service_type || 'Service'}</span>
+        </div>
+        <div class="location">📍 ${trip.location || 'No address'}</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+            <span class="status-badge ${trip.status}">${trip.status}</span>
+            <span class="price">₱${trip.total_amount || trip.amount || 0}</span>
+        </div>
+        <div class="actions">
+            <select class="status-select" onchange="updateTripStatus(${trip.request_id}, this.value)">
+                <option value="">Update Status</option>
+                <option value="assigned" ${trip.status === 'assigned' ? 'selected' : ''}>Assigned</option>
+                <option value="in progress" ${trip.status === 'in progress' ? 'selected' : ''}>In Progress</option>
+                <option value="completed" ${trip.status === 'completed' ? 'selected' : ''}>Completed</option>
+            </select>
 
-                                <option value="">Update Status</option>
+            ${['assigned', 'in progress'].includes(trip.status)
+                ? `<button class="btn btn-secondary btn-sm" onclick="openAddChargeForm(${trip.request_id})">+ Add Charge</button>`
+                : ''}
 
-                                    <option value="assigned" ${trip.status === 'assigned' ? 'selected' : ''}>Assigned</option>
+            <button class="btn btn-danger btn-sm" onclick="cancelTrip(${trip.request_id})">Cancel</button>
+        </div>
 
-                                    <option value="in progress" ${trip.status === 'in progress' ? 'selected' : ''}> In Progress</option>
-
-                                    <option value="completed" ${trip.status === 'completed' ? 'selected' : ''}>Completed</option></select>
-
-                                    <button class="btn btn-danger btn-sm" onclick="cancelTrip(${trip.request_id})">Cancel</button>
-                    </div>
-                </div>
-            `).join('');
+        ${['assigned', 'in progress'].includes(trip.status) ? `
+        <div id="addChargeForm-${trip.request_id}" style="display:none; margin-top:8px;">
+            <input type="text" id="chargeDescription-${trip.request_id}" placeholder="e.g. Replacement battery">
+            <input type="number" id="chargeAmount-${trip.request_id}" placeholder="Amount" min="0" step="0.01">
+            <button type="button" onclick="submitAdditionalCharge(${trip.request_id})">Submit</button>
+            <button type="button" onclick="closeAddChargeForm(${trip.request_id})">Cancel</button>
+        </div>
+        ` : ''}
+    </div>
+`).join('');
         }
     }
 
-
+console.log('First active trip raw:', myActiveTrips[0]);
     document.getElementById('statAvailable').innerText = pendingRequests.length;
     document.getElementById('statActiveTrips').innerText = myActiveTrips.length;
     document.getElementById('pendingCount').innerText = pendingRequests.length;
     document.getElementById('activeCount').innerText = myActiveTrips.length;
     document.getElementById('statCompleted').innerText = completedTrips.length;
-    const todayEarnings = completedTrips.reduce((sum, t) => sum + (t.amount || 0), 0);
+//    const todayEarnings = completedTrips.reduce((sum, t) => sum + Number(t.total_amount || t.amount || 0), 0);
     document.getElementById('statEarnings').innerText = `₱${todayEarnings}`;
     document.getElementById('statEarnings').innerText = `₱${todayEarnings.toFixed(2)}`;
 
@@ -245,6 +256,70 @@ console.log('First pending request raw:', pendingRequests[0]);
     if (totalEarningsEl) totalEarningsEl.innerText = `₱${totalEarningsValue.toFixed(2)}`;
     renderPendingRequests();
 };
+function openAddChargeForm(requestId) {
+    const form = document.getElementById(`addChargeForm-${requestId}`);
+    if (!form) return;
+    form.style.display = 'block';
+}
+
+function closeAddChargeForm(requestId) {
+    const form = document.getElementById(`addChargeForm-${requestId}`);
+    if (!form) return;
+    form.style.display = 'none';
+
+    const desc = document.getElementById(`chargeDescription-${requestId}`);
+    const amount = document.getElementById(`chargeAmount-${requestId}`);
+    if (desc) desc.value = '';
+    if (amount) amount.value = '';
+}
+
+async function submitAdditionalCharge(requestId) {
+    const descEl = document.getElementById(`chargeDescription-${requestId}`);
+    const amountEl = document.getElementById(`chargeAmount-${requestId}`);
+
+    const description = descEl.value.trim();
+    const amount = Number(amountEl.value);
+
+    if (!description || !Number.isFinite(amount) || amount <= 0) {
+        alert('Enter a valid description and amount.');
+        return;
+    }
+
+    const token = sessionStorage.getItem('token');
+
+    if (!token) {
+        alert('Please log in again.');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/requests/${requestId}/charges`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ description, amount })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            alert(data.error || data.message || 'Failed to add charge.');
+            return;
+        }
+
+        showToast(`Charge added: ₱${amount.toFixed(2)}`);
+        closeAddChargeForm(requestId);
+
+        // Refresh so total_amount reflects the new charge everywhere
+        await loadDriverDashboardData();
+
+    } catch (error) {
+        console.error('Add charge error:', error);
+        alert('Failed to add charge.');
+    }
+}
 
 // ---------- ACCEPT JOB ----------
 window.acceptJob = async function (requestId) {
@@ -916,7 +991,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // This checks for updates from the Admin every 10 seconds
 setInterval(() => {
     loadDriverDashboardData().catch(err => console.error(err));
-    loadPaymentHistory().catch(err => console.error(err));
+
+    // Pause the payment-list refresh if ANY add-charge form is currently open
+    const anyFormOpen = Array.from(
+        document.querySelectorAll('#paymentHistory [id^="addChargeForm-"], #paymentHistory .add-charge-form')
+    ).some(el => el.style.display === 'block');
+
+    if (!anyFormOpen) {
+        loadPaymentHistory().catch(err => console.error(err));
+    }
 }, 10000);
 
 });
@@ -1046,26 +1129,42 @@ async function loadPaymentHistory() {
             return;
         }
 
-        container.innerHTML = payments.map(p => `
-            <div class="payment-item">
-                <div class="payment-info">
-                    <strong>#${p.request_id}</strong>
-                    <span>₱${Number(p.amount || 0).toFixed(2)}</span>
-                    <span class="status-badge status-${p.status}">${p.status}</span>
-                    <span>${p.payment_method}</span>
-                </div>
-                ${p.payment_method === 'cash' && p.status === 'awaiting_cash'
-                ? `<button class="btn-primary" onclick="confirmCashReceived(${p.payment_id})">
-                           Mark Cash Received
-                       </button>`
-                : ''}
-            </div>
-        `).join('');
+      container.innerHTML = payments.map(p => `
+    <div class="payment-item">
+        <div class="payment-info">
+            <strong>#${p.request_id}</strong>
+            <span>₱${Number(p.amount || 0).toFixed(2)}</span>
+            <span class="status-badge status-${p.status}">${p.status}</span>
+            <span>${p.payment_method}</span>
+        </div>
+        ${p.payment_method === 'cash' && p.status === 'awaiting_cash'
+            ? `<button class="btn-primary" onclick="confirmCashReceived(${p.payment_id})">
+                   Mark Cash Received
+               </button>`
+            : ''}
+    </div>
+`).join('');
 
     } catch (error) {
         console.error('Failed to load payment history:', error);
         container.innerHTML = `<div class="empty-state">Failed to load payments</div>`;
     }
+}
+function openAddChargeForm(paymentId) {
+    const form = document.getElementById(`addChargeForm-${paymentId}`);
+    if (!form) return;
+    form.style.display = 'block';
+}
+
+function closeAddChargeForm(paymentId) {
+    const form = document.getElementById(`addChargeForm-${paymentId}`);
+    if (!form) return;
+    form.style.display = 'none';
+
+    const desc = document.getElementById(`chargeDescription-${paymentId}`);
+    const amount = document.getElementById(`chargeAmount-${paymentId}`);
+    if (desc) desc.value = '';
+    if (amount) amount.value = '';
 }
 
 async function confirmCashReceived(paymentId) {
@@ -1112,4 +1211,5 @@ async function confirmCashReceived(paymentId) {
         alert('Unable to confirm cash payment.');
     }
 }
+
 console.log('Driver Dashboard loaded with API integration');

@@ -284,18 +284,20 @@ exports.updateStatus = async (req, res) => {
     try {
 
         // db.query() ALREADY returns the rows
-        const rows = await db.query(
-            `
-            SELECT
-                request_id,
-                driver_id,
-                status,
-                amount
-            FROM service_requests
-            WHERE request_id = ?
-            `,
-            [id]
-        );
+const rows = await db.query(
+    `
+    SELECT
+        request_id,
+        driver_id,
+        status,
+        amount,
+        base_amount,
+        total_amount
+    FROM service_requests
+    WHERE request_id = ?
+    `,
+    [id]
+);
 
         console.log('Request lookup result:', rows);
 
@@ -349,20 +351,21 @@ exports.updateStatus = async (req, res) => {
         }
 
         // Record driver earnings on completion
-        if (status === 'completed') {
-            try {
-                await db.query(
-                    `INSERT INTO driver_earnings (driver_id, request_id, amount, type, description)
-                     VALUES (?, ?, ?, 'job_completion', ?)`,
-                    [driver_id, request.request_id, request.amount, `Job #${request.request_id} completed`]
-                );
-                console.log(`Earnings recorded for driver ${driver_id}, request ${request.request_id}, amount ${request.amount}`);
-            } catch (earningsErr) {
-                // Don't fail the whole request just because the earnings insert failed —
-                // log it so it can be reconciled, but the trip status change already succeeded.
-                console.error('Failed to record driver earnings (non-fatal):', earningsErr);
-            }
-        }
+if (status === 'completed') {
+    try {
+        const earningAmount = Number(request.total_amount ?? request.amount);
+
+        await db.query(
+            `INSERT INTO driver_earnings (driver_id, request_id, amount, type, description)
+             VALUES (?, ?, ?, 'job_completion', ?)`,
+            [driver_id, request.request_id, earningAmount, `Job #${request.request_id} completed`]
+        );
+
+        console.log(`Earnings recorded for driver ${driver_id}, request ${request.request_id}, amount ${earningAmount}`);
+    } catch (earningsErr) {
+        console.error('Failed to record driver earnings (non-fatal):', earningsErr);
+    }
+}
 
         console.log(
             `GoodWrenchRequest #${id} status changed: ${request.status} → ${status}`

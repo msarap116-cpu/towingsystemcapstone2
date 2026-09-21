@@ -10,7 +10,7 @@ async function downloadReceipt(req, res) {
         console.log('🧾 Generating receipt for payment:', paymentId);
         console.log('👤 Requested by user:', req.user);
 
-        const payment = await Payment.getPaymentById(paymentId);
+        const payment = await Payment.getReceiptDetails(paymentId);
 
         if (!payment) {
             return res.status(404).json({
@@ -161,16 +161,39 @@ async function downloadReceipt(req, res) {
 
 
         // AMOUNT
+// AMOUNT BREAKDOWN
 
+doc
+    .fontSize(12)
+    .font('Helvetica-Bold')
+    .text('Charges');
 
-        doc
-            .fontSize(16)
-            .font('Helvetica-Bold')
-            .text(
-                `TOTAL PAID: ₱${Number(payment.amount || 0).toFixed(2)}`
-            );
+doc.moveDown(0.5);
 
-        doc.moveDown();
+doc
+    .font('Helvetica')
+    .text(`Service Fee: ₱${Number(payment.base_amount || 0).toFixed(2)}`);
+
+if (payment.additional_charges && payment.additional_charges.length > 0) {
+    doc.moveDown(0.3);
+    doc.font('Helvetica-Bold').text('Additional Charges:');
+    doc.font('Helvetica');
+
+    payment.additional_charges.forEach(charge => {
+        doc.text(`  - ${charge.description}: ₱${charge.amount.toFixed(2)}`);
+    });
+}
+
+doc.moveDown();
+
+doc
+    .fontSize(16)
+    .font('Helvetica-Bold')
+    .text(
+        `TOTAL PAID: ₱${Number(payment.total_amount || payment.payment_amount || 0).toFixed(2)}`
+    );
+
+doc.moveDown();
 
         doc
             .fontSize(12)
@@ -204,7 +227,7 @@ async function downloadReceipt(req, res) {
 
     } catch (error) {
 
-        console.error('❌ Download receipt error:', error);
+        console.error(' Download receipt error:', error);
 
         // Avoid trying to send JSON after PDF streaming has started
         if (!res.headersSent) {

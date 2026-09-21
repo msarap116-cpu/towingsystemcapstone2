@@ -162,6 +162,7 @@ const Request = {
         v.vehicle_type,
         v.license_plate,
         r.address AS location,
+        r.total_amount,
         r.status,
         r.created_at
       FROM service_requests r
@@ -188,6 +189,8 @@ async getLatestByUser(user_id) {
             r.location_lat,
             r.location_lng,
             r.amount,
+            r.base_amount,
+            r.total_amount,
             r.driver_id,
 
             st.name AS service_type,
@@ -197,7 +200,6 @@ async getLatestByUser(user_id) {
             dl.lat AS driver_lat,
             dl.lng AS driver_lng,
 
-            -- 👇 NEW: driver info
             du.name AS driver_name,
             du.phone AS driver_phone
 
@@ -217,7 +219,6 @@ async getLatestByUser(user_id) {
                 WHERE dl2.driver_id = r.driver_id
             )
 
-        -- 👇 NEW: join users to get driver's name/phone
         LEFT JOIN users du
             ON du.user_id = r.driver_id
 
@@ -248,7 +249,7 @@ async getLatestByUser(user_id) {
   return Array.isArray(result) ? result[0] : result;
  },
 async findPendingUnassigned() {
-    console.log('>>> findPendingUnassigned CALLED - NEW VERSION');
+
     const sql = `
         SELECT
             r.request_id,
@@ -288,7 +289,11 @@ async findByDriverId(driverId) {
             r.location_lat,
             r.location_lng,
             r.status,
-            r.created_at
+            r.created_at,
+            r.completed_at,
+            r.amount,
+            r.base_amount,
+            r.total_amount
         FROM service_requests r
         JOIN users u ON r.user_id = u.user_id
         LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
@@ -644,7 +649,7 @@ async addAdditionalCharge({
         throw new Error('request_id is required');
     }
 
-    if (!description) {
+    if (!description || !description.trim()) {
         throw new Error('description is required');
     }
 
@@ -655,7 +660,7 @@ async addAdditionalCharge({
     }
 
     const checkSql = `
-        SELECT request_id, total_amount, status
+        SELECT request_id, status
         FROM service_requests
         WHERE request_id = ?
         LIMIT 1
@@ -669,6 +674,15 @@ async addAdditionalCharge({
         throw new Error('Service request not found');
     }
 
+    // Lock charges to active jobs only
+    if (!['assigned', 'in progress'].includes(request.status)) {
+        throw new Error(
+            request.status === 'completed'
+                ? 'Cannot add charges to a completed job.'
+                : `Cannot add charges while job status is "${request.status}".`
+        );
+    }
+
     const insertSql = `
         INSERT INTO additional_charges
         (request_id, description, amount, added_by, created_at)
@@ -677,9 +691,9 @@ async addAdditionalCharge({
 
     await db.query(insertSql, [
         request_id,
-        description,
+        description.trim(),
         chargeAmount,
-        added_by
+        added_by || null
     ]);
 
     const updateSql = `

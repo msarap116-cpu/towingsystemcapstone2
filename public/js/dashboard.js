@@ -916,19 +916,17 @@ function loadPaymentRequestInfo() {
     if (!latestRequestData) {
         paymentRequestId.textContent = '--';
         paymentAmount.textContent = '₱0.00';
-        paymentMessage.textContent =
-            'No payment is currently available.';
+        paymentMessage.textContent = 'No payment is currently available.';
         return;
     }
 
     paymentRequestId.textContent = latestRequestData.request_id;
 
-    const amount = Number(latestRequestData.amount);
+    const amount = Number(latestRequestData.total_amount ?? latestRequestData.amount);
 
     if (amount <= 0) {
         paymentAmount.textContent = 'Not yet assigned';
-        paymentMessage.textContent =
-            'The service fee has not been assigned yet.';
+        paymentMessage.textContent = 'The service fee has not been assigned yet.';
         return;
     }
 
