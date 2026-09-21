@@ -644,7 +644,6 @@ async addAdditionalCharge({
     amount,
     added_by
 }) {
-
     if (!request_id) {
         throw new Error('request_id is required');
     }
@@ -667,14 +666,16 @@ async addAdditionalCharge({
     `;
 
     const checkResult = await db.query(checkSql, [request_id]);
-    const checkRows = Array.isArray(checkResult[0]) ? checkResult[0] : checkResult;
+    const checkRows = Array.isArray(checkResult[0])
+        ? checkResult[0]
+        : checkResult;
+
     const request = checkRows[0];
 
     if (!request) {
         throw new Error('Service request not found');
     }
 
-    // Lock charges to active jobs only
     if (!['assigned', 'in progress'].includes(request.status)) {
         throw new Error(
             request.status === 'completed'
@@ -697,22 +698,21 @@ async addAdditionalCharge({
     ]);
 
     const updateSql = `
-        UPDATE service_requests sr
-        SET total_amount = (
-            SELECT sr2.base_amount + COALESCE(SUM(ac.amount), 0)
-            FROM service_requests sr2
-            LEFT JOIN additional_charges ac
-                ON ac.request_id = sr2.request_id
-            WHERE sr2.request_id = ?
+        UPDATE service_requests
+        SET total_amount = base_amount + (
+            SELECT COALESCE(SUM(ac.amount), 0)
+            FROM additional_charges ac
+            WHERE ac.request_id = ?
         ),
         updated_at = NOW()
-        WHERE sr.request_id = ?
+        WHERE request_id = ?
     `;
 
     await db.query(updateSql, [request_id, request_id]);
 
     return true;
-},
+}
+,
 };//const Request
 
 

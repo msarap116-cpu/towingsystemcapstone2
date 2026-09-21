@@ -513,7 +513,7 @@ exports.cancelRequest = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
-const requestModel = require('../models/requestModel');
+
 
 exports.addAdditionalCharge = async (req, res) => {
     try {
@@ -521,7 +521,7 @@ exports.addAdditionalCharge = async (req, res) => {
         const { description, amount } = req.body;
         const added_by = req.user?.id || null; // from authMiddleware
 
-        await requestModel.addAdditionalCharge({
+        await Request.addAdditionalCharge({
             request_id: id,
             description,
             amount,
@@ -540,7 +540,7 @@ exports.getReceipt = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const receipt = await requestModel.getReceiptData(id);
+        const receipt = await Request.getReceiptData(id);
 
         res.json({ success: true, receipt });
 
