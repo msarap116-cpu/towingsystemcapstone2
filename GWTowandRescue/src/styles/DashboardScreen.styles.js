@@ -599,6 +599,46 @@ selectedSubText: {
   fontSize: 12,
   marginTop: 2,
 },
+modalOverlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+modalContent:     { backgroundColor: '#fff', borderRadius: 14, width: '100%', maxHeight: '90%', padding: 20 },
+sectionHeader:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+modalTitle:       { fontSize: 22, fontWeight: '700' },
+modalCloseText:   { fontSize: 26, color: '#888', paddingHorizontal: 8 },
+
+paymentRequestInfo:{ backgroundColor: '#F7F7FA', borderRadius: 10, padding: 12, marginBottom: 16 },
+paymentInfoHeading:{ fontSize: 14, fontWeight: '600', color: '#555', marginBottom: 6 },
+paymentInfoLine:  { fontSize: 14, color: '#333', marginBottom: 4 },
+paymentAmountLine:{ fontSize: 15, color: '#333' },
+bold:             { fontWeight: '700' },
+
+paymentMethodTitle:{ fontSize: 15, fontWeight: '600', marginBottom: 8 },
+paymentGrid:      { flexDirection: 'row', gap: 10, marginBottom: 16 },
+paymentMethod:    { flex: 1, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 10, padding: 12 },
+paymentMethodIcon:{ fontSize: 26 },
+paymentMethodName:{ fontSize: 15, fontWeight: '600' },
+paymentMethodSub: { fontSize: 12, color: '#777' },
+
+gcashSection:     { marginTop: 12, padding: 12, borderWidth: 1, borderColor: '#e5e5e5', borderRadius: 10, backgroundColor: '#FAFAFA' },
+gcashTitle:       { fontSize: 16, fontWeight: '700', marginBottom: 10 },
+gcashDetails:     { marginBottom: 12 },
+gcashDetailLabel: { fontSize: 13, fontWeight: '600', color: '#444' },
+gcashDetailValue: { fontSize: 13, color: '#333', marginTop: 2 },
+gcashQr:          { width: 200, height: 200, alignSelf: 'center', marginTop: 10 },
+
+inputLabel:       { fontSize: 13, fontWeight: '600', color: '#444', marginTop: 10, marginBottom: 4 },
+input:            { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, fontSize: 14, backgroundColor: '#fff' },
+
+uploadButton:     { borderWidth: 1, borderColor: '#2b6cb0', borderRadius: 8, padding: 12, alignItems: 'center', marginTop: 4 },
+uploadButtonText: { color: '#2b6cb0', fontWeight: '600' },
+proofPreview:     { width: '100%', height: 180, borderRadius: 8, marginTop: 10 },
+
+submitPaymentButton:{ backgroundColor: '#16a34a', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 14 },
+submitPaymentText:  { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+paymentMessage:   { marginTop: 12, fontSize: 14, color: '#c53030', textAlign: 'center' },
+
+cancelBtn:        { marginTop: 16, padding: 12, borderRadius: 8, backgroundColor: '#eee', alignItems: 'center' },
+cancelBtnText:    { color: '#333', fontWeight: '600' },
 });
 
 

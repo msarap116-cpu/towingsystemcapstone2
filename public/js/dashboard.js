@@ -1265,27 +1265,7 @@ async function selectCashPayment(requestId) {
 //         `Cash selected for Request #${requestId}.`;
 
 // }
-async function startPayMayaPayment(requestId) {
 
-    console.log(
-        'PayMaya selected for request:',
-        requestId
-    );
-
-    paymentMessage.textContent =
-        'PayMaya payment is not implemented yet.';
-}
-
-async function startCardPayment(requestId) {
-
-    console.log(
-        'Card selected for request:',
-        requestId
-    );
-
-    paymentMessage.textContent =
-        'Card payment is not implemented yet.';
-}
 
 //================================================================address section =====================================================
 async function useCurrentEditLocation() {

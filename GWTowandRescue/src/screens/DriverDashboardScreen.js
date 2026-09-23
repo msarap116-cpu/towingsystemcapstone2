@@ -182,6 +182,7 @@ const handleAuthFailure = async () => {
   );
 };
 
+
   const handleLogout = async () => {
     Alert.alert(
       'Logout',
