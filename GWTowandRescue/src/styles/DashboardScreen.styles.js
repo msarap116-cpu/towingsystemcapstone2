@@ -639,6 +639,35 @@ paymentMessage:   { marginTop: 12, fontSize: 14, color: '#c53030', textAlign: 'c
 
 cancelBtn:        { marginTop: 16, padding: 12, borderRadius: 8, backgroundColor: '#eee', alignItems: 'center' },
 cancelBtnText:    { color: '#333', fontWeight: '600' },
+cancelPaymentButton: {
+  marginTop: 12,
+  paddingVertical: 14,
+  borderRadius: 10,
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderWidth: 1,
+  borderColor: '#d0d7de',
+  backgroundColor: '#f5f6f8',
+},
+cancelPaymentText: {
+  color: '#333',
+  fontSize: 15,
+  fontWeight: '600',
+},
+downloadButton: {
+  marginTop: 8,
+  paddingVertical: 8,
+  paddingHorizontal: 14,
+  backgroundColor: '#2b6cb0',
+  borderRadius: 6,
+  alignSelf: 'flex-start',
+},
+
+downloadButtonText: {
+  color: '#fff',
+  fontWeight: '600',
+  fontSize: 13,
+},
 });
 
 

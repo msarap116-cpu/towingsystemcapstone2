@@ -1,10 +1,10 @@
 // styles/RequestFormScreen.style.js
 import { StyleSheet, Dimensions } from 'react-native';
-import styles from './RegisterScreen.styles';
+// import styles from './RegisterScreen.styles';
 
 const { width, height } = Dimensions.get('window');
 
-const Styles = StyleSheet.create({
+const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#eaeef2',
@@ -47,69 +47,78 @@ const Styles = StyleSheet.create({
         marginBottom: 20,
         letterSpacing: -0.3,
     },
-    formContainer: {
-        backgroundColor: '#ffffff',
-        padding: 20,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#e5e7eb',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-        elevation: 2,
-    },
+formContainer: {
+    backgroundColor: '#f3f2f2',
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#254a93',
+    // REMOVE overflow: 'hidden' if present — it will clip the dropdown
+    shadowColor: '#ec0000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+    zIndex: 1,
+},
     formGroup: {
         marginBottom: 20,
     },
     label: {
         fontWeight: '600',
         fontSize: 14,
-        color: '#374151',
+        color: '#020203',
         marginBottom: 8,
     },
     subLabel: {
         fontWeight: '500',
         fontSize: 13,
-        color: '#6b7280',
+        color: '#090909',
         marginBottom: 6,
     },
-    pickerContainer: {
-        borderWidth: 1,
-        borderColor: '#d1d5db',
-        borderRadius: 10,
-        backgroundColor: '#ffffff',
-        overflow: 'hidden',
-    },
-    picker: {
-        height: 50,
-        width: '100%',
-        color: '#111827',
-    },
+   pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#131517',
+    borderRadius: 10,
+    backgroundColor: '#f3f0f0',
+    overflow: 'hidden',
+    minHeight: 52,
+    justifyContent: 'center',
+},
+picker: {
+    // REMOVE: height: 50
+    // REMOVE: color: '#bcc1cb'
+    height: 52,              // give a bit more room
+    width: '100%',
+    color: '#040404',
+    backgroundColor: 'transparent',
+},
     input: {
         borderWidth: 1,
-        borderColor: '#d1d5db',
+        borderColor: '#111112',
         borderRadius: 10,
         paddingHorizontal: 14,
         paddingVertical: 10,
         fontSize: 14,
-        backgroundColor: '#ffffff',
-        color: '#111827',
+        backgroundColor: '#f9f4f4',
+        color: '#161718',
     },
     textArea: {
         minHeight: 80,
         textAlignVertical: 'top',
     },
-    locationButton: {
-        backgroundColor: '#0046a8',
-        paddingVertical: 10,
-        paddingHorizontal: 18,
-        borderRadius: 10,
-        alignItems: 'center',
-        marginBottom: 8,
-    },
+locationButton: {
+    backgroundColor: '#0046a8',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    elevation: 2,                 //  ADD
+},
     locationButtonDisabled: {
-        backgroundColor: '#6b7280',
+        backgroundColor: '#101010',
         opacity: 0.7,
     },
     locationButtonText: {
@@ -119,7 +128,7 @@ const Styles = StyleSheet.create({
     },
     locationStatus: {
         fontSize: 13,
-        color: '#6b7280',
+        color: '#080808',
         marginBottom: 4,
     },
     successText: {
@@ -131,28 +140,29 @@ const Styles = StyleSheet.create({
     manualAddress: {
         marginTop: 14,
     },
-    addressSearchWrapper: {
-        position: 'relative',
-        zIndex: 10,
-    },
-    suggestionsContainer: {
-        position: 'absolute',
-        top: 90,
-        left: 0,
-        right: 0,
-        backgroundColor: '#ffffff',
-        borderWidth: 1,
-        borderColor: '#e5e7eb',
-        borderTopWidth: 0,
-        borderRadius: 10,
-        maxHeight: 200,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 5,
-        zIndex: 20,
-    },
+addressSearchWrapper: {
+    position: 'relative',
+    zIndex: 100,          //  increase
+    elevation: 10,        //  ADD for Android
+},
+suggestionsContainer: {
+    position: 'absolute',
+    top: 86,              // match your input height (80 minHeight + ~6 padding)
+    left: 0,
+    right: 0,
+    backgroundColor: '#f3ebeb',
+    borderWidth: 1,
+    borderColor: '#0d45b5',
+    borderTopWidth: 0,
+    borderRadius: 10,
+    maxHeight: 200,
+    shadowColor: 'y#e8d2d2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 20,        //  ADD — this is what makes it float on Android
+    zIndex: 200,
+},
     suggestionsScroll: {
         maxHeight: 200,
     },
@@ -165,16 +175,16 @@ const Styles = StyleSheet.create({
     suggestionMain: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#111827',
+        color: '#353638',
     },
     suggestionDetail: {
         fontSize: 12,
-        color: '#6b7280',
+        color: '#101011',
         marginTop: 2,
     },
     noticeText: {
         fontSize: 13,
-        color: '#6b7280',
+        color: '#050505',
         marginTop: 8,
     },
     linkText: {
@@ -182,13 +192,19 @@ const Styles = StyleSheet.create({
         fontWeight: '500',
         textDecorationLine: 'underline',
     },
-    submitButton: {
-        backgroundColor: '#0046a8',
-        paddingVertical: 12,
-        borderRadius: 10,
-        alignItems: 'center',
-        marginTop: 8,
-    },
+submitButton: {
+    backgroundColor: '#0046a8',
+    paddingVertical: 14,          // slightly taller for Android touch
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    elevation: 2,                 //  ADD for Android
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+},
     submitButtonDisabled: {
         backgroundColor: '#6b7280',
         opacity: 0.6,
@@ -260,12 +276,14 @@ const Styles = StyleSheet.create({
         width: '100%',
         marginBottom: 12,
     },
-    modalButton: {
-        flex: 1,
-        paddingVertical: 12,
-        borderRadius: 10,
-        alignItems: 'center',
-    },
+modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,                 //  ADD
+},
     modalButtonLogin: {
         backgroundColor: '#0046a8',
     },

@@ -60,63 +60,63 @@ const RequestFormScreen = ({ navigation, route }) => {
         { label: 'Lockout Service', value: '5' }
     ];
 
-// Load vehicles on mount
- useEffect(() => {
-    checkAuthAndLoadVehicles();
-    restoreDraft();
+    // Load vehicles on mount
+    useEffect(() => {
+        checkAuthAndLoadVehicles();
+        restoreDraft();
 
-    return () => {
-      clearTimeout(searchTimeout.current);
-      addressSearchController.current?.abort();
+        return () => {
+            clearTimeout(searchTimeout.current);
+            addressSearchController.current?.abort();
+        };
+    }, []);
+
+    const checkAuthAndLoadVehicles = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+                setIsGuest(true);
+                setShowGuestModal(true);
+                return;
+            }
+            setIsGuest(false);
+            await loadVehicles();
+        } catch (error) {
+            console.error('Auth check error:', error);
+        }
     };
-  }, []);
 
-const checkAuthAndLoadVehicles = async () => {
-    try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) {
-            setIsGuest(true);
-            setShowGuestModal(true);
-            return;
+
+    const searchTimeout = useRef(null);
+
+    const onAddressChange = (text) => {
+        updateField('address', text);
+
+        clearTimeout(searchTimeout.current);
+
+        searchTimeout.current = setTimeout(() => {
+            searchAddressLocations(text);
+        }, 800);
+    };
+
+
+    const requestLocationPermission = async () => {
+        if (Platform.OS === 'ios') {
+            return true;
         }
-        setIsGuest(false);
-        await loadVehicles();
-    } catch (error) {
-        console.error('Auth check error:', error);
-    }
-};
 
+        const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+                title: 'Location permission',
+                message: 'This app needs your location to fill in the address.',
+                buttonPositive: 'Allow',
+                buttonNegative: 'Deny',
+            }
+        );
 
-const searchTimeout = useRef(null);
-
-const onAddressChange = (text) => {
-    updateField('address', text);
-
-    clearTimeout(searchTimeout.current);
-
-    searchTimeout.current = setTimeout(() => {
-        searchAddressLocations(text);
-    }, 800);
-};
-
-
-const requestLocationPermission = async () => {
-    if (Platform.OS === 'ios') {
-        return true;
-    }
-
-    const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        {
-            title: 'Location permission',
-            message: 'This app needs your location to fill in the address.',
-            buttonPositive: 'Allow',
-            buttonNegative: 'Deny',
-        }
-    );
-
-    return granted === PermissionsAndroid.RESULTS.GRANTED;
-};
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+    };
 
 
     const loadVehicles = async () => {
@@ -198,152 +198,152 @@ const requestLocationPermission = async () => {
 
 
 
-const getCurrentLocation = async () => {
-    const hasPermission = await requestLocationPermission();
+    const getCurrentLocation = async () => {
+        const hasPermission = await requestLocationPermission();
 
-    if (!hasPermission) {
-        setLocationStatus(
-            'Location permission was denied. Please enable it in Settings.'
-        );
-        return;
-    }
+        if (!hasPermission) {
+            setLocationStatus(
+                'Location permission was denied. Please enable it in Settings.'
+            );
+            return;
+        }
 
-    setGettingLocation(true);
-    setLocationStatus('Getting your location...');
+        setGettingLocation(true);
+        setLocationStatus('Getting your location...');
 
-    Geolocation.getCurrentPosition(
-        async position => {
-            try {
-                const {latitude, longitude} = position.coords;
+        Geolocation.getCurrentPosition(
+            async position => {
+                try {
+                    const { latitude, longitude } = position.coords;
 
-                updateField('latitude', latitude);
-                updateField('longitude', longitude);
+                    updateField('latitude', latitude);
+                    updateField('longitude', longitude);
 
-                setLocationStatus(
-                    '📍 Location captured — looking up address...'
-                );
+                    setLocationStatus(
+                        '📍 Location captured — looking up address...'
+                    );
 
-                const address = await reverseGeocode(latitude, longitude);
+                    const address = await reverseGeocode(latitude, longitude);
 
-                if (address) {
-                    updateField('address', address);
-                    setLocationStatus('📍 Location captured');
-                } else {
+                    if (address) {
+                        updateField('address', address);
+                        setLocationStatus('📍 Location captured');
+                    } else {
+                        setLocationStatus(
+                            '📍 Location captured, but address lookup failed.'
+                        );
+                    }
+                } catch (error) {
+                    console.error('Reverse geocoding error:', error);
                     setLocationStatus(
                         '📍 Location captured, but address lookup failed.'
                     );
+                } finally {
+                    setGettingLocation(false);
                 }
-            } catch (error) {
-                console.error('Reverse geocoding error:', error);
-                setLocationStatus(
-                    '📍 Location captured, but address lookup failed.'
-                );
-            } finally {
+            },
+            error => {
+                console.error('Location error:', {
+                    code: error.code,
+                    message: error.message,
+                });
+
+                if (error.code === 1) {
+                    setLocationStatus(
+                        'Location permission was denied. Please enable it in Settings.'
+                    );
+                } else if (error.code === 2) {
+                    setLocationStatus(
+                        'Location is unavailable. Please enable GPS and try again.'
+                    );
+                } else if (error.code === 3) {
+                    setLocationStatus(
+                        'Location request timed out. Please try again.'
+                    );
+                } else {
+                    setLocationStatus(
+                        'Could not get your location. Please enter your address manually.'
+                    );
+                }
+
                 setGettingLocation(false);
+            },
+            {
+                enableHighAccuracy: false,
+                timeout: 30000,
+                maximumAge: 60000,
             }
-        },
-        error => {
-            console.error('Location error:', {
-                code: error.code,
-                message: error.message,
-            });
+        );
+    };
 
-            if (error.code === 1) {
-                setLocationStatus(
-                    'Location permission was denied. Please enable it in Settings.'
-                );
-            } else if (error.code === 2) {
-                setLocationStatus(
-                    'Location is unavailable. Please enable GPS and try again.'
-                );
-            } else if (error.code === 3) {
-                setLocationStatus(
-                    'Location request timed out. Please try again.'
-                );
-            } else {
-                setLocationStatus(
-                    'Could not get your location. Please enter your address manually.'
-                );
-            }
+    const reverseGeocode = async (latitude, longitude) => {
+        const url =
+            'https://goodwrench-towing-rescue.onrender.com/api/geocode/reverse' +
+            `?lat=${encodeURIComponent(latitude)}` +
+            `&lng=${encodeURIComponent(longitude)}`;
 
-            setGettingLocation(false);
-        },
-        {
-            enableHighAccuracy: false,
-            timeout: 30000,
-            maximumAge: 60000,
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+        });
+
+        const responseText = await response.text();
+
+        if (!response.ok) {
+            throw new Error(
+                `Reverse geocoding failed: ${response.status} ${responseText.substring(0, 200)}`
+            );
         }
-    );
-};
 
-const reverseGeocode = async (latitude, longitude) => {
-  const url =
-    'https://goodwrench-towing-rescue.onrender.com/api/geocode/reverse' +
-    `?lat=${encodeURIComponent(latitude)}` +
-    `&lng=${encodeURIComponent(longitude)}`;
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-  });
-
-  const responseText = await response.text();
-
-  if (!response.ok) {
-    throw new Error(
-      `Reverse geocoding failed: ${response.status} ${responseText.substring(0, 200)}`
-    );
-  }
-
-  const data = JSON.parse(responseText);
-  return data.address || null;
-};
+        const data = JSON.parse(responseText);
+        return data.address || null;
+    };
 
 
 
     // Search address (forward geocode with suggestions)
-  const searchAddressLocations = async (query) => {
-  const text = query.trim();
+    const searchAddressLocations = async (query) => {
+        const text = query.trim();
 
-  if (text.length < 3) {
-    setAddressSuggestions([]);
-    setShowSuggestions(false);
-    return;
-  }
+        if (text.length < 3) {
+            setAddressSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
 
-  if (addressSearchController.current) {
-    addressSearchController.current.abort();
-  }
+        if (addressSearchController.current) {
+            addressSearchController.current.abort();
+        }
 
-  addressSearchController.current = new AbortController();
+        addressSearchController.current = new AbortController();
 
-  try {
-    const url =
-      'https://goodwrench-towing-rescue.onrender.com/api/geocode/search' +
-      `?q=${encodeURIComponent(text)}`;
+        try {
+            const url =
+                'https://goodwrench-towing-rescue.onrender.com/api/geocode/search' +
+                `?q=${encodeURIComponent(text)}`;
 
-    const response = await fetch(url, {
-      method: 'GET',
-      signal: addressSearchController.current.signal,
-      headers: { Accept: 'application/json' },
-    });
+            const response = await fetch(url, {
+                method: 'GET',
+                signal: addressSearchController.current.signal,
+                headers: { Accept: 'application/json' },
+            });
 
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`Address search failed: ${response.status} ${body}`);
-    }
+            if (!response.ok) {
+                const body = await response.text();
+                throw new Error(`Address search failed: ${response.status} ${body}`);
+            }
 
-    const results = await response.json();
+            const results = await response.json();
 
-    setAddressSuggestions(results || []);
-    setShowSuggestions((results || []).length > 0);
-  } catch (error) {
-    if (error.name === 'AbortError') return;
-    console.error('Address search error:', error);
-    setAddressSuggestions([]);
-    setShowSuggestions(false);
-  }
-};
+            setAddressSuggestions(results || []);
+            setShowSuggestions((results || []).length > 0);
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            console.error('Address search error:', error);
+            setAddressSuggestions([]);
+            setShowSuggestions(false);
+        }
+    };
 
 
     // Select address from suggestion
@@ -498,7 +498,7 @@ const reverseGeocode = async (latitude, longitude) => {
                 <View style={styles.navbar}>
                     <View style={styles.navContainer}>
                         <TouchableOpacity onPress={() => navigation.goBack()}>
-                            <Text style={styles.navbarBrand}>← Back</Text>
+                            <Text style={styles.navbarBrand}> &lt;&lt; </Text>
                         </TouchableOpacity>
                         <Text style={styles.navbarTitle}>Request Assistance</Text>
                         <View style={{ width: 50 }} />
@@ -519,12 +519,16 @@ const reverseGeocode = async (latitude, longitude) => {
                                     onValueChange={(value) => updateField('serviceType', value)}
                                     enabled={!loading && !submitted}
                                     style={styles.picker}
+                                    dropdownIconColor="#080808"   // color of the arrow down
+                                    mode="dropdown"               // ADD THIS (Android only)
                                 >
                                     {serviceTypes.map((type) => (
                                         <Picker.Item
                                             key={type.value}
                                             label={type.label}
                                             value={type.value}
+                                            color="#0a0a0a"        // 👈 ADD — Android only
+                                            style={{ color: '#f2f3f6' }}  // 👈 ADD — helps on some versions
                                         />
                                     ))}
                                 </Picker>
@@ -540,16 +544,22 @@ const reverseGeocode = async (latitude, longitude) => {
                                     onValueChange={(value) => updateField('vehicleId', value)}
                                     enabled={!loading && !submitted && !isGuest && vehicles.length > 0}
                                     style={styles.picker}
+                                    dropdownIconColor="#000000"   // 👈 ADD THIS
+                                    mode="dropdown"               // 👈 ADD THIS
                                 >
                                     <Picker.Item
                                         label={loadingVehicles ? "Loading your vehicles..." : "Select a vehicle"}
                                         value=""
+                                        color="#000000"           // 👈 gray placeholder
+                                        style={{ color: '#f1f2f6' }}
                                     />
                                     {vehicles.map((vehicle) => (
                                         <Picker.Item
                                             key={vehicle.vehicle_id}
                                             label={`${vehicle.make} ${vehicle.model} — ${vehicle.license_plate}${vehicle.is_default ? ' (Default)' : ''}`}
                                             value={String(vehicle.vehicle_id)}
+                                            color="#111113"        // 👈 ADD
+                                            style={{ color: '#dde0e6' }}
                                         />
                                     ))}
                                 </Picker>
@@ -650,7 +660,11 @@ const reverseGeocode = async (latitude, longitude) => {
 
                         {/* Submit Button */}
                         <TouchableOpacity
-                            style={[styles.submitButton, (loading || submitted || isGuest || vehicles.length === 0) && styles.submitButtonDisabled]}
+                            activeOpacity={0.8}
+                            style={[
+                                styles.submitButton,
+                                (loading || submitted || isGuest || vehicles.length === 0) && styles.submitButtonDisabled
+                            ]}
                             onPress={handleSubmit}
                             disabled={loading || submitted || isGuest || vehicles.length === 0}
                         >

@@ -19,11 +19,15 @@
     "@react-navigation/stack": "^7.8.7",
     "react": "19.2.3",
     "react-native": "0.84.1",
+    "react-native-blob-util": "^0.25.0",
+    "react-native-file-viewer": "^2.1.5",
     "react-native-gesture-handler": "^2.30.0",
     "react-native-image-picker": "^8.2.1",
     "react-native-maps": "^1.29.0",
+    "react-native-pdf": "^7.0.5",
     "react-native-safe-area-context": "^5.7.0",
     "react-native-screens": "^4.24.0",
+    "react-native-share": "^12.3.1",
     "react-native-webview": "^13.16.1"
   },
   "devDependencies": {

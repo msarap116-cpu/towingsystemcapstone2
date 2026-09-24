@@ -22,6 +22,9 @@ import LeafletMap from '../components/LeafletMap';
 import styles from '../styles/DashboardScreen.styles';
 import Geolocation from '@react-native-community/geolocation';
 import { launchImageLibrary } from 'react-native-image-picker';
+import ReactNativeBlobUtil from 'react-native-blob-util';
+import FileViewer from 'react-native-file-viewer';
+import Pdf from 'react-native-pdf';
 import API_BASE_URL from '../config';
 
 // Import icons (you can use react-native-vector-icons or emojis)
@@ -55,12 +58,20 @@ const DashboardScreen = ({ navigation }) => {
   const [requestId, setRequestId] = useState(null);
 
   // Payment state
-  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+
   const [paymentAmount, setPaymentAmount] = useState('₱0.00');
   const [paymentMessage, setPaymentMessage] = useState('');
   const [gcashReference, setGcashReference] = useState('');
   const [gcashProof, setGcashProof] = useState(null);
-  const [showGcashForm, setShowGcashForm] = useState(false);
+  // const [showGcashForm, setShowGcashForm] = useState(false);
+  // Replace:
+  //   const [showGcashForm, setShowGcashForm] = useState(false);
+  // With for the future adding methods:
+  const [activePaymentMethod, setActivePaymentMethod] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [gcashProofType, setGcashProofType] = useState('image/jpeg');
+  const [gcashProofName, setGcashProofName] = useState('proof.jpg');
+  const PAYMENT_DRAFT_KEY = 'payment_draft';
 
   // Edit address state
   const [editAddressModal, setEditAddressModal] = useState(false);
@@ -81,29 +92,112 @@ const DashboardScreen = ({ navigation }) => {
 
   // ===== LIFECYCLE =====
   useEffect(() => {
+    if (isPaid) {
+      setActivePaymentMethod(null);
+      setGcashReference('');
+      setGcashProof(null);
+    }
+  }, [isPaid]);
+
+  useEffect(() => {
     checkAuth();
     updateClock();
+
     const clockInterval = setInterval(updateClock, 10000);
 
     return () => {
       if (pollingInterval.current) {
         clearInterval(pollingInterval.current);
       }
+
       clearInterval(clockInterval);
     };
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'dashboard' && latestRequest) {
-      loadUserMap();
-      startPolling();
+    if (activeTab !== 'dashboard' || !latestRequest) {
+      return;
     }
+
+    loadUserMap();
+    startPolling();
+
     return () => {
       if (pollingInterval.current) {
         clearInterval(pollingInterval.current);
+        pollingInterval.current = null;
       }
     };
   }, [activeTab, latestRequest]);
+  useEffect(() => {
+    if (!requestId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function restoreDraft() {
+      try {
+        const raw = await AsyncStorage.getItem(PAYMENT_DRAFT_KEY);
+
+        if (!raw || cancelled) {
+          return;
+        }
+
+        const draft = JSON.parse(raw);
+
+        if (draft.request_id === requestId) {
+          setActivePaymentMethod(draft.activePaymentMethod || null);
+          setGcashReference(draft.gcashReference || '');
+          setGcashProof(draft.gcashProof || null);
+          setPaymentMessage(draft.paymentMessage || '');
+        } else {
+          await AsyncStorage.removeItem(PAYMENT_DRAFT_KEY);
+        }
+      } catch (error) {
+        console.warn('Failed to load payment draft', error);
+      }
+    }
+
+    restoreDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requestId]);
+  useEffect(() => {
+    const hasDraft =
+      activePaymentMethod ||
+      gcashReference ||
+      gcashProof ||
+      paymentMessage;
+
+    if (!hasDraft || !requestId) {
+      return;
+    }
+
+    const draft = {
+      request_id: requestId,
+      activePaymentMethod,
+      gcashReference,
+      gcashProof,
+      paymentMessage,
+    };
+
+    AsyncStorage
+      .setItem(PAYMENT_DRAFT_KEY, JSON.stringify(draft))
+      .catch(error => {
+        console.warn('Failed to save payment draft', error);
+      });
+  }, [
+    activePaymentMethod,
+    gcashReference,
+    gcashProof,
+    paymentMessage,
+    requestId,
+  ]);
+
+
 
   // ===== AUTH FUNCTIONS =====
   const checkAuth = async () => {
@@ -127,29 +221,29 @@ const DashboardScreen = ({ navigation }) => {
   };
 
 
-const handleLogout = () => {
-  if (AppState.currentState !== 'active') {
-    // Activity not attached — bail or queue the alert
-    return;
-  }
-  Alert.alert(
-    'Confirm Logout',
-    'Are you sure you want to log out?',
-    [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          await AsyncStorage.removeItem('token');
-          await AsyncStorage.removeItem('user');
-          navigation.replace('Login', { logoutMessage: 'Logout successful!' });
+  const handleLogout = () => {
+    if (AppState.currentState !== 'active') {
+      // Activity not attached — bail or queue the alert
+      return;
+    }
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await AsyncStorage.removeItem('token');
+            await AsyncStorage.removeItem('user');
+            navigation.replace('Login', { logoutMessage: 'Logout successful!' });
+          },
         },
-      },
-    ],
-    { cancelable: true }
-  );
-};
+      ],
+      { cancelable: true }
+    );
+  };
 
   // ===== DASHBOARD DATA =====
   const loadDashboardData = async (silent = false) => {
@@ -335,251 +429,333 @@ const handleLogout = () => {
   //   setPaymentModalVisible(true);
   // };
 
-const openPaymentModal = () => {
-  console.log('openPaymentModal called');
-  console.log('latestRequest:', latestRequest);
-  setPaymentModalVisible(true);
-  console.log('setPaymentModalVisible(true) fired');
-};
-
-// ---------- MAIN PAYMENT HANDLER ----------
-const processPaymentMethod = async (method) => {
-  console.log('processPaymentMethod called:', method);
+  // ---------- MAIN PAYMENT HANDLER ----------
+  const processPaymentMethod = async (method) => {
 
 
-  if (!latestRequest || !latestRequest.request_id) {
-    setPaymentMessage('No service request is available for payment.');
-    return;
-  }
-
-  const requestId = latestRequest.request_id;
-  const token = await AsyncStorage.getItem('token');
-
-  if (!token) {
-    setPaymentMessage('Please log in again.');
-    return;
-  }
-
-  try {
-    // 1. Check existing payment status (like the web app)
-    const statusRes = await fetch(
-      `${API_BASE_URL}/payments/request/${requestId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    const statusData = await statusRes.json();
-
-    if (!statusRes.ok) {
-      throw new Error(statusData.message || 'Failed to check payment status.');
+    if (isPaid) {
+      setPaymentMessage('This request is already paid.');
+      return;
     }
+    console.log('processPaymentMethod called:', method);
+    setActivePaymentMethod(method);
 
-    const payment = statusData.payment;
-    console.log('Existing payment:', payment);
-
-    // 2. CASH
-    if (method === 'cash') {
-      if (payment) {
-        if (payment.status === 'completed') {
-          setPaymentMessage('This request has already been paid.');
-          return;
-        }
-        if (payment.status === 'awaiting_cash') {
-          setPaymentMessage('Cash payment is selected. Please pay the driver.');
-          return;
-        }
-        if (payment.status === 'refunded') {
-          setPaymentMessage('This payment was refunded.');
-          return;
-        }
-      }
-      await selectCashPayment(requestId, token);
+    if (!latestRequest || !latestRequest.request_id) {
+      setPaymentMessage('No service request is available for payment.');
       return;
     }
 
-    // 3. GCASH
-    if (method === 'gcash') {
-      if (payment) {
-        if (payment.status === 'awaiting_payment') {
-          await startGCashPayment(requestId, token);
-          return;
-        }
-        if (payment.status === 'pending') {
-          setPaymentMessage('Proof already submitted, awaiting verification.');
-          return;
-        }
-        if (payment.status === 'completed') {
-          setPaymentMessage('This request has already been paid.');
-          return;
-        }
-        if (payment.status === 'failed') {
-          setPaymentMessage('Previous proof rejected. You may submit again.');
-          await startGCashPayment(requestId, token);
-          return;
-        }
-        if (payment.status === 'refunded') {
-          setPaymentMessage('This payment was refunded.');
-          return;
-        }
-      }
-      await startGCashPayment(requestId, token);
+    const requestId = latestRequest.request_id;
+    const token = await AsyncStorage.getItem('token');
+
+    if (!token) {
+      setPaymentMessage('Please log in again.');
+      return;
     }
 
-  } catch (error) {
-    console.error('Payment status check failed:', error);
-    setPaymentMessage(error.message || 'Unable to check payment status.');
-  }
-};
+    try {
+      // 1. Check existing payment status (like the web app)
+      const statusRes = await fetch(
+        `${API_BASE_URL}/payments/request/${requestId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const statusData = await statusRes.json();
 
-// ---------- GCASH START ----------
-const startGCashPayment = async (requestId, token) => {
-  try {
-    const res = await fetch(`${API_BASE_URL}/payments/gcash/start`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+      if (!statusRes.ok) {
+        throw new Error(statusData.message || 'Failed to check payment status.');
+      }
+
+      const payment = statusData.payment;
+      console.log('Existing payment:', payment);
+
+      // 2. CASH
+      if (method === 'cash') {
+        setActivePaymentMethod('cash');
+        if (payment) {
+          if (payment.status === 'completed') {
+            setPaymentMessage('This request has already been paid.');
+            return;
+          }
+          if (payment.status === 'awaiting_cash') {
+            setPaymentMessage('Cash payment is selected. Please pay the driver.');
+            return;
+          }
+          if (payment.status === 'refunded') {
+            setPaymentMessage('This payment was refunded.');
+            return;
+          }
+        }
+        await selectCashPayment(requestId, token);
+        return;
+      }
+
+      // 3. GCASH
+      if (method === 'gcash') {
+        if (payment) {
+          if (payment.status === 'awaiting_payment') {
+            await startGCashPayment(requestId, token);
+            return;
+          }
+          if (payment.status === 'pending') {
+            setPaymentMessage('Proof already submitted, awaiting verification.');
+            return;
+          }
+          if (payment.status === 'completed') {
+            setPaymentMessage('This request has already been paid.');
+            return;
+          }
+          if (payment.status === 'failed') {
+            setPaymentMessage('Previous proof rejected. You may submit again.');
+            await startGCashPayment(requestId, token);
+            return;
+          }
+          if (payment.status === 'refunded') {
+            setPaymentMessage('This payment was refunded.');
+            return;
+          }
+        }
+        await startGCashPayment(requestId, token);
+      }
+      console.log('latestRequest:', latestRequest);
+    } catch (error) {
+      console.error('Payment status check failed:', error);
+      setPaymentMessage(error.message || 'Unable to check payment status.');
+    }
+  };
+
+  const isPaid =
+    latestRequest?.status === 'completed' ||
+    latestRequest?.payment_status === 'paid' ||
+    latestRequest?.payment_status === 'completed' ||
+    latestRequest?.is_paid === true;
+
+  // ---------- GCASH START ----------
+  const startGCashPayment = async (requestId, token) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/payments/gcash/start`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ request_id: requestId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Unable to start payment.');
+
+      const payment = data.payment;
+
+      if (payment.status === 'completed') {
+        setPaymentMessage('This request has already been paid.');
+        return;
+      }
+      if (payment.status === 'pending') {
+        setPaymentMessage('Proof already submitted, awaiting verification.');
+        return;
+      }
+
+      setActivePaymentMethod('gcash');
+      setPaymentMessage('Pay the displayed amount through GCash, then upload your receipt.');
+    } catch (err) {
+      console.error('Start GCash payment error:', err);
+      setPaymentMessage(err.message);
+    }
+  };
+
+  // ---------- CASH ----------
+  const selectCashPayment = async (requestId, token) => {
+    return new Promise((resolve) => {
+      Alert.alert(
+        'Cash Payment',
+        'Do you want to pay in cash to the driver?',
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
+          {
+            text: 'Yes',
+            onPress: async () => {
+              try {
+                const res = await fetch(`${API_BASE_URL}/payments/cash`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ request_id: requestId }),
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                  setPaymentMessage(data.message || 'Unable to select cash payment.');
+                  return resolve();
+                }
+
+                setPaymentMessage(
+                  'Cash payment selected. Please pay the driver when service is completed.'
+                );
+                console.log('Cash payment created:', data.payment);
+                resolve();
+              } catch (err) {
+                console.error('Cash payment error:', err);
+                setPaymentMessage('Unable to select cash payment.');
+                resolve();
+              }
+            },
+          },
+        ]
+      );
+    });
+  };
+
+  // ---------- SUBMIT GCASH PROOF ----------
+  const submitGcashProof = async () => {
+    if (!gcashReference.trim() || !gcashProof) {
+      Alert.alert('Missing info', 'Please enter a reference number and upload a receipt.');
+      return;
+    }
+
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      setPaymentMessage('Please log in again.');
+      return;
+    }
+
+    setSubmitting(true);
+    setPaymentMessage('');
+
+    try {
+      const formData = new FormData();
+      formData.append('request_id', String(latestRequest.request_id));
+      formData.append('reference_number', gcashReference.trim());
+
+      // Normalize URI for Android
+      const uri =
+        gcashProof.startsWith('file://') || gcashProof.startsWith('content://')
+          ? gcashProof
+          : `file://${gcashProof}`;
+
+      formData.append('proof_image', {
+        uri,
+        type: 'image/jpeg',
+        name: 'proof.jpg',
+      });
+
+      const res = await fetch(`${API_BASE_URL}/payments/gcash/submit-proof`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },  // ⚠️ don't set Content-Type
+        body: formData,
+      });
+
+      const data = await res.json();
+      setPaymentMessage(data.message || 'Proof submitted.');
+
+      if (data.success) {
+        setActivePaymentMethod(null);
+        setGcashReference('');
+        setGcashProof(null);
+        setPaymentMessage('');
+        await AsyncStorage.removeItem(PAYMENT_DRAFT_KEY);   //  clear persisted draft
+        Alert.alert('Success', 'Payment proof submitted!');
+      }
+    } catch (err) {
+      console.error('Proof submission error:', err);
+      setPaymentMessage('Unable to submit proof of payment.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  const pickProofImage = () => {
+    launchImageLibrary(
+      {
+        mediaType: 'photo',      // 'photo' | 'video' | 'mixed'
+        quality: 0.8,
+        includeBase64: false,
       },
-      body: JSON.stringify({ request_id: requestId }),
+      (response) => {
+        // User cancelled the picker
+        if (response.didCancel) {
+          console.log('User cancelled image picker');
+          return;
+        }
+
+        // Picker returned an error
+        if (response.errorCode) {
+          console.error('ImagePicker Error:', response.errorMessage);
+          Alert.alert('Error', response.errorMessage || 'Could not open picker.');
+          return;
+        }
+
+        // Success — grab the first asset
+        if (response.assets && response.assets.length > 0) {
+          const asset = response.assets[0];
+          console.log('Picked image:', asset.uri, asset.type, asset.fileName);
+
+          setGcashProof(asset.uri);
+          setGcashProofType(asset.type || 'image/jpeg');
+          setGcashProofName(asset.fileName || 'proof.jpg');
+        }
+      }
+    );
+  };
+
+const downloadReceipt = async (paymentId) => {
+  const token = await AsyncStorage.getItem('token');
+  if (!token) {
+    Alert.alert('Authentication required', 'Please log in again.');
+    return;
+  }
+
+  try {
+    const url = `${API_BASE_URL}/payments/${paymentId}/receipt`;
+    const path = `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/receipt_${paymentId}.pdf`;
+
+    const res = await ReactNativeBlobUtil.config({
+      fileCache: true,
+      path,
+    }).fetch('GET', url, {
+      Authorization: `Bearer ${token}`,
     });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Unable to start payment.');
-
-    const payment = data.payment;
-
-    if (payment.status === 'completed') {
-      setPaymentMessage('This request has already been paid.');
-      return;
+    const status = res.info().status;
+    if (status !== 200) {
+      throw new Error(`Failed to download receipt (status ${status})`);
     }
-    if (payment.status === 'pending') {
-      setPaymentMessage('Proof already submitted, awaiting verification.');
-      return;
+    <Pdf
+  source={{ uri: filePath }}
+  onError={(error) => console.log('PDF render error:', error)}
+  style={{ flex: 1 }}
+/>
+
+    const filePath = res.path();
+    const exists = await ReactNativeBlobUtil.fs.exists(filePath);
+    console.log('Receipt saved to:', filePath, 'exists:', exists);
+
+
+    if (!exists) {
+      throw new Error('Downloaded file not found on disk');
     }
 
-    setShowGcashForm(true);
-    setPaymentMessage('Pay the displayed amount through GCash, then upload your receipt.');
-  } catch (err) {
-    console.error('Start GCash payment error:', err);
-    setPaymentMessage(err.message);
-  }
-};
-
-// ---------- CASH ----------
-const selectCashPayment = async (requestId, token) => {
-  return new Promise((resolve) => {
     Alert.alert(
-      'Cash Payment',
-      'Do you want to pay in cash to the driver?',
+      'Receipt Downloaded',
+      'Open or save the receipt?',
       [
-        { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
-        {
-          text: 'Yes',
-          onPress: async () => {
-            try {
-              const res = await fetch(`${API_BASE_URL}/payments/cash`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ request_id: requestId }),
-              });
-              const data = await res.json();
-
-              if (!res.ok || !data.success) {
-                setPaymentMessage(data.message || 'Unable to select cash payment.');
-                return resolve();
-              }
-
-              setPaymentMessage(
-                'Cash payment selected. Please pay the driver when service is completed.'
-              );
-              console.log('Cash payment created:', data.payment);
-              resolve();
-            } catch (err) {
-              console.error('Cash payment error:', err);
-              setPaymentMessage('Unable to select cash payment.');
-              resolve();
-            }
-          },
-        },
+        { text: 'Later', style: 'cancel' },
+{
+  text: 'Open / Save',
+  onPress: () => {
+    navigation.navigate('PdfViewer', {
+      filePath,
+      title: `Receipt ${paymentId}`,
+    });
+  },
+},
       ]
     );
-  });
-};
-
-// ---------- SUBMIT GCASH PROOF ----------
-const submitGcashProof = async () => {
-  if (!gcashReference.trim() || !gcashProof) {
-    Alert.alert('Missing info', 'Please enter a reference number and upload a receipt.');
-    return;
-  }
-
-  const token = await AsyncStorage.getItem('token');
-  if (!token) {
-    setPaymentMessage('Please log in again.');
-    return;
-  }
-
-  setSubmitting(true);
-  setPaymentMessage('');
-
-  try {
-    const formData = new FormData();
-    formData.append('request_id', String(latestRequest.request_id));
-    formData.append('reference_number', gcashReference.trim());
-
-    // Normalize URI for Android
-    const uri =
-      gcashProof.startsWith('file://') || gcashProof.startsWith('content://')
-        ? gcashProof
-        : `file://${gcashProof}`;
-
-    formData.append('proof_image', {
-      uri,
-      type: 'image/jpeg',
-      name: 'proof.jpg',
-    });
-
-    const res = await fetch(`${API_BASE_URL}/payments/gcash/submit-proof`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },  // ⚠️ don't set Content-Type
-      body: formData,
-    });
-
-    const data = await res.json();
-    setPaymentMessage(data.message || 'Proof submitted.');
-
-    if (data.success) {
-      setShowGcashForm(false);
-      setGcashReference('');
-      setGcashProof(null);
-      Alert.alert('Success', 'Payment proof submitted!');
-    }
-  } catch (err) {
-    console.error('Proof submission error:', err);
-    setPaymentMessage('Unable to submit proof of payment.');
-  } finally {
-    setSubmitting(false);
+  } catch (error) {
+    console.error('Download receipt error:', error);
+    Alert.alert('Error', error.message || 'Failed to download receipt.');
   }
 };
-const pickProofImage = async () => {
-  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== 'granted') {
-    Alert.alert('Permission needed', 'Allow access to photos to upload a receipt.');
-    return;
-  }
-
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: false,
-    quality: 0.8,
-  });
-
-  if (!result.canceled) {
-    setGcashProof(result.assets[0].uri);
-  }
-};
-
   // ===== EDIT ADDRESS =====
   const debounceRef = useRef(null);
   const abortRef = useRef(null);
@@ -852,13 +1028,12 @@ const pickProofImage = async () => {
 
       <TouchableOpacity
         style={[styles.tabItem, activeTab === 'payment' && styles.tabItemActive]}
-        onPress={() => {
-          setActiveTab('payment');
-          openPaymentModal();
-        }}
+        onPress={() => setActiveTab('payment')}
       >
         <Text style={styles.tabIcon}>💵</Text>
-        <Text style={[styles.tabText, activeTab === 'payment' && styles.tabTextActive]}>Payment</Text>
+        <Text style={[styles.tabText, activeTab === 'payment' && styles.tabTextActive]}>
+          Payment
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -988,35 +1163,225 @@ const pickProofImage = async () => {
     </View>
   );
 
-  const renderReceipts = () => (
-    <View style={styles.tabContent}>
-      <Text style={styles.tabTitle}>My Receipts</Text>
-      {receipts.length === 0 ? (
-        <Text style={styles.emptyText}>No receipts found</Text>
-      ) : (
-        <FlatList
-          data={receipts}
-          keyExtractor={(item) => String(item.payment_id)}
-          renderItem={({ item }) => (
-            <View style={styles.receiptItem}>
-              <Text style={styles.receiptId}>#{item.receipt_number || 'N/A'}</Text>
-              <Text style={styles.receiptAmount}>₱{Number(item.amount || 0).toFixed(2)}</Text>
-              <View style={[styles.receiptStatus,
-              { backgroundColor: item.status === 'completed' ? '#28a745' : '#ffc107' }
-              ]}>
-                <Text style={styles.receiptStatusText}>{item.status || 'Pending'}</Text>
-              </View>
-              {item.status === 'completed' && (
-                <TouchableOpacity style={styles.downloadButton}>
-                  <Text style={styles.downloadButtonText}>Download</Text>
-                </TouchableOpacity>
-              )}
+const formatAmount = (val) => {
+  const n = typeof val === 'string'
+    ? Number(val.replace(/[^0-9.-]/g, ''))
+    : Number(val || 0);
+  return isNaN(n) ? '0.00' : n.toFixed(2);
+};
+
+const formatDate = (iso) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+};
+
+const renderReceipts = () => (
+  <View style={styles.tabContent}>
+    <Text style={styles.tabTitle}>My Receipts</Text>
+
+    {receipts.length === 0 ? (
+      <Text style={styles.emptyText}>No receipts found</Text>
+    ) : (
+      <FlatList
+        data={receipts}
+        keyExtractor={(item) => String(item.payment_id)}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        renderItem={({ item }) => (
+          <View style={styles.receiptItem}>
+            <View style={styles.receiptRow}>
+              <Text style={styles.receiptLabel}>Receipt #</Text>
+              <Text style={styles.receiptValue}>{item.receipt_number || '—'}</Text>
             </View>
-          )}
-        />
-      )}
+            <View style={styles.receiptRow}>
+              <Text style={styles.receiptLabel}>Request #</Text>
+              <Text style={styles.receiptValue}>{item.request_id || '—'}</Text>
+            </View>
+            <View style={styles.receiptRow}>
+              <Text style={styles.receiptLabel}>Amount</Text>
+              <Text style={styles.receiptAmount}>
+                ₱{formatAmount(item.amount)}
+              </Text>
+            </View>
+            <View style={styles.receiptRow}>
+              <Text style={styles.receiptLabel}>Date</Text>
+              <Text style={styles.receiptValue}>
+                {formatDate(item.payment_date)}
+              </Text>
+            </View>
+            <View style={styles.receiptRow}>
+              <Text style={styles.receiptLabel}>Status</Text>
+              <View
+                style={[
+                  styles.receiptStatus,
+                  {
+                    backgroundColor:
+                      item.status === 'completed' ? '#28a745' : '#ffc107',
+                  },
+                ]}
+              >
+                <Text style={styles.receiptStatusText}>
+                  {item.status || 'Pending'}
+                </Text>
+              </View>
+            </View>
+
+            {item.status === 'completed' ? (
+              <TouchableOpacity
+                style={styles.downloadButton}
+                onPress={() => downloadReceipt(item.payment_id)}
+              >
+                <Text style={styles.downloadButtonText}>Generate Receipt</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.receiptValue}>—</Text>
+            )}
+          </View>
+        )}
+      />
+    )}
+  </View>
+);
+
+  {/* ================= PAYMENT TAB CONTENT ================= */ }
+  const renderPayment = () => (
+    <View style={styles.tabContent}>
+      <ScrollView
+        bounces={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.modalTitle}>Payment</Text>
+        </View>
+
+        {/* Request info */}
+        <View style={styles.paymentRequestInfo}>
+          <Text style={styles.paymentInfoHeading}>Payment for Request</Text>
+          <Text style={styles.paymentInfoLine}>
+            Request # <Text style={styles.bold}>{latestRequest?.request_id ?? '--'}</Text>
+          </Text>
+          <Text style={styles.paymentAmountLine}>
+            Amount Due: <Text style={styles.bold}>{paymentAmount}</Text>
+          </Text>
+        </View>
+        {/*   If already paid, show a lock card and stop here */}
+        {isPaid ? (
+          <View style={styles.gcashSection}>
+            <Text style={styles.gcashTitle}>  Payment Completed</Text>
+            <Text style={styles.gcashDetailValue}>
+              This request has already been paid. Thank you!
+            </Text>
+          </View>
+        ) : (
+          <>
+
+            {/* Method grid */}
+            <Text style={styles.paymentMethodTitle}>Choose Payment Method</Text>
+            <View style={styles.paymentGrid}>
+              <TouchableOpacity
+                style={styles.paymentMethod}
+                onPress={() => processPaymentMethod('gcash')}
+              >
+                <Text style={styles.paymentMethodIcon}>💚</Text>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.paymentMethodName}>GCash</Text>
+                  <Text style={styles.paymentMethodSub}>Pay online</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.paymentMethod}
+                onPress={() => processPaymentMethod('cash')}
+              >
+                <Text style={styles.paymentMethodIcon}>💵</Text>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.paymentMethodName}>Cash</Text>
+                  <Text style={styles.paymentMethodSub}>Pay to driver</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* GCash section */}
+            {activePaymentMethod === 'gcash' && (
+              <View style={styles.gcashSection}>
+                <Text style={styles.gcashTitle}>Pay with GCash</Text>
+
+                <View style={styles.gcashDetails}>
+                  <Text style={styles.gcashDetailLabel}>Send payment to:</Text>
+                  <Text style={styles.gcashDetailValue}>
+                    GCash Number: <Text style={styles.bold}>0917-XXX-XXXX</Text>
+                  </Text>
+                  <Text style={styles.gcashDetailValue}>
+                    Account Name: <Text style={styles.bold}>Your Business Name</Text>
+                  </Text>
+                  <Image
+                    source={require('../assets/images/2321600003.png')}
+                    style={styles.gcashQr}
+                    resizeMode="contain"
+                  />
+                </View>
+
+                <Text style={styles.inputLabel}>GCash Reference Number</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. 1234567890123"
+                  value={gcashReference}
+                  onChangeText={setGcashReference}
+                  keyboardType="numeric"
+                />
+
+                <Text style={styles.inputLabel}>Upload Receipt / Screenshot</Text>
+                <TouchableOpacity style={styles.uploadButton} onPress={pickProofImage}>
+                  <Text style={styles.uploadButtonText}>
+                    {gcashProof ? '  Receipt selected' : 'Choose Image'}
+                  </Text>
+                </TouchableOpacity>
+
+                {gcashProof && (
+                  <Image
+                    source={{ uri: gcashProof }}
+                    style={styles.proofPreview}
+                    resizeMode="cover"
+                  />
+                )}
+
+                <TouchableOpacity
+                  style={[styles.submitPaymentButton, submitting && { opacity: 0.5 }]}
+                  onPress={submitGcashProof}
+                  disabled={submitting}
+                >
+                  <Text style={styles.submitPaymentText}>
+                    {submitting ? 'Submitting…' : 'Submit Proof of Payment'}
+                  </Text>
+                </TouchableOpacity>
+                {/*NEW: Cancel button */}
+                <TouchableOpacity
+                  style={styles.cancelPaymentButton}
+                  onPress={cancelPayment}
+                  disabled={submitting}
+                >
+                  <Text style={styles.cancelPaymentText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        )}
+        {/* Status message */}
+        {!!paymentMessage && (
+          <Text style={styles.paymentMessage}>{paymentMessage}</Text>
+        )}
+      </ScrollView>
     </View>
   );
+  //cancel payment method
+  const cancelPayment = () => {
+    setActivePaymentMethod(null);
+    setGcashReference('');
+    setGcashProof(null);
+    setPaymentMessage('');
+  };
 
   // ===== MAIN RENDER — UPDATED =====
   if (loading) {
@@ -1036,7 +1401,7 @@ const pickProofImage = async () => {
       <View style={styles.navbar}>
         <View style={styles.navbarContent}>
           <View style={styles.brand}>
-            <Text style={styles.brandIcon}>🚛</Text>
+            <Text style={styles.brandIcon}>😭</Text>
             <Text style={styles.brandText}>Good<Text style={styles.brandSpan}>Wrench</Text></Text>
           </View>
           <View style={styles.navbarRight}>
@@ -1057,150 +1422,12 @@ const pickProofImage = async () => {
         {activeTab === 'dashboard' && renderDashboard()}
         {activeTab === 'recent' && renderRecentActivity()}
         {activeTab === 'receipts' && renderReceipts()}
+        {activeTab === 'payment' && renderPayment()}
       </View>
 
       {/* BOTTOM TAB BAR — replaces sidebar */}
       {renderBottomTabBar()}
 
-      {/* ========== ALL MODALS —  UNCHANGED ========== */}
-      {/* Payment Modal */}
-{/* ================= PAYMENT MODAL ================= */}
-<Modal
-  visible={paymentModalVisible}
-  transparent
-  animationType="slide"
-  onRequestClose={() => setPaymentModalVisible(false)}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalContent}>
-      <ScrollView bounces={false} contentContainerStyle={{ paddingBottom: 24 }}>
-
-        {/* ---------- Header ---------- */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.modalTitle}>Payment</Text>
-          <TouchableOpacity onPress={() => setPaymentModalVisible(false)}>
-            <Text style={styles.modalCloseText}>×</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ---------- Request info ---------- */}
-        <View style={styles.paymentRequestInfo}>
-          <Text style={styles.paymentInfoHeading}>Payment for Request</Text>
-          <Text style={styles.paymentInfoLine}>
-            Request # <Text style={styles.bold}>{latestRequest?.request_id ?? '--'}</Text>
-          </Text>
-          <Text style={styles.paymentAmountLine}>
-            Amount Due: <Text style={styles.bold}>{paymentAmount}</Text>
-          </Text>
-        </View>
-
-        {/* ---------- Method grid ---------- */}
-        <Text style={styles.paymentMethodTitle}>Choose Payment Method</Text>
-        <View style={styles.paymentGrid}>
-          <TouchableOpacity
-            style={styles.paymentMethod}
-            onPress={() => processPaymentMethod('gcash')}
-          >
-            <Text style={styles.paymentMethodIcon}>💚</Text>
-            <View style={{ marginLeft: 10 }}>
-              <Text style={styles.paymentMethodName}>GCash</Text>
-              <Text style={styles.paymentMethodSub}>Pay online</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.paymentMethod}
-            onPress={() => processPaymentMethod('cash')}
-          >
-            <Text style={styles.paymentMethodIcon}>💵</Text>
-            <View style={{ marginLeft: 10 }}>
-              <Text style={styles.paymentMethodName}>Cash</Text>
-              <Text style={styles.paymentMethodSub}>Pay to driver</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* ---------- GCash section ---------- */}
-        {showGcashForm && (
-          <View style={styles.gcashSection}>
-            <Text style={styles.gcashTitle}>Pay with GCash</Text>
-
-            {/* Account details */}
-            <View style={styles.gcashDetails}>
-              <Text style={styles.gcashDetailLabel}>Send payment to:</Text>
-              <Text style={styles.gcashDetailValue}>
-                GCash Number: <Text style={styles.bold}>0917-XXX-XXXX</Text>
-              </Text>
-              <Text style={styles.gcashDetailValue}>
-                Account Name: <Text style={styles.bold}>Your Business Name</Text>
-              </Text>
-
-              <Image
-                source={require('../assets/images/2321600003.png')} // 👈 adjust path
-                style={styles.gcashQr}
-                resizeMode="contain"
-              />
-            </View>
-
-            {/* Reference number */}
-            <Text style={styles.inputLabel}>GCash Reference Number</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. 1234567890123"
-              value={gcashReference}
-              onChangeText={setGcashReference}
-              keyboardType="numeric"
-            />
-
-            {/* File picker */}
-            <Text style={styles.inputLabel}>Upload Receipt / Screenshot</Text>
-            <TouchableOpacity
-              style={styles.uploadButton}
-              onPress={pickProofImage}
-            >
-              <Text style={styles.uploadButtonText}>
-                {gcashProof ? '✅ Receipt selected' : 'Choose Image'}
-              </Text>
-            </TouchableOpacity>
-
-            {gcashProof && (
-              <Image
-                source={{ uri: gcashProof }}
-                style={styles.proofPreview}
-                resizeMode="cover"
-              />
-            )}
-
-            {/* Submit */}
-            <TouchableOpacity
-              style={[styles.submitPaymentButton, submitting && { opacity: 0.5 }]}
-              onPress={submitGcashProof}
-              disabled={submitting}
-            >
-              <Text style={styles.submitPaymentText}>
-                {submitting ? 'Submitting…' : 'Submit Proof of Payment'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* ---------- Status message ---------- */}
-        {!!paymentMessage && (
-          <Text style={styles.paymentMessage}>{paymentMessage}</Text>
-        )}
-
-        {/* ---------- Cancel / Close ---------- */}
-        <TouchableOpacity
-          style={styles.cancelBtn}
-          onPress={() => setPaymentModalVisible(false)}
-        >
-          <Text style={styles.cancelBtnText}>Cancel</Text>
-        </TouchableOpacity>
-
-      </ScrollView>
-    </View>
-  </View>
-</Modal>
 
       {/* Edit Address Modal */}
       <Modal

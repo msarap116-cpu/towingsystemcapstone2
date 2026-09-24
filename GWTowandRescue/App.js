@@ -10,6 +10,7 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import DriverDashboardScreen from './src/screens/DriverDashboardScreen';
 import RequestFormScreen from './src/screens/RequestFormScreen';
+import PdfViewerScreen from './src/screens/PdfViewerScreen';
 
 
 
@@ -60,6 +61,7 @@ const App = () => {
                 <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ headerShown: false }} />
                 <Stack.Screen name="DriverDashboard" component={DriverDashboardScreen} options={{ headerShown: false }} />
                 <Stack.Screen name="RequestForm" component={RequestFormScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="PdfViewer" component={PdfViewerScreen} />
             </Stack.Navigator>
         </NavigationContainer>
     );

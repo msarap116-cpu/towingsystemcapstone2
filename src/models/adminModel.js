@@ -131,7 +131,14 @@ const Admin = {
 
         return rows;
     },
+    async deletePayment(paymentId) {
+        const sql = `DELETE FROM payments WHERE payment_id = ?`;
+        const result = await db.query(sql, [paymentId]);
 
+        // mysql2 returns [ResultSetHeader, fields] — normalize like getPayments does
+        const header = Array.isArray(result) ? result[0] : result;
+        return header;
+    },
 
     async getRequests() {
         const sql = `
@@ -205,7 +212,7 @@ const Admin = {
     },
 
     async getAvailableDrivers() {
-    const sql = `
+        const sql = `
         SELECT
             user_id,
             name,
@@ -215,21 +222,21 @@ const Admin = {
         ORDER BY name ASC
     `;
 
-    const result = await db.query(sql);
+        const result = await db.query(sql);
 
-    const rows = Array.isArray(result[0])
-        ? result[0]
-        : Array.isArray(result)
-            ? result
-            : [];
+        const rows = Array.isArray(result[0])
+            ? result[0]
+            : Array.isArray(result)
+                ? result
+                : [];
 
-    console.log('Drivers from DB:', rows.length, 'rows');
+        console.log('Drivers from DB:', rows.length, 'rows');
 
-    return rows;
-},
-// Get all service types
-async getServiceTypes() {
-    const rows = await db.query(`
+        return rows;
+    },
+    // Get all service types
+    async getServiceTypes() {
+        const rows = await db.query(`
         SELECT
             service_type_id,
             name,
@@ -241,59 +248,59 @@ async getServiceTypes() {
         ORDER BY service_type_id ASC
     `);
 
-    return rows;
-},
+        return rows;
+    },
 
-// Update service base price
-async updateServicePrice(serviceTypeId, basePrice) {
-const result = await db.query(`
+    // Update service base price
+    async updateServicePrice(serviceTypeId, basePrice) {
+        const result = await db.query(`
     UPDATE service_types
     SET base_price = ?
     WHERE service_type_id = ?
 `, [basePrice, serviceTypeId]);
-    return result;
-},
-// requestModel.js
+        return result;
+    },
+    // requestModel.js
 
-async claimAndAssign(requestId, driverId) {
-    const conn = await db.getConnection();
-    try {
-        await conn.beginTransaction();
+    async claimAndAssign(requestId, driverId) {
+        const conn = await db.getConnection();
+        try {
+            await conn.beginTransaction();
 
-        const [updateResult] = await conn.query(
-            `UPDATE service_requests
+            const [updateResult] = await conn.query(
+                `UPDATE service_requests
              SET driver_id = ?, status = 'assigned', updated_at = NOW()
              WHERE request_id = ? AND driver_id IS NULL AND status = 'pending'`,
-            [driverId, requestId]
-        );
+                [driverId, requestId]
+            );
 
-        if (updateResult.affectedRows === 0) {
-            await conn.rollback();
-            return { claimed: false };
-        }
+            if (updateResult.affectedRows === 0) {
+                await conn.rollback();
+                return { claimed: false };
+            }
 
-        await conn.query(
-            `INSERT INTO driver_assignments (request_id, driver_id, status, accepted_at)
+            await conn.query(
+                `INSERT INTO driver_assignments (request_id, driver_id, status, accepted_at)
              VALUES (?, ?, 'accepted', NOW())`,
-            [requestId, driverId]
-        );
+                [requestId, driverId]
+            );
 
-        await conn.commit();
-        return { claimed: true };
-    } catch (err) {
-        await conn.rollback();
-        throw err;
-    } finally {
-        conn.release();
-    }
-},
+            await conn.commit();
+            return { claimed: true };
+        } catch (err) {
+            await conn.rollback();
+            throw err;
+        } finally {
+            conn.release();
+        }
+    },
 
-// admin override: same insert, but bypasses the availability check
-// (the transaction body is identical to claimAndAssign — call it directly)
+    // admin override: same insert, but bypasses the availability check
+    // (the transaction body is identical to claimAndAssign — call it directly)
 
-async findPendingUnassignedForDriver(driverId) {
+    async findPendingUnassignedForDriver(driverId) {
 
-    const sql = `
+        const sql = `
         SELECT
             r.request_id, u.name AS customer_name, u.phone AS customer_phone,
             st.name AS service_type, v.vehicle_type, v.license_plate,
@@ -323,8 +330,8 @@ async findPendingUnassignedForDriver(driverId) {
           )
         ORDER BY r.created_at ASC
     `;
-    return db.query(sql, [driverId, driverId, driverId]);
-},
+        return db.query(sql, [driverId, driverId, driverId]);
+    },
 
 
 };

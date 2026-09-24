@@ -41,6 +41,7 @@ router.delete(
     authenticateToken,
     adminController.deleteCustomer
 );
+router.delete('/payments/:id', authenticateToken, adminController.deletePayment);
 
 // Service Types / Prices
 router.get(

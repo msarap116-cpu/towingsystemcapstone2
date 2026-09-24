@@ -504,7 +504,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         tbody.innerHTML = payments.map(p => `
     <tr>
-        <td>${p.receipt_number || '—'}</td>
+        <td>${p.receipt || '—'}</td>
 
         <td>#${p.request_id || '—'}</td>
 
@@ -547,6 +547,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     : ''}
                         `
             }
+                <button class="dropdown-item text-danger" onclick="deletePayment(${p.payment_id})">
+        Delete
+    </button>
+
 
                 </div>
             </div>
@@ -554,7 +558,20 @@ document.addEventListener('DOMContentLoaded', function () {
     </tr>
 `).join('');
     }
+    window.deletePayment = async function (paymentId) {
+        if (!confirm('Are you sure you want to delete this payment record? This cannot be undone.')) {
+            return;
+        }
 
+        try {
+            await apiFetch(`/admin/payments/${paymentId}`, { method: 'DELETE' });
+            showAlert('Payment deleted', 'success');
+            await loadPayments();
+        } catch (err) {
+            console.error('Failed to delete payment:', err);
+            showAlert('Could not delete payment', 'danger');
+        }
+    };
 
     function renderRequests(dataToRender) { // <--- Accept data as a parameter
         const tbody = document.getElementById("requestsTable");

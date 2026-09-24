@@ -34,6 +34,20 @@ exports.getPayments = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+exports.deletePayment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await Admin.deletePayment(id);
+
+        if (!result.affectedRows) {
+            return res.status(404).json({ message: 'Payment not found' });
+        }
+
+        res.json({ message: 'Payment deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
 
 
 exports.getRequests = async (req, res) => {

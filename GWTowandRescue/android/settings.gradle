@@ -42,6 +42,9 @@ dependencyResolutionManagement {
             url "https://repo1.maven.org/maven2"
             allowInsecureProtocol = true
         }
+        maven{
+            url "https://jitpack.io"
+        }
         google()
     }
 }
