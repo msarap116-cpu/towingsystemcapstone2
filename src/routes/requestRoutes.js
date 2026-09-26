@@ -54,8 +54,6 @@ router.get(
     requestController.getMyTrips
 );
 
-
-// Other specific routes
 router.post('/driver-location', authenticateToken, async (req, res) => {
     const { lat, lng, request_id } = req.body;
     const driver_id = req.user.id ?? req.user.user_id;
@@ -72,13 +70,15 @@ router.post('/driver-location', authenticateToken, async (req, res) => {
     }
 });
 
-
 router.post('/', authenticateToken, requestController.createRequest);
-router.get('/my-requests', authenticateToken, requestController.getMyRequests);
-router.get('/', authenticateToken, requestController.getAllRequests);
-router.put('/:id/status', authenticateToken, requestController.updateStatus); // The one from the controller
-router.put('/:id/address', authenticateToken, requestController.updateAddress);
 
+router.get('/my-requests', authenticateToken, requestController.getMyRequests);
+
+router.get('/', authenticateToken, requestController.getAllRequests);
+
+router.put('/:id/status', authenticateToken, requestController.updateStatus);
+
+router.put('/:id/address', authenticateToken, requestController.updateAddress);
 
 // Accept a request (assign driver, set status = 'assigned')
 
@@ -118,15 +118,13 @@ router.put(
     requireRole("driver"),
     requestController.acceptRequest
 );
-// Cancel a trip (driver cancels an assigned/in-progress request)
+
 router.put(
     "/:id/cancel",
     authenticateToken,
     requestController.cancelRequest
 );
 
-// === Dynamic Routes (These should come LAST to avoid conflicts) ===
-// PUT request by ID
 router.put(
     "/:id",
     authenticateToken,

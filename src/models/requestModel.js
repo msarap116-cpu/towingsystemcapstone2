@@ -554,7 +554,7 @@ async driverReleaseAssignment(requestId, driverId, reason) {
 
         await conn.query(
             `UPDATE service_requests
-             SET status = 'pending', driver_id = NULL, assigned_driver_id = NULL, updated_at = NOW()
+             SET status = 'pending', driver_id = NULL, updated_at = NOW()
              WHERE request_id = ? AND driver_id = ?`,
             [requestId, driverId]
         );

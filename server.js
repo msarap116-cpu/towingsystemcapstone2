@@ -25,6 +25,7 @@ const vehicleRoutes = require('./src/routes/vehicleRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
 const earningsRoutes = require('./src/routes/earningsRoutes');
 
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -50,6 +51,7 @@ app.use('/api/payments',paymentRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/earnings',earningsRoutes);
+
 
 // HTML page routes
 app.get(['/', '/home'], (req, res) => {
@@ -86,62 +88,64 @@ app.get('/myvehicles', (req, res) => {
 
 app.use('/uploads',express.static(path.join(__dirname, 'uploads')));
 
-app.post('/users/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-        console.log('Login attempt for:', email);
+// app.post('/users/login', async (req, res) => {
+//     try {
+//         const { email, password } = req.body;
 
-        if (!email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Email and password are required'
-            });
-        }
+//         console.log('Login attempt for:', email);
 
-        // Find user by email
-        const user = await User.findByEmail(email);
+//         if (!email || !password) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: 'Email and password are required'
+//             });
+//         }
 
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid email or password'
-            });
-        }
+//         // Find user by email
+//         const user = await User.findByEmail(email);
 
-        // Verify password
-        const isMatch = await bcrypt.compare(password, user.password);
+//         if (!user) {
+//             return res.status(401).json({
+//                 success: false,
+//                 message: 'Invalid email or password'
+//             });
+//         }
 
-        if (!isMatch) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid email or password'
-            });
-        }
+//         // Verify password
+//         const isMatch = await bcrypt.compare(password, user.password);
 
-        // Generate token using the function from userController
-        const token = generateToken(user.id, user.role);
+//         if (!isMatch) {
+//             return res.status(401).json({
+//                 success: false,
+//                 message: 'Invalid email or password'
+//             });
+//         }
+
+//         // Generate token using the function from userController
+//         const token = generateToken(user.id, user.role);
 
 
-        const { password: _, ...userWithoutPassword } = user;
+//         const { password: _, ...userWithoutPassword } = user;
 
-        console.log('Login successful for:', email);
+//         console.log('Login successful for:', email);
 
-        res.json({
-            success: true,
-            message: 'Login successful',
-            token: token,
-            user: userWithoutPassword
-        });
+//         res.json({
+//             success: true,
+//             message: 'Login successful',
+//             token: token,
+//             user: userWithoutPassword
+//         });
 
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error: ' + error.message
-        });
-    }
-});
+//     } catch (error) {
+//         console.error('Login error:', error);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Server error: ' + error.message
+//         });
+//     }
+// });
 // Reverse geocode: coordinates → address
 app.get('/api/geocode/reverse', async (req, res) => {
   try {

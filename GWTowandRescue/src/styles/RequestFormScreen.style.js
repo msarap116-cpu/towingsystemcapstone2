@@ -128,7 +128,7 @@ locationButton: {
     },
     locationStatus: {
         fontSize: 13,
-        color: '#080808',
+        color: '#740303',
         marginBottom: 4,
     },
     successText: {

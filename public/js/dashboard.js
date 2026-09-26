@@ -754,7 +754,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(() => {
         loadDashboardData(true); // Use the "silent" version to avoid flickering
         loadRecentActivity();
-    }, 5000);
+    }, 1000);
 
 
     const gcashForm = document.getElementById('gcashProofForm');

@@ -269,68 +269,50 @@ exports.updateStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const allowed = [
-        'assigned',
-        'in progress',
-        'completed'
-    ];
+    const allowed = ['assigned', 'in progress', 'completed'];
 
     if (!allowed.includes(status)) {
-        return res.status(400).json({
-            error: 'Invalid status'
-        });
+        return res.status(400).json({ error: 'Invalid status' });
     }
 
+    // Map service_requests.status -> driver_assignments.status (note the underscore mismatch)
+    const assignmentStatusMap = {
+        'assigned': 'accepted',
+        'in progress': 'in_progress',
+        'completed': 'completed'
+    };
+
+    const conn = await db.getConnection();
     try {
+        await conn.beginTransaction();
 
-        // db.query() ALREADY returns the rows
-const rows = await db.query(
-    `
-    SELECT
-        request_id,
-        driver_id,
-        status,
-        amount,
-        base_amount,
-        total_amount
-    FROM service_requests
-    WHERE request_id = ?
-    `,
-    [id]
-);
-
-        console.log('Request lookup result:', rows);
+        // Lock the row so two requests can't race on the same status change
+        const rows = await conn.query(
+            `SELECT request_id, driver_id, status, amount, base_amount, total_amount
+             FROM service_requests
+             WHERE request_id = ?
+             FOR UPDATE`,
+            [id]
+        );
 
         if (!rows || rows.length === 0) {
-            return res.status(404).json({
-                error: 'Request not found'
-            });
+            await conn.rollback();
+            return res.status(404).json({ error: 'Request not found' });
         }
 
         const request = rows[0];
 
-        console.log('Status update request:', {
-            request_id: request.request_id,
-            driver_id: request.driver_id,
-            current_status: request.status,
-            new_status: status
-        });
-
-        // Make sure this request belongs to this driver
         if (Number(request.driver_id) !== Number(driver_id)) {
-            return res.status(403).json({
-                error: 'Not your trip'
-            });
+            await conn.rollback();
+            return res.status(403).json({ error: 'Not your trip' });
         }
 
-        // Guard against double-completion (avoid duplicate earnings rows)
         if (status === 'completed' && request.status === 'completed') {
-            return res.status(400).json({
-                error: 'Request is already completed'
-            });
+            await conn.rollback();
+            return res.status(400).json({ error: 'Request is already completed' });
         }
 
-        // If completing, set completed_at too; otherwise just status/updated_at
+        // --- 1. Update service_requests (unchanged logic) ---
         const updateSql = status === 'completed'
             ? `UPDATE service_requests
                SET status = ?, completed_at = NOW(), updated_at = NOW()
@@ -339,37 +321,87 @@ const rows = await db.query(
                SET status = ?, updated_at = NOW()
                WHERE request_id = ? AND driver_id = ?`;
 
-        // db.query() ALREADY returns the UPDATE result
-        const result = await db.query(updateSql, [status, id, driver_id]);
-
-        console.log('Update result:', result);
+        const result = await conn.query(updateSql, [status, id, driver_id]);
 
         if (result.affectedRows === 0) {
-            return res.status(400).json({
-                error: 'Status was not updated'
-            });
+            await conn.rollback();
+            return res.status(400).json({ error: 'Status was not updated' });
         }
 
-        // Record driver earnings on completion
-if (status === 'completed') {
-    try {
-        const earningAmount = Number(request.total_amount ?? request.amount);
+        // --- 2. Mirror the change into driver_assignments ---
+        const assignmentStatus = assignmentStatusMap[status];
+        const timestampCol =
+            status === 'in progress' ? 'started_at' :
+                status === 'completed' ? 'completed_at' :
+                    null; // 'assigned' -> accepted_at could go here too if you track it
+        // Inside updateStatus, in the transaction, right before the driver_assignments UPDATE:
 
-        await db.query(
-            `INSERT INTO driver_earnings (driver_id, request_id, amount, type, description)
-             VALUES (?, ?, ?, 'job_completion', ?)`,
-            [driver_id, request.request_id, earningAmount, `Job #${request.request_id} completed`]
-        );
+        let actualDistanceKm = null;
+        let actualTimeMinutes = null;
 
-        console.log(`Earnings recorded for driver ${driver_id}, request ${request.request_id}, amount ${earningAmount}`);
-    } catch (earningsErr) {
-        console.error('Failed to record driver earnings (non-fatal):', earningsErr);
-    }
-}
+        if (status === 'completed') {
+            // Pull the assignment row to get started_at + estimated_distance_km fallback
+            const assignmentRows = await conn.query(
+                `SELECT started_at, estimated_distance_km
+         FROM driver_assignments
+         WHERE request_id = ? AND driver_id = ? AND status NOT IN ('completed','cancelled')
+         LIMIT 1`,
+                [id, driver_id]
+            );
+            const assignment = assignmentRows?.[0];
 
-        console.log(
-            `GoodWrenchRequest #${id} status changed: ${request.status} → ${status}`
-        );
+            // actual_time_minutes: computed server-side from real timestamps, never trust the client for this
+            if (assignment?.started_at) {
+                const startedMs = new Date(assignment.started_at).getTime();
+                actualTimeMinutes = Math.max(0, Math.round((Date.now() - startedMs) / 60000));
+            }
+
+            // actual_distance_km: prefer what the client sends (last drawn route), fallback to the estimate
+            const clientDistance = Number(req.body.actualDistanceKm);
+            actualDistanceKm = Number.isFinite(clientDistance)
+                ? clientDistance
+                : assignment?.estimated_distance_km ?? null;
+        }
+        const assignmentSql = status === 'completed'
+            ? `UPDATE driver_assignments
+       SET status = ?, completed_at = NOW(), actual_distance_km = ?, actual_time_minutes = ?, updated_at = NOW()
+       WHERE request_id = ? AND driver_id = ? AND status NOT IN ('completed','cancelled')`
+            : timestampCol
+                ? `UPDATE driver_assignments
+           SET status = ?, ${timestampCol} = NOW(), updated_at = NOW()
+           WHERE request_id = ? AND driver_id = ? AND status NOT IN ('completed','cancelled')`
+                : `UPDATE driver_assignments
+           SET status = ?, updated_at = NOW()
+           WHERE request_id = ? AND driver_id = ? AND status NOT IN ('completed','cancelled')`;
+
+        const assignmentParams = status === 'completed'
+            ? [assignmentStatus, actualDistanceKm, actualTimeMinutes, id, driver_id]
+            : [assignmentStatus, id, driver_id];
+
+        const assignmentResult = await conn.query(assignmentSql, assignmentParams);
+        // Don't hard-fail the whole request if no matching assignment row exists —
+        // log it as a data-integrity signal, but let the service_requests update stand.
+        if (assignmentResult.affectedRows === 0) {
+            console.warn(
+                `No matching driver_assignments row updated for request ${id}, driver ${driver_id}, status ${assignmentStatus}`
+            );
+        }
+
+        // --- 3. Record earnings on completion (unchanged) ---
+        if (status === 'completed') {
+            try {
+                const earningAmount = Number(request.total_amount ?? request.amount);
+                await conn.query(
+                    `INSERT INTO driver_earnings (driver_id, request_id, amount, type, description)
+                     VALUES (?, ?, ?, 'job_completion', ?)`,
+                    [driver_id, request.request_id, earningAmount, `Job #${request.request_id} completed`]
+                );
+            } catch (earningsErr) {
+                console.error('Failed to record driver earnings (non-fatal):', earningsErr);
+            }
+        }
+
+        await conn.commit();
 
         res.json({
             success: true,
@@ -380,12 +412,11 @@ if (status === 'completed') {
         });
 
     } catch (err) {
-
+        await conn.rollback();
         console.error('updateStatus error:', err);
-
-        res.status(500).json({
-            error: err.message
-        });
+        res.status(500).json({ error: err.message });
+    } finally {
+        conn.release();
     }
 };
 

@@ -28,9 +28,9 @@ const customerIcon = L.icon({
     iconAnchor: [18, 36],
     popupAnchor: [0, -36]
 });
-// PENDING ICON — amber, so it reads differently from the assigned customer
+
 const pendingIcon = L.icon({
-    iconUrl: 'image/waypoint-yellow.png        ',   // or reuse waypoint-blue.png for now
+    iconUrl: 'image/waypoint-yellow.png ',
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30]
@@ -53,21 +53,6 @@ let myActiveTrips = [];
 let completedTrips = [];
 let CURRENT_DRIVER = { id: null, name: '' };
 
-// ---------- FETCH FUNCTIONS ----------
-// async function fetchPendingRequests() {
-//     const token = sessionStorage.getItem('token');
-//     if (!token) return [];
-//     try {
-//         const res = await fetch(`${API_BASE_URL}/requests/pending`, {
-//             headers: { 'Authorization': `Bearer ${token}` }
-//         });
-//         if (!res.ok) throw new Error('Failed to fetch pending');
-//         return await res.json();
-//     } catch (err) {
-//         console.error('fetchPendingRequests error:', err);
-//         return [];
-//     }
-// }
 
 async function fetchPendingRequests() {
     const token = sessionStorage.getItem('token');
@@ -146,19 +131,6 @@ async function loadDriverDashboardData() {
 }
 
 
-// async function loadDashboardData() {
-//     const [pending, trips] = await Promise.all([
-//         fetchPendingRequests(),
-//         fetchMyTrips()
-//     ]);
-
-//     pendingRequests = pending;
-//     myActiveTrips = trips.filter(t => t.status !== 'completed' && t.status !== 'completed');
-//     completedTrips = trips.filter(t => t.status === 'completed');
-
-//     renderDashboardUI();
-// }
-
 // ---------- RENDER UI ----------
 function renderDashboardUI() {
 
@@ -198,7 +170,7 @@ function renderDashboardUI() {
         if (myActiveTrips.length === 0) {
             tripsList.innerHTML = '<div class="empty-state">No active trips</div>';
         } else {
-           tripsList.innerHTML = myActiveTrips.map(trip => `
+            tripsList.innerHTML = myActiveTrips.map(trip => `
     <div class="request-item">
         <div class="top-line">
             <span class="customer">${trip.customer_name || 'Customer'}</span>
@@ -218,8 +190,8 @@ function renderDashboardUI() {
             </select>
 
             ${['assigned', 'in progress'].includes(trip.status)
-                ? `<button class="btn btn-secondary btn-sm" onclick="openAddChargeForm(${trip.request_id})">+ Add Charge</button>`
-                : ''}
+                    ? `<button class="btn btn-secondary btn-sm" onclick="openAddChargeForm(${trip.request_id})">+ Add Charge</button>`
+                    : ''}
 
             <button class="btn btn-danger btn-sm" onclick="cancelTrip(${trip.request_id})">Cancel</button>
         </div>
@@ -237,13 +209,13 @@ function renderDashboardUI() {
         }
     }
 
-console.log('First active trip raw:', myActiveTrips[0]);
+    console.log('First active trip raw:', myActiveTrips[0]);
     document.getElementById('statAvailable').innerText = pendingRequests.length;
     document.getElementById('statActiveTrips').innerText = myActiveTrips.length;
     document.getElementById('pendingCount').innerText = pendingRequests.length;
     document.getElementById('activeCount').innerText = myActiveTrips.length;
     document.getElementById('statCompleted').innerText = completedTrips.length;
-//    const todayEarnings = completedTrips.reduce((sum, t) => sum + Number(t.total_amount || t.amount || 0), 0);
+    //    const todayEarnings = completedTrips.reduce((sum, t) => sum + Number(t.total_amount || t.amount || 0), 0);
     document.getElementById('statEarnings').innerText = `₱${todayEarnings}`;
     document.getElementById('statEarnings').innerText = `₱${todayEarnings.toFixed(2)}`;
 
@@ -359,60 +331,35 @@ window.acceptJob = async function (requestId) {
 window.updateTripStatus = async function (requestId, newStatus) {
 
     const token = sessionStorage.getItem('token');
-
     if (!token) return;
+    if (!newStatus) return;
 
-    // Nothing selected
-    if (!newStatus) {
-        return;
-    }
-
-    const trip = myActiveTrips.find(
-        t => Number(t.request_id) === Number(requestId)
-    );
-
+    const trip = myActiveTrips.find(t => Number(t.request_id) === Number(requestId));
     if (!trip) {
         alert('Trip not found.');
         return;
     }
 
-    // Don't allow going backwards
-    const statusOrder = {
-        'assigned': 1,
-        'in progress': 2,
-        'completed': 3
-    };
-
+    const statusOrder = { 'assigned': 1, 'in progress': 2, 'completed': 3 };
     const currentStatus = trip.status;
 
-    if (
-        statusOrder[newStatus] &&
-        statusOrder[currentStatus] &&
-        statusOrder[newStatus] < statusOrder[currentStatus]
-    ) {
-        alert(
-            `You cannot change the status from "${currentStatus}" back to "${newStatus}".`
-        );
-
-        // Reload UI to restore the dropdown
+    if (statusOrder[newStatus] && statusOrder[currentStatus] && statusOrder[newStatus] < statusOrder[currentStatus]) {
+        alert(`You cannot change the status from "${currentStatus}" back to "${newStatus}".`);
         renderDashboardUI();
         return;
     }
 
-    if (
-        !confirm(
-            `Change request #${requestId} from "${currentStatus}" to "${newStatus}"?`
-        )
-    ) {
+    if (!confirm(`Change request #${requestId} from "${currentStatus}" to "${newStatus}"?`)) {
         renderDashboardUI();
         return;
     }
 
     try {
-
-        console.log('Updating request:', requestId);
-        console.log('Current status:', currentStatus);
-        console.log('New status:', newStatus);
+        // Build the body ONCE, including actualDistanceKm when completing
+        const body = { status: newStatus };
+        if (newStatus === 'completed' && Number.isFinite(window.lastKnownDistanceKm)) {
+            body.actualDistanceKm = window.lastKnownDistanceKm;
+        }
 
         const res = await fetch(
             `${API_BASE_URL}/requests/${requestId}/status`,
@@ -422,80 +369,49 @@ window.updateTripStatus = async function (requestId, newStatus) {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({
-                    status: newStatus
-                })
+                body: JSON.stringify(body)   // ← single request, carries actualDistanceKm when relevant
             }
         );
 
         const data = await res.json();
 
-        console.log('Status update response:', data);
-
         if (!res.ok) {
-            throw new Error(
-                data.error || data.message || 'Status update failed'
-            );
+            throw new Error(data.error || data.message || 'Status update failed');
         }
 
         showToast(`Status updated to ${newStatus}`);
-
-        // IMPORTANT:
-        // Reload the requests after updating the database
         await loadDriverDashboardData();
 
-        // If completed, stop driver tracking
         if (newStatus === 'completed') {
-
             if (Number(activeRequestId) === Number(requestId)) {
-
-                console.log('Cleaning up completed request:', requestId);
-
                 activeRequestId = null;
 
                 if (watchId) {
                     navigator.geolocation.clearWatch(watchId);
                     watchId = null;
                 }
-
                 if (routeLayer) {
                     map.removeLayer(routeLayer);
                     routeLayer = null;
                 }
-
                 if (customerMarker) {
                     map.removeLayer(customerMarker);
                     customerMarker = null;
                 }
-
-                if (
-                    document.getElementById('tab-tracking') &&
-                    document.getElementById('tab-tracking').style.display !== 'none'
-                ) {
+                if (document.getElementById('tab-tracking') && document.getElementById('tab-tracking').style.display !== 'none') {
                     initDriverMap();
                 }
             }
-
+            // NO second fetch here — already sent above
         } else {
-
-            // Refresh tracking map
-            if (
-                document.getElementById('tab-tracking') &&
-                document.getElementById('tab-tracking').style.display !== 'none'
-            ) {
+            if (document.getElementById('tab-tracking') && document.getElementById('tab-tracking').style.display !== 'none') {
                 initDriverMap();
             }
         }
 
     } catch (err) {
-
         console.error('Status update error:', err);
-
-        alert(
-            'Error updating status: ' + err.message
-        );
-
-        // Restore correct UI after failure
+        alert('Error updating status: ' + err.message);
         await loadDriverDashboardData();
     }
 };
@@ -789,11 +705,17 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
             coord[0]
         ]);
 
-        const distanceKm =
-            (data.routes[0].distance / 1000).toFixed(1);
-
-        const durationMin =
-            Math.ceil(data.routes[0].duration / 60);
+        const distanceKm = (data.routes[0].distance / 1000).toFixed(1);
+        const durationMin = Math.ceil(data.routes[0].duration / 60);
+        window.lastKnownDistanceKm = Number(distanceKm);
+        // NEW — send the estimate to the backend, fire-and-forget
+        if (window.activeRequestId) {
+            fetch(`/api/requests/${window.activeRequestId}/route-estimate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ distanceKm: Number(distanceKm), durationMin })
+            }).catch(err => console.warn('Failed to save route estimate (non-fatal):', err));
+        }
 
         if (routeLayer) {
             map.removeLayer(routeLayer);
@@ -990,18 +912,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 2. ADD THIS: The auto-refresh timer
     // This checks for updates from the Admin every 10 seconds
-setInterval(() => {
-    loadDriverDashboardData().catch(err => console.error(err));
+    setInterval(() => {
+        loadDriverDashboardData().catch(err => console.error(err));
 
-    // Pause the payment-list refresh if ANY add-charge form is currently open
-    const anyFormOpen = Array.from(
-        document.querySelectorAll('#paymentHistory [id^="addChargeForm-"], #paymentHistory .add-charge-form')
-    ).some(el => el.style.display === 'block');
+        // Pause the payment-list refresh if ANY add-charge form is currently open
+        const anyFormOpen = Array.from(
+            document.querySelectorAll('#paymentHistory [id^="addChargeForm-"], #paymentHistory .add-charge-form')
+        ).some(el => el.style.display === 'block');
 
-    if (!anyFormOpen) {
-        loadPaymentHistory().catch(err => console.error(err));
-    }
-}, 10000);
+        if (!anyFormOpen) {
+            loadPaymentHistory().catch(err => console.error(err));
+        }
+    }, 10000);
 
 });
 
@@ -1130,7 +1052,7 @@ async function loadPaymentHistory() {
             return;
         }
 
-      container.innerHTML = payments.map(p => `
+        container.innerHTML = payments.map(p => `
     <div class="payment-item">
         <div class="payment-info">
             <strong>#${p.request_id}</strong>
@@ -1139,10 +1061,10 @@ async function loadPaymentHistory() {
             <span>${p.payment_method}</span>
         </div>
         ${p.payment_method === 'cash' && p.status === 'awaiting_cash'
-            ? `<button class="btn-primary" onclick="confirmCashReceived(${p.payment_id})">
+                ? `<button class="btn-primary" onclick="confirmCashReceived(${p.payment_id})">
                    Mark Cash Received
                </button>`
-            : ''}
+                : ''}
     </div>
 `).join('');
 

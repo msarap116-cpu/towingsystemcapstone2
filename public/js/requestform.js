@@ -59,18 +59,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const addressField = document.getElementById('address');
 
-if (addressField) {
-    addressField.addEventListener('input', () => {
+    if (addressField) {
+        addressField.addEventListener('input', () => {
 
-        clearTimeout(addressField._searchTimer);
+            clearTimeout(addressField._searchTimer);
 
-        const query = addressField.value.trim();
+            const query = addressField.value.trim();
 
-        addressField._searchTimer = setTimeout(() => {
-            searchAddressLocations(query);
-        }, 1000);
-    });
-}
+            addressField._searchTimer = setTimeout(() => {
+                searchAddressLocations(query);
+            }, 1000);
+        });
+    }
 
 });
 
@@ -444,35 +444,6 @@ async function reverseGeocode(lat, lng, statusEl) {
         if (statusEl) statusEl.textContent = '📍 Location captured (address lookup failed — please check the address below)';
     }
 }
-
-// Address text -> coordinates (fills the hidden lat/lng fields)
-// async function forwardGeocode(query) {
-//     const statusEl = document.getElementById('locationStatus');
-
-//     try {
-//         const response = await fetch(
-//             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
-//         );
-
-//         if (!response.ok) {
-//             throw new Error(`Nominatim responded with ${response.status}`);
-//         }
-
-//         const results = await response.json();
-
-//         if (results && results.length > 0) {
-//             document.getElementById('latitude').value = results[0].lat;
-//             document.getElementById('longitude').value = results[0].lon;
-//             if (statusEl) statusEl.textContent = '📍 Location matched from address';
-//         } else {
-//             // No match — leave whatever lat/lng was there before (or empty).
-//             // The address text itself is still submitted either way.
-//             if (statusEl) statusEl.textContent = '';
-//         }
-//     } catch (error) {
-//         console.error('forwardGeocode error:', error);
-//     }
-// }
 
 //sends request in the bckend
 async function handleRequestSubmit(e) {

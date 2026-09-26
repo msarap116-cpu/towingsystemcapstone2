@@ -13,7 +13,8 @@ import {
     Platform,
     StatusBar,
     Modal,
-    PermissionsAndroid
+    PermissionsAndroid,
+    Linking
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Geolocation from '@react-native-community/geolocation';
@@ -252,9 +253,20 @@ const RequestFormScreen = ({ navigation, route }) => {
                     setLocationStatus(
                         'Location permission was denied. Please enable it in Settings.'
                     );
+                    Alert.alert(
+                        'Permission needed',
+                        'Location permission was denied. Please enable it in Settings.',
+                        [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+                        ]
+                    );
                 } else if (error.code === 2) {
                     setLocationStatus(
                         'Location is unavailable. Please enable GPS and try again.'
+                    );
+                    promptEnableLocation(
+                        'Location services appear to be off. Please turn on Location to get your position.'
                     );
                 } else if (error.code === 3) {
                     setLocationStatus(
@@ -275,7 +287,25 @@ const RequestFormScreen = ({ navigation, route }) => {
             }
         );
     };
-
+    const promptEnableLocation = (message) => {
+        Alert.alert(
+            'Location is off',
+            message || 'Please turn on Location to continue.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Open Settings',
+                    onPress: () => {
+                        if (Platform.OS === 'android') {
+                            Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS');
+                        } else {
+                            Linking.openURL('app-settings:');
+                        }
+                    },
+                },
+            ]
+        );
+    };
     const reverseGeocode = async (latitude, longitude) => {
         const url =
             'https://goodwrench-towing-rescue.onrender.com/api/geocode/reverse' +
