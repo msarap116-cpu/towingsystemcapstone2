@@ -466,7 +466,7 @@ const userController = {
     },
     logout: async (req, res) => {
         try {
-            await User.(req.user.id, null);
+            await User.updateSessionId(req.user.id, null);
             res.json({ message: 'Logged out successfully' });
         } catch (error) {
             console.error('Logout error:', error);
