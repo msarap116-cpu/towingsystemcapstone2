@@ -90,6 +90,15 @@ async updateSessionId(user_id, sessionId) {
     return true;
 },
 
+async setLoginSession(user_id, sessionId) {
+    const sql = `
+        UPDATE users
+        SET currentSessionId = ?, last_login = NOW()
+        WHERE user_id = ?
+    `;
+    await db.query(sql, [sessionId, user_id]);
+    return true;
+},
     // called by middleware
     async getSessionId(user_id) {
 
