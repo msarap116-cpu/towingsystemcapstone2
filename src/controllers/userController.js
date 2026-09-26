@@ -200,7 +200,7 @@ const userController = {
         // Option 1: SIMPLE - Just allow login and overwrite session (last login wins)
         // This is what you had originally and it works!
         const sessionId = uuidv4();
-        await User.updateSessionId(actualUserId, sessionId);
+        await User.setLoginSession(actualUserId, sessionId);
 
         const token = jwt.sign(
             { id: actualUserId, role: user.role, sessionId },
@@ -466,7 +466,7 @@ const userController = {
     },
     logout: async (req, res) => {
         try {
-            await User.updateSessionId(req.user.id, null);
+            await User.(req.user.id, null);
             res.json({ message: 'Logged out successfully' });
         } catch (error) {
             console.error('Logout error:', error);
