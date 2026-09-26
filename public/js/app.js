@@ -708,10 +708,10 @@ window.loadUserProfile = async function () {
                 const imageUrl =
                     `${API_BASE_URL.replace('/api', '')}/${user.profile_picture}`;
 
-                console.log(
-                    '🖼️ Profile picture URL:',
-                    imageUrl
-                );
+                // console.log(
+                //     '🖼️ Profile picture URL:',
+                //     imageUrl
+                // );
 
                 avatarImage.src = imageUrl;
 

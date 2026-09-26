@@ -94,187 +94,123 @@ function initMapWithBounds(mapDiv, initialCenter, initialZoom = 14) {
     return map;
 };
 
-// Main function to load user map
-async function loadUserMap() {
+// ONE function owns the fetch now
+async function loadLatestRequests() {
+    try {
+        const data = await apiFetch('/requests/latest');
+        const activities = Array.isArray(data) ? data : [data];
+
+        // Feed the recent-activity list
+        renderRecentActivity(activities);
+
+        // Feed the map with just the newest request
+        await updateMapFromRequest(activities[0]);
+
+    } catch (err) {
+        console.error('Failed to load latest requests:', err);
+    }
+}
+// Extracted from the old loadUserMap() — now takes data instead of fetching it
+async function updateMapFromRequest(request) {
+
     if (pollingInterval) {
         clearInterval(pollingInterval);
         pollingInterval = null;
     }
 
-    const token = sessionStorage.getItem('token');
-
-    if (!token) {
-        console.error('No token — customer not logged in.');
-        return;
-    }
-
-    // Get the customer name the same way displayUserInfo() does
     const user = JSON.parse(sessionStorage.getItem("user") || '{}');
     const customerName = user.name || 'Customer';
 
-
-    try {
-        const res = await fetch(`${API_BASE_URL}/requests/latest`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-
-        if (!res.ok) {
-            const body = await res.text();
-            throw new Error(`${res.status} - ${body}`);
-        }
-
-        const data = await res.json();
-
-        // The API returns an array. Get the newest request.
-        const request = Array.isArray(data) ? data[0] : data;
-
-        if (!request) {
-            console.warn('No active request found.');
-            return;
-        }
-
-        latestRequestId = request.request_id;
-        latestRequestData = request;
-
-        updateRequestBadge(request);
-
-        if (
-            request.status === 'completed' ||
-            request.status === 'cancelled'
-        ) {
-            console.log(
-                `Request #${request.request_id} is ${request.status}.`
-            );
-
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                pollingInterval = null;
-            }
-
-            if (request.status === 'cancelled') {
-                latestRequestData = null;
-            }
-
-            if (map) {
-                map.remove();
-                map = null;
-            }
-
-            customerMarker = null;
-            driverMarker = null;
-            routeLayer = null;
-
-            return;
-        }
-
-        if (
-            request.location_lat == null ||
-            request.location_lng == null
-        ) {
-            console.warn('No customer location data on request.');
-            return;
-        }
-
-        const customerLat = parseFloat(request.location_lat);
-        const customerLng = parseFloat(request.location_lng);
-
-        if (Number.isNaN(customerLat) || Number.isNaN(customerLng)) {
-            console.error('Invalid customer coordinates.');
-            return;
-        }
-
-        // Create the map only once.
-        if (!map) {
-            map = L.map('map').setView(
-                [customerLat, customerLng],
-                15
-            );
-
-            L.tileLayer(
-                'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                {
-                    attribution:
-                        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                    maxZoom: 19
-                }
-            ).addTo(map);
-
-            customerMarker = L.marker(
-                [customerLat, customerLng],
-                { icon: customerIcon }
-            )
-                .addTo(map)
-                .bindPopup(
-                    `<strong>📍 ${customerName}</strong><br>${request.address || 'Your requested location'
-                    }`
-
-                )
-
-                .openPopup();
-
-            setTimeout(() => {
-                if (map) {
-                    map.invalidateSize();
-                }
-            }, 100);
-        }
-
-        // Show the driver immediately if coordinates already exist.
-        if (
-            request.driver_lat != null &&
-            request.driver_lng != null
-        ) {
-            showDriverOnMap(
-                parseFloat(request.driver_lat),
-                parseFloat(request.driver_lng),
-                customerLat,
-                customerLng
-            );
-        }
-
-        // Start polling for request and driver updates.
-        pollingInterval = setInterval(
-            () => pollDriverLocation(),
-            POLL_INTERVAL_MS
-        );
-
-    } catch (err) {
-        console.error('Map load error:', err);
-
-        const mapDiv = document.getElementById('map');
-
-        if (mapDiv) {
-            mapDiv.innerHTML =
-                '<p style="padding:1rem;color:#888">Error loading map. Please refresh.</p>';
-        }
+    if (!request) {
+        console.warn('No active request found.');
+        return;
     }
+
+    latestRequestId = request.request_id;
+    latestRequestData = request;
+
+    updateRequestBadge(request);
+
+    if (request.status === 'completed' || request.status === 'cancelled') {
+        console.log(`Request #${request.request_id} is ${request.status}.`);
+
+        if (request.status === 'cancelled') {
+            latestRequestData = null;
+        }
+
+        if (map) {
+            map.remove();
+            map = null;
+        }
+        customerMarker = null;
+        driverMarker = null;
+        routeLayer = null;
+        return;
+    }
+
+    if (request.location_lat == null || request.location_lng == null) {
+        console.warn('No customer location data on request.');
+        return;
+    }
+
+    const customerLat = parseFloat(request.location_lat);
+    const customerLng = parseFloat(request.location_lng);
+
+    if (Number.isNaN(customerLat) || Number.isNaN(customerLng)) {
+        console.error('Invalid customer coordinates.');
+        return;
+    }
+
+    // Create the map only once
+    if (!map) {
+        map = L.map('map').setView([customerLat, customerLng], 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        customerMarker = L.marker([customerLat, customerLng], { icon: customerIcon })
+            .addTo(map)
+            .bindPopup(`<strong>📍 ${customerName}</strong><br>${request.address || 'Your requested location'}`)
+            .openPopup();
+
+        setTimeout(() => { if (map) map.invalidateSize(); }, 100);
+    }
+
+    if (request.driver_lat != null && request.driver_lng != null) {
+        await showDriverOnMap(
+            parseFloat(request.driver_lat),
+            parseFloat(request.driver_lng),
+            customerLat,
+            customerLng
+        );
+    }
+
+    // Restart driver-location polling now that we have a confirmed active request
+    pollingInterval = setInterval(() => pollDriverLocation(), POLL_INTERVAL_MS);
 };
 
 // ---------- REFRESH MAP ----------
 function refreshMap() {
-    loadUserMap();
+    loadLatestRequests();  // ← was loadUserMap()
     showToast('Map refreshed');
 }
 window.refreshMap = refreshMap;
 
 function showTab(tabId) {
-    // Hide all tab panels
     document.querySelectorAll('.tab-panel').forEach(panel => {
         panel.hidden = true;
     });
-    document.getElementById(tabId).hidden = false;
 
-    // Show the selected one
     const activePanel = document.getElementById(tabId);
     if (activePanel) {
         activePanel.hidden = false;
-    }
 
-    // If switching to dashboard, refresh Leaflet
-    if (tabId === 'dashboardPanel' && window.map) {
-        setTimeout(() => window.map.invalidateSize(), 100);
+        // If the panel we just revealed contains the map, tell Leaflet to recalc size
+        if (activePanel.querySelector('#map') && window.map) {
+            setTimeout(() => window.map.invalidateSize(), 100);
+        }
     }
 }
 
@@ -743,18 +679,26 @@ window.cancelRequest = async function (requestId) {
         alert('Error cancelling request: ' + err.message);
     }
 };
-//general event listener for all
+
 document.addEventListener("DOMContentLoaded", () => {
 
     loadDashboardData(); // Make sure this function exists in your dashboard.js or app.js
-    loadRecentActivity();
-
+    loadLatestRequests();
+    displayUserInfo();
 
     // This keeps the customer view updated when the admin changes something
     setInterval(() => {
         loadDashboardData(true); // Use the "silent" version to avoid flickering
         loadRecentActivity();
-    }, 1000);
+    }, 5000);
+
+    // Clock
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('currentTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    updateClock();
+    setInterval(updateClock, 10000);
 
 
     const gcashForm = document.getElementById('gcashProofForm');
@@ -1530,9 +1474,9 @@ document.getElementById('closeEditAddressSection')?.addEventListener('click', ()
     showPanel(dashboardPanel, dashboardNav);
 });
 
-// ==============================================
+
 // SAVE ADDRESS — Full updated logic (Section mode)
-// ==============================================
+
 
 // base line sang popular people
 window.addEventListener('beforeunload', () => {
@@ -1541,19 +1485,7 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-document.addEventListener('DOMContentLoaded', function () {
-    displayUserInfo();
 
-    loadUserMap();
-
-    // Clock
-    function updateClock() {
-        const now = new Date();
-        document.getElementById('currentTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    updateClock();
-    setInterval(updateClock, 10000);
-});
 //=================================================================download receipt==================================================
 
 //sidebar nav button functions
@@ -1612,9 +1544,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('closePaymentSection')?.addEventListener('click', () => showPanel(dashboardPanel, dashboardNav));
     // document.getElementById('cancelPaymentBtn')?.addEventListener('click', () => showPanel(dashboardPanel, dashboardNav));
 
-    // ==============================================
+
     // EDIT ADDRESS NAV BUTTON — NOW WORKS!
-    // ==============================================
+
     if (editAddressSidebarBtn) {
         editAddressSidebarBtn.addEventListener('click', (e) => {
             console.log('🔵 Edit Address button CLICKED!');
