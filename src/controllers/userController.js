@@ -200,7 +200,7 @@ const userController = {
         // Option 1: SIMPLE - Just allow login and overwrite session (last login wins)
         // This is what you had originally and it works!
         const sessionId = uuidv4();
-        await User.updateSessionId(actualUserId, sessionId);
+        await User.setLoginSession(actualUserId, sessionId);
 
         const token = jwt.sign(
             { id: actualUserId, role: user.role, sessionId },
