@@ -82,22 +82,36 @@ async updateSessionId(user_id, sessionId) {
             last_login = CASE WHEN ? IS NOT NULL THEN NOW() ELSE last_login END
         WHERE user_id = ?
     `;
-    console.log('SQL:', sql, [sessionId, sessionId, user_id]);
-    const result = await db.query(sql, [sessionId, sessionId, user_id]);
-    console.log('Update result:', result); // check affectedRows / changedRows
+
+    await db.query(sql, [sessionId, sessionId, user_id]);
+
+    console.log('Session updated');
+
     return true;
 },
 
     // called by middleware
-async setLoginSession(user_id, sessionId) {
-    const sql = `
-        UPDATE users
-        SET currentSessionId = ?, last_login = NOW()
+    async getSessionId(user_id) {
+
+        const sql = `
+        SELECT currentSessionId
+        FROM users
         WHERE user_id = ?
     `;
-    await db.query(sql, [sessionId, user_id]);
-    return true;
-},
+
+        const rows = await db.query(sql, [user_id]);
+
+        // console.log(
+        //     '🔎 getSessionId:',
+        //     user_id,
+        //     '=>',
+        //     rows[0]?.currentSessionId
+        // );
+
+        return rows[0]?.currentSessionId || null;
+    },
+
+
     // // called on logout
     // async clearSessionId(user_id) {
     //     const sql = 'UPDATE users SET currentSessionId = NULL WHERE user_id = ?';
