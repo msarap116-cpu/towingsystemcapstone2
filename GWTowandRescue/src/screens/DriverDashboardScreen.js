@@ -464,16 +464,28 @@ const DriverDashboardScreen = ({ navigation }) => {
     );
   };
 
-  const calculateBearing = (lat1, lng1, lat2, lng2) => {
-    const toRad = deg => deg * Math.PI / 180;
-    const toDeg = rad => rad * 180 / Math.PI;
-    const dLng = toRad(lng2 - lng1);
-    const y = Math.sin(dLng) * Math.cos(toRad(lat2));
-    const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
-      Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLng);
-    const brng = toDeg(Math.atan2(y, x));
-    return (brng + 360) % 360; // normalize to 0-360
-  };
+const calculateDistance = (lat1, lng1, lat2, lng2) => {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return (R * c).toFixed(1);
+};
+
+const calculateBearing = (lat1, lng1, lat2, lng2) => {
+  const toRad = deg => deg * Math.PI / 180;
+  const toDeg = rad => rad * 180 / Math.PI;
+  const dLng = toRad(lng2 - lng1);
+  const y = Math.sin(dLng) * Math.cos(toRad(lat2));
+  const x =
+    Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+    Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLng);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+};
 
   //  FIXED OSRM URL — proper format: lon,lat;lon,lat
   const drawRoute = async (fromLat, fromLng, toLat, toLng) => {
