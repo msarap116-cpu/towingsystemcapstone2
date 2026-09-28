@@ -414,7 +414,7 @@
             font-weight: 600;
         }
 
-        .status-pending {
+        /* .status-pending {
             background: #fef3c7;
             color: #b45309;
         }
@@ -433,11 +433,13 @@
             background: #dbeafe;
             color: #1e40af;
         }
-        .maptop-card{
+
+        .maptop-card {
             border-radius: 0%;
             padding: 1px;
 
-        }
+        } */
+
         /* ========== BUTTONS ========== */
         .btn {
             padding: 6px 18px;
@@ -450,27 +452,28 @@
             font-family: inherit;
         }
 
-.btn-primary {
-    /* Button positioning & sizing */
-    margin-bottom: 10px;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 20px;
+        .btn-primary {
+            /* Button positioning & sizing */
+            margin-bottom: 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
 
-    /* Colors */
-    background: #0b1a2e;
-    color: #fff;
+            /* Colors */
+            background: #0b1a2e;
+            color: #fff;
 
-    /* ✨ Smooth transition: applies to ALL animated properties */
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
+            /* ✨ Smooth transition: applies to ALL animated properties */
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
 
-/* Hover state with smooth change */
-.btn-primary:hover {
-    background: #1e3349;
-    transform: scale(1.05); /* Slight zoom effect */
-}
+        /* Hover state with smooth change */
+        .btn-primary:hover {
+            background: #1e3349;
+            transform: scale(1.05);
+            /* Slight zoom effect */
+        }
 
         .btn-outline {
             background: transparent;
@@ -500,23 +503,23 @@
             background: #bb2d3b;
         }
 
-        /* ========== DRIVER CARD ========== */
-        .driver-card {
-            background: #fff;
-            border-radius: 18px;
-            padding: 16px 20px;
-            margin-bottom: 12px;
-            border: 1px solid #e9edf4;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            transition: 0.15s;
+        /* Add or update this in your CSS */
+        .drivers-table {
+            width: 100%;
+            /* Keep this if you want it to stretch on small screens */
+            min-width: 800px;
+            /* This prevents columns from squishing on small screens */
+            border-collapse: collapse;
+            font-size: 0.85rem;
         }
 
-        .driver-card:hover {
-            border-color: #cdddec;
+        /* If you are using the .data-table class from your CSS snippet, update it like this: */
+        .data-table {
+            width: 100%;
+            min-width: 800px;
+            /* Forces a minimum width so columns don't distort */
+            border-collapse: collapse;
+            font-size: 0.85rem;
         }
 
         /* ========== PANEL HEADER ========== */
@@ -596,79 +599,84 @@
         }
 
         /* ---------- Admin Modal with Button Transitions ---------- */
-#adminModal .modal-content {
-  padding: 24px;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  max-width: 480px;
-  width: 90%;
-}
+        #adminModal .modal-content {
+            padding: 24px;
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            max-width: 480px;
+            width: 90%;
+        }
 
-#adminModal .form-group {
-  margin-bottom: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+        #adminModal .form-group {
+            margin-bottom: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
 
-#adminModal .form-group label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333333;
-  display: block;
-}
+        #adminModal .form-group label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333333;
+            display: block;
+        }
 
-#adminModal .form-group input {
-  padding: 10px 14px;
-  border: 1px solid #ced4da;
-  border-radius: 8px;
-  font-size: 15px;
-  width: 100%;
-  box-sizing: border-box;
-  background: #fff;
-}
+        #adminModal .form-group input {
+            padding: 10px 14px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-size: 15px;
+            width: 100%;
+            box-sizing: border-box;
+            background: #fff;
+        }
 
-#adminModal button {
-  padding: 10px 20px;
-  margin-right: 10px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
+        #adminModal button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
 
-  /* ✅ TRANSITION ADDED — smooth hover/click effect */
-  transition: all 0.25s ease-in-out;
-}
+            /* TRANSITION ADDED — smooth hover/click effect */
+            transition: all 0.25s ease-in-out;
+        }
 
-/* Save Admin Button */
-#adminModal button:first-of-type {
-  background: #0d6efd;
-  color: #fff;
-}
-#adminModal button:first-of-type:hover {
-  background: #0b5ed7;
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(13, 110, 253, 0.3);
-}
-#adminModal button:first-of-type:active {
-  background: #0a58ca;
-  transform: translateY(0);
-}
+        /* Save Admin Button */
+        #adminModal button:first-of-type {
+            background: #0d6efd;
+            color: #fff;
+        }
 
-/* Cancel Button */
-#adminModal button:last-of-type {
-  background: #e9ecef;
-  color: #333;
-}
-#adminModal button:last-of-type:hover {
-  background: #dee2e6;
-  transform: translateY(-1px);
-}
-#adminModal button:last-of-type:active {
-  background: #ced4da;
-  transform: translateY(0);
-}
+        #adminModal button:first-of-type:hover {
+            background: #0b5ed7;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(13, 110, 253, 0.3);
+        }
+
+        #adminModal button:first-of-type:active {
+            background: #0a58ca;
+            transform: translateY(0);
+        }
+
+        /* Cancel Button */
+        #adminModal button:last-of-type {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        #adminModal button:last-of-type:hover {
+            background: #dee2e6;
+            transform: translateY(-1px);
+        }
+
+        #adminModal button:last-of-type:active {
+            background: #ced4da;
+            transform: translateY(0);
+        }
+
         .form-group {
             margin-bottom: 18px;
         }
@@ -763,6 +771,91 @@
         .table-responsive {
             width: 100%;
             overflow-x: auto;
+        }
+
+        /* ========== TABLE CARD (Encapsulation) ========== */
+        .table-card {
+            background: #fff;
+            border-radius: 12px;
+            /* Slightly smaller radius for a cleaner card look */
+            border: 1px solid #e9edf4;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            margin-bottom: 24px;
+            /* Space between the two distinct tables */
+            overflow: hidden;
+            /* Ensures rounded corners clip the table edges */
+        }
+
+        /* Label styling inside the card */
+        .table-header-label {
+            padding: 16px 20px 0 20px;
+            margin-bottom: -10px;
+            /* Pulls the table up slightly to align */
+        }
+
+        /* ========== SHARED TABLE STYLES ========== */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 14px 20px;
+            background: #fafcff;
+            font-weight: 600;
+            color: #1e293b;
+            border-bottom: 1px solid #ecf3fa;
+            white-space: nowrap;
+            /* Prevents headers from wrapping awkwardly */
+        }
+
+        .data-table td {
+            padding: 12px 20px;
+            border-bottom: 1px solid #f0f2f5;
+            color: #334155;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f9fafc;
+        }
+
+        .data-table tbody tr:last-child td {
+            border-bottom: none;
+            /* Removes bottom border from the very last row */
+        }
+
+        /* ========== DELETE BUTTON (Icon Only) ========== */
+        .btn-delete {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 1rem;
+            line-height: 1;
+            transition: background 0.2s ease, transform 0.15s ease;
+        }
+
+        .btn-delete:hover {
+            background: #fee2e2;
+            /* light red background on hover */
+            transform: scale(1.1);
+        }
+
+        .btn-delete:active {
+            transform: scale(0.95);
+        }
+
+        .btn-delete:focus {
+            outline: none;
+            /* removes the default focus outline */
         }
 
         /* ========== RESPONSIVE ========== */
@@ -863,83 +956,86 @@
             }
         }
 
-/* ===== OVERFLOW MENU CONTAINER ===== */
-.overflow-menu {
-  position: relative;
-  display: inline-block;
-}
+        /* ===== OVERFLOW MENU CONTAINER ===== */
+        .overflow-menu {
+            position: relative;
+            display: inline-block;
+        }
 
-/* ===== TRIGGER BUTTON — Matches "+ Add Customer" style ===== */
-.overflow-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 999px; /* Fully pill-shaped */
-  background: #1e293b; /* Dark navy background */
-  color: #ffffff;
-  cursor: pointer;
-  line-height: 1;
-  transition: background 0.2s ease, transform 0.15s ease;
-  white-space: nowrap;
-}
+        /* ===== TRIGGER BUTTON — Matches "+ Add Customer" style ===== */
+        .overflow-trigger {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 999px;
+            /* Fully pill-shaped */
+            background: #1e293b;
+            /* Dark navy background */
+            color: #ffffff;
+            cursor: pointer;
+            line-height: 1;
+            transition: background 0.2s ease, transform 0.15s ease;
+            white-space: nowrap;
+        }
 
-.overflow-trigger:hover {
-  background: #0f172a;
-}
+        .overflow-trigger:hover {
+            background: #0f172a;
+        }
 
-.plus-icon {
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1;
-}
+        .plus-icon {
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1;
+        }
 
-/* ===== DROPDOWN MENU ===== */
-.overflow-dropdown {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  background: #ffffff;
-  min-width: 200px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  z-index: 999;
-  display: none;
-  overflow: hidden;
-}
+        /* ===== DROPDOWN MENU ===== */
+        .overflow-dropdown {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 6px);
+            background: #ffffff;
+            min-width: 200px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            z-index: 999;
+            display: none;
+            overflow: hidden;
+        }
 
-/* Show dropdown when active */
-.overflow-menu.active .overflow-dropdown {
-  display: block;
-}
+        /* Show dropdown when active */
+        .overflow-menu.active .overflow-dropdown {
+            display: block;
+        }
 
-/* ===== DROPDOWN ITEMS ===== */
-.dropdown-item {
-  width: 100%;
-  text-align: left;
-  border: none;
-  background: transparent;
-  padding: 12px 16px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #1f2937;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: background 0.15s ease;
-}
+        /* ===== DROPDOWN ITEMS ===== */
+        .dropdown-item {
+            width: 100%;
+            text-align: left;
+            border: none;
+            background: transparent;
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.15s ease;
+        }
 
-.dropdown-item:hover {
-  background: #f3f4f6;
-}
+        .dropdown-item:hover {
+            background: #f3f4f6;
+        }
 
-.dropdown-item:first-child {
-  border-bottom: 1px solid #f3f4f6;
-}
+        .dropdown-item:first-child {
+            border-bottom: 1px solid #f3f4f6;
+        }
+
         .profile-avatar-container {
             position: relative;
             width: 60px;
@@ -1004,38 +1100,39 @@
             bottom: -5px;
             /* rest stays same */
         }
+
         #proofModal.modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
 
-#proofModal.modal.show {
-    display: flex;
-}
+        #proofModal.modal.show {
+            display: flex;
+        }
 
-#proofModal .modal-content {
-    background: #fff;
-    border-radius: 8px;
-    padding: 1.5rem;
-    width: 90%;
-}
+        #proofModal .modal-content {
+            background: #fff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            width: 90%;
+        }
 
-#proofModal .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
+        #proofModal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
 
-#proofModal .modal-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    line-height: 1;
-}
+        #proofModal .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+        }

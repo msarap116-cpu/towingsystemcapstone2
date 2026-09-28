@@ -235,7 +235,25 @@ roleBadge: {
   backgroundColor: '#e0f2fe',
 },
 roleText: { color: '#0369a1', fontSize: 11, fontWeight: '600' },
-
+  povButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'white',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    zIndex: 10, // Android needs this alongside elevation to sit above the WebView
+  },
+  povButtonText: {
+    fontWeight: '600',
+    color: '#0f172a',
+  },
 
 
 });

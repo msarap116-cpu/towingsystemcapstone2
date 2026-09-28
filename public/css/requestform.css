@@ -25,7 +25,7 @@ body {
 
 /* ===== NAVBAR ===== */
 .navbar {
-    background: #0046a8;
+    background: #eff0f1;
     padding: 0 24px;
     height: 64px;
     display: flex;
@@ -55,7 +55,7 @@ body {
     letter-spacing: -0.3px;
 }
 .brand-icon { font-size: 26px; line-height: 1; }
-.brand-text { color: #fff; }
+.brand-text { color: #1a1717; }
 .nav-menu {
     list-style: none;
     display: flex;
@@ -65,17 +65,17 @@ body {
     padding: 0;
 }
 .nav-item .nav-link {
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(0, 0, 0, 0.912);
     text-decoration: none;
     font-size: 15px;
     font-weight: 500;
     padding: 8px 0;
     transition: color 0.2s;
 }
-.nav-item .nav-link:hover { color: #fff; }
+.nav-item .nav-link:hover { color:rgba(247, 0, 16, 0.85); }
 .nav-item .nav-link.active {
-    color: #fff;
-    border-bottom: 2px solid #e30613;
+    color: rgba(7, 0, 69, 0.85);;
+    border-bottom: 2px solid rgba(7, 0, 69, 0.85);;
 }
 
 /* ===== PAGE SECTION ===== */

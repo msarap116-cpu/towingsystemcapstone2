@@ -208,6 +208,11 @@ function renderDashboardUI() {
 `).join('');
         }
     }
+    if (tripsList) {
+        tripsList.innerHTML = myActiveTrips.length === 0
+            ? '<div class="empty-state">No active trips</div>'
+            : myActiveTrips.map(renderTripCard).join('');
+    }
 
     console.log('First active trip raw:', myActiveTrips[0]);
     document.getElementById('statAvailable').innerText = pendingRequests.length;
@@ -227,8 +232,51 @@ function renderDashboardUI() {
 
     const totalEarningsEl = document.getElementById('totalEarnings');
     if (totalEarningsEl) totalEarningsEl.innerText = `₱${totalEarningsValue.toFixed(2)}`;
+
+
+
+
+    // NEW: "All Trips" tab — active + completed
+    const allTripsList = document.getElementById('allTripsList');
+    if (allTripsList) {
+        const allTrips = [...myActiveTrips, ...completedTrips];
+        allTripsList.innerHTML = allTrips.length === 0
+            ? '<div class="empty-state">No trips yet</div>'
+            : allTrips.map(renderTripCard).join('');
+    }
     renderPendingRequests();
 };
+// existing dashboard "On Going Job" — active trips only
+
+function renderTripCard(trip) {
+    return `
+    <div class="request-item">
+        <div class="top-line">
+            <span class="customer">${trip.customer_name || 'Customer'}</span>
+            <span class="service">${trip.service_type || 'Service'}</span>
+        </div>
+        <div class="location">  ${trip.location || 'No address'}</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+            <span class="status-badge ${trip.status}">${trip.status}</span>
+            <span class="price">₱${trip.total_amount || trip.amount || 0}</span>
+        </div>
+
+            ${['assigned', 'in progress'].includes(trip.status)
+            ? `<button class="btn btn-secondary btn-sm" onclick="openAddChargeForm(${trip.request_id})">+ Add Charge</button>`
+            : ''}
+
+        </div>
+        ${['assigned', 'in progress'].includes(trip.status) ? `
+        <div id="addChargeForm-${trip.request_id}" style="display:none; margin-top:8px;">
+            <input type="text" id="chargeDescription-${trip.request_id}" placeholder="e.g. Replacement battery">
+            <input type="number" id="chargeAmount-${trip.request_id}" placeholder="Amount" min="0" step="0.01">
+            <button type="button" onclick="submitAdditionalCharge(${trip.request_id})">Submit</button>
+            <button type="button" onclick="closeAddChargeForm(${trip.request_id})">Cancel</button>
+        </div>
+        ` : ''}
+    </div>`;
+};
+
 
 function openAddChargeForm(requestId) {
     const form = document.getElementById(`addChargeForm-${requestId}`);
@@ -905,6 +953,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // 1. Keep your existing initialization
     displayUserInfo();
     setupEventListeners();
+    // renderTripCard();
 
     // Initial load of driver data
     loadDriverDashboardData().catch(err => {

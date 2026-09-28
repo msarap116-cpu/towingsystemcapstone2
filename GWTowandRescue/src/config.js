@@ -8,7 +8,7 @@
 import { Platform } from 'react-native';
 
 // Replace with YOUR computer's actual IP
-const LAN_URL = 'http://192.168.0.102:3000/api'; // Your computer's IP
+const LAN_URL = 'http://192.168.0.106:3000/api'; // Your computer's IP
 
 const PROD_URL = 'https://goodwrench-towing-rescue.onrender.com/api';
 

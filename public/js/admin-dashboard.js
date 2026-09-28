@@ -312,68 +312,59 @@ document.addEventListener('DOMContentLoaded', function () {
         showAlert("Map updated", "success");
     }
 
-    function renderDrivers() {
-        console.log('driver data:', drivers);
-        const container = document.getElementById("driversListContainer");
-        if (!container) return;
+function renderDrivers() {
+    console.log('driver data:', drivers);
+    const container = document.getElementById("driversListContainer");
+    if (!container) return;
 
-        if (!Array.isArray(drivers) || drivers.length === 0) {
-            container.innerHTML = `<p style="text-align:center; padding:2rem; color:#666;">No drivers found</p>`;
-            return;
-        }
-
-        container.innerHTML = `
-    <div class="table-responsive">
-        <table class="drivers-table">
-            <thead>
-                <tr>
-                    <th>Driver</th>
-                    <th>Phone</th>
-                    <th>Email</th>
-                    <th>Vehicle Plate</th>
-                    <th>Status</th>
-                    <th>Performance</th>
-                    <th>Trips</th>
-                    <th>Earnings (30d)</th>
-                    <th>Actions</th>  <!-- NEW -->
-                </tr>
-            </thead>
-
-            <tbody>
-                ${drivers.map(d => `
-                    <tr>
-                        <td><strong>${d.name || 'Unnamed'}</strong></td>
-                        <td>${d.phone || 'No phone'}</td>
-                        <td>${d.email || 'No email'}</td>
-                        <td>${d.vehicle_plate || 'No plate'}</td>
-                        <td>
-                            <span class="status-${d.status || 'inactive'}">
-                                ${d.status || 'Inactive'}
-                            </span>
-                        </td>
-                        <td>
-                            ${d.rating
-                ? Number(d.rating).toFixed(1) + ' ⭐'
-                : 'No rating'}
-                        </td>
-                        <td>${d.total_completed || 0}</td>
-                        <td>₱${Number(d.earnings_30d || 0).toFixed(2)}</td>
-                        <td>
-                            <button
-                                class="btn-delete"
-                                onclick="deleteDriver(${d.user_id})"
-                                title="Delete driver"
-                            >
-                                🗑️
-                            </button>
-                        </td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    </div>
-`;
+    if (!Array.isArray(drivers) || drivers.length === 0) {
+        container.innerHTML = `<p style="text-align:center; padding:2rem; color:#666;">No drivers found</p>`;
+        return;
     }
+
+    container.innerHTML = `
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Driver</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                      <!--  <th>Performance</th> -->
+                        <th>Trips</th>
+                        <th>Earnings (30d)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${drivers.map(d => `
+                        <tr>
+                            <td><strong>${d.name || 'Unnamed'}</strong></td>
+                            <td>${d.phone || 'No phone'}</td>
+                            <td>${d.email || 'No email'}</td>
+                            <td>
+                                <span class="status-${d.status || 'inactive'}">
+                                    ${d.status || 'Inactive'}
+                                </span>
+                            </td>
+                      <!--      <td>
+                                ${d.rating ? Number(d.rating).toFixed(1) + ' ⭐' : 'No rating'}
+                            </td> -->
+                            <td>${d.total_completed || 0}</td>
+                            <td>₱${Number(d.earnings_30d || 0).toFixed(2)}</td>
+                            <td>
+                                <button class="btn-delete" onclick="deleteDriver(${d.user_id})" title="Delete driver">
+                                    🗑️
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
 
     function renderCustomers(dataToRender) {
         const tbody = document.getElementById('customersTable');
@@ -593,7 +584,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <td style="max-width:300px; white-space:normal; word-wrap:break-word;">${r.location || 'Unknown'}</td>
         <td>${r.driver_name || '—'}</td>
         <td><span class="status-badge status-${r.status || 'pending'}">${r.status || 'pending'}</span></td>
-        <td><span class="payment-status ${r.payment_status === 'paid' ? 'paid' : 'pending'}">${r.payment_status === 'paid' ? ' Paid' : '⌛ Pending'}</span></td>
+        <td><span class="payment-status ${r.payment_status === 'paid' ? 'paid' : 'pending'}">${r.payment_status === 'paid' ? ' Paid' : 'Pending'}</span></td>
         <td style="color:#666; font-size:0.9em;">${r.created_at || ''}</td>
        <td>
     <div class="overflow-menu">
@@ -1265,53 +1256,47 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function renderAdmins() {
-        console.log("admin data:", admins);
+function renderAdmins() {
+    console.log("admin data:", admins);
+    const container = document.getElementById("adminsListContainer");
 
-        const container = document.getElementById("adminsListContainer");
+    if (!container) {
+        console.error("adminListContainer NOT FOUND");
+        return;
+    }
 
-        if (!container) {
-            console.error("adminListContainer NOT FOUND");
-            return;
-        }
-
-        console.log(" Admin container found");
-
-        if (!Array.isArray(admins) || admins.length === 0) {
-            container.innerHTML = `
+    if (!Array.isArray(admins) || admins.length === 0) {
+        container.innerHTML = `
             <p style="text-align:center; padding:2rem; color:#666;">
                 No admins found
             </p>
         `;
-            return;
-        }
+        return;
+    }
 
-        container.innerHTML = `
+    container.innerHTML = `
         <div class="table-responsive">
-            <table class="drivers-table">
+            <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Name</th>
+                        <th>Admin</th>
                         <th>Phone</th>
                         <th>Email</th>
                         <th>Status</th>
                         <th>Created</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     ${admins.map(admin => `
                         <tr>
                             <td>${admin.name || 'Unnamed'}</td>
                             <td>${admin.phone || '--'}</td>
                             <td>${admin.email || '--'}</td>
-                            <td>
-                                ${admin.is_active ? 'Active' : 'Inactive'}
-                            </td>
+                            <td>${admin.is_active ? 'Active' : 'Inactive'}</td>
                             <td>
                                 ${admin.created_at
-                ? new Date(admin.created_at).toLocaleDateString()
-                : '--'}
+                                    ? new Date(admin.created_at).toLocaleDateString()
+                                    : '--'}
                             </td>
                         </tr>
                     `).join('')}
@@ -1319,7 +1304,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </table>
         </div>
     `;
-    };
+}
 
     async function init() {
         // Load user from sessionStorage (set during login)
@@ -1716,106 +1701,85 @@ async function loadServicePrices() {
         console.log('🔎 Service Types API response:', data);
         console.log('🔎 data.services:', data.services);
 
-        const services = Array.isArray(data.services)
-            ? data.services
-            : [];
+        // declared ONCE
+        const services = Array.isArray(data.services) ? data.services : [];
+
+        // save to outer cache so the click handler can use it
+        servicesCache = services;
+        console.log('🟢 servicesCache =', servicesCache);
 
         if (services.length === 0) {
-
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5">
-                        No service types found.
-                    </td>
+                    <td colspan="5">No service types found.</td>
                 </tr>
             `;
-
             return;
         }
 
         tbody.innerHTML = services.map(service => {
-
             const price = Number(service.base_price || 0);
 
             return `
                 <tr>
-
-                    <td>
-                        <strong>
-                            ${escapeHtml(service.name)}
-                        </strong>
-                    </td>
-
-                    <td>
-                        ${escapeHtml(
-                service.description || 'No description'
-            )}
-                    </td>
-
-                    <td>
-                        <strong>
-                            ₱${price.toLocaleString('en-PH', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            })}
-                        </strong>
-                    </td>
-
+                    <td><strong>${escapeHtml(service.name)}</strong></td>
+                    <td>${escapeHtml(service.description || 'No description')}</td>
+                    <td><strong>₱${price.toLocaleString('en-PH', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })}</strong></td>
                     <td>
                         ${Number(service.is_active) === 1
-                    ? '<span class="status active">Active</span>'
-                    : '<span class="status inactive">Inactive</span>'
-                }
+                            ? '<span class="status active">Active</span>'
+                            : '<span class="status inactive">Inactive</span>'}
                     </td>
-
                     <td>
-
                         <button
-                            class="btn btn-primary"
-                            onclick='openServicePriceModal(${JSON.stringify(service)})'>
+                            class="btn btn-primary edit-service-price-btn"
+                            data-service-id="${service.service_type_id}">
                             Edit Price
                         </button>
-
                     </td>
-
                 </tr>
             `;
-
         }).join('');
 
     } catch (error) {
 
-        console.error(
-            'Load service prices error:',
-            error
-        );
+        console.error('Load service prices error:', error);
 
         tbody.innerHTML = `
             <tr>
-                <td colspan="5">
-                    Failed to load service prices.
-                </td>
+                <td colspan="5">Failed to load service prices.</td>
             </tr>
         `;
     }
-};
+}
+document.getElementById('servicePricesTableBody').addEventListener('click', (e) => {
+    const btn = e.target.closest('.edit-service-price-btn');
+    if (!btn) return;
 
+    console.log('🟢 button clicked, id =', btn.dataset.serviceId);
+
+    const id = btn.dataset.serviceId;
+    const service = servicesCache.find(s => String(s.service_type_id) === String(id));
+
+    console.log('🟢 found service =', service);
+
+    if (!service) return;
+
+    openServicePriceModal(service);
+});
 function openServicePriceModal(service) {
+    document.getElementById('editServiceTypeId').value = service.service_type_id;
+    document.getElementById('editServiceName').value = service.name || '';
+    document.getElementById('editServiceDescription').value = service.description || '';
+    document.getElementById('editServicePrice').value = Number(service.base_price || 0).toFixed(2);
 
-    document.getElementById('editServiceTypeId').value =
-        service.service_type_id;
-
-    document.getElementById('editServiceName').value =
-        service.name || '';
-
-    document.getElementById('editServiceDescription').value =
-        service.description || '';
-
-    document.getElementById('editServicePrice').value =
-        Number(service.base_price || 0).toFixed(2);
-
-    document.getElementById('servicePriceModal').classList.add('active');
-};
+    const modal = document.getElementById('servicePriceModal');
+    modal.style.display = '';           // clear leftover inline style
+    modal.classList.add('active');      // show via CSS class
+}
 
 async function saveServicePrice() {
 

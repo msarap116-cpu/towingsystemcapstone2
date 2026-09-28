@@ -193,7 +193,8 @@ async function updateMapFromRequest(request) {
 
 // ---------- REFRESH MAP ----------
 function refreshMap() {
-    loadLatestRequests();  // ← was loadUserMap()
+    updateMapFromRequest();
+ // ← was loadUserMap()
     showToast('Map refreshed');
 }
 window.refreshMap = refreshMap;

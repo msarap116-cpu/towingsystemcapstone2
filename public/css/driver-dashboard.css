@@ -488,7 +488,7 @@ body {
     text-transform: capitalize;
 }
 
-.status-badge.pending {
+/* .status-badge.pending {
     background: #fef3c7;
     color: #b45309;
 }
@@ -513,7 +513,7 @@ body {
     font-size: 0.85rem;
     padding: 20px 0;
     text-align: center;
-}
+} */
 
 /* ---------- RESPONSIVE ---------- */
 @media (max-width: 1000px) {

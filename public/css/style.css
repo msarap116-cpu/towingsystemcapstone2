@@ -2,12 +2,23 @@
 
 html,
 body {
-  /* This enables snapping on the main scroll container */
-  scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
-  /* Makes the snap feel smooth, not jarring */
-  overflow-y: scroll;
-  /* Ensures scrolling is active */
+  margin: 0;
+  padding: 0;
+  /* Normal scrolling, no snapping */
+  overflow-y: auto;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-size: cover;
+  color: #1a2c3e;
+  line-height: 1.4;
 }
 
 * {

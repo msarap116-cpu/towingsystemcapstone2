@@ -415,22 +415,11 @@ function showModal(modalId) {
 // }
 
 function hideModal(modalId) {
-    console.log('modalId:', modalId);
-
     const modal = document.getElementById(modalId);
-
-    console.log("modal:", modal);
-
-    // if(modal){
-    //     modal.classList.remove('show');
-
-    // }else{
-    //     console.error('modal not found:',modaId);
-    // }
-
     if (!modal) return;
-    modal.classList.remove('show');
-    modal.style.display = 'none';
+
+    modal.classList.remove('active');   // correct class
+    modal.style.display = '';           // clear any leftover inline style
 }
 
 //Optional dw ni kung gusto mo lang e reuse tong existing code mow
