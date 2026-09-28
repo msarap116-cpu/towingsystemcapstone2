@@ -1115,16 +1115,17 @@ const downloadReceipt = async (paymentId) => {
           <Text style={styles.mapTitle}>Live Tracking</Text>
         </View>
         <View style={styles.mapContainer}>
-          <LeafletMap
-            customerLocation={customerLocation}
-            driverLocation={driverLocation}
-            routeCoordinates={routeCoordinates}
-            address={latestRequest?.address}
-            customerName={user?.name}
-            driverName={latestRequest?.driver_name}
-            distanceKm={distance}
-            durationMin={eta}
-          />
+         <LeafletMap
+  mode="customer"
+  customerLocation={customerLocation}
+  driverLocation={driverLocation}
+  routeCoordinates={routeCoordinates}
+  address={latestRequest?.address}
+  customerName={user?.name}
+  driverName={latestRequest?.driver_name}
+  distanceKm={distance}
+  durationMin={eta}
+/>
         </View>
       </View>
     </View>
