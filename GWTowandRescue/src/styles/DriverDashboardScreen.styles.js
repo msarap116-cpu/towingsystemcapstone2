@@ -254,6 +254,82 @@ roleText: { color: '#070707', fontSize: 11, fontWeight: '600' },
     fontWeight: '600',
     color: '#0f172a',
   },
+   loadingContainer: {
+    flex: 1, // This makes it fill the entire safe area
+    justifyContent: 'center', // This centers vertically
+    alignItems: 'center', // This centers horizontally
+  },
+  loadingText: {
+    marginTop: 10, // Adds a little space between the spinner and text
+    color: '#000', // Adjust color as needed
+    fontSize: 16,  // Adjust size as needed
+  },
+    // ===== TRACKING — MAP BACKGROUND LAYOUT =====
+  trackingWrapper: {
+    flex: 1,
+    position: 'relative',
+    backgroundColor: '#000',
+  },
+
+  mapBackground: {
+    ...StyleSheet.absoluteFillObject,
+    // gives the WebView a real size since absoluteFillObject has no intrinsic size
+  },
+
+  trackingOverlayTopLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    maxWidth: '60%',
+  },
+
+  trackingInfoCard: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+  },
+
+  trackingTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1a1a2e',
+    marginBottom: 2,
+  },
+
+  trackingStatusText: {
+    fontSize: 12,
+    color: '#475569',
+  },
+
+  trackingOverlayTopRight: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+
+  povButton: {
+    backgroundColor: 'rgba(0,70,168,0.95)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 22,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+
+  povButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
 
 
 });

@@ -74,7 +74,7 @@ const DashboardScreen = ({ navigation }) => {
   const PAYMENT_DRAFT_KEY = 'payment_draft';
 
   // Edit address state
-  const [editAddressModal, setEditAddressModal] = useState(false);
+
   const [editAddress, setEditAddress] = useState('');
   const [editLat, setEditLat] = useState('');
   const [editLng, setEditLng] = useState('');
@@ -115,6 +115,14 @@ const DashboardScreen = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
+  if (activeTab === 'editaddress' && latestRequest) {
+    setEditAddress(latestRequest.address || '');
+    setEditLat(String(latestRequest.location_lat || ''));
+    setEditLng(String(latestRequest.location_lng || ''));
+  }
+}, [activeTab, latestRequest]);
+
+  useEffect(() => {
     if (activeTab !== 'dashboard' || !latestRequest) {
       return;
     }
@@ -133,6 +141,17 @@ const DashboardScreen = ({ navigation }) => {
     if (!requestId) {
       return;
     }
+
+
+
+
+
+
+
+
+
+
+
 
     let cancelled = false;
 
@@ -698,64 +717,64 @@ const DashboardScreen = ({ navigation }) => {
     );
   };
 
-const downloadReceipt = async (paymentId) => {
-  const token = await AsyncStorage.getItem('token');
-  if (!token) {
-    Alert.alert('Authentication required', 'Please log in again.');
-    return;
-  }
-
-  try {
-    const url = `${API_BASE_URL}/payments/${paymentId}/receipt`;
-    const path = `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/receipt_${paymentId}.pdf`;
-
-    const res = await ReactNativeBlobUtil.config({
-      fileCache: true,
-      path,
-    }).fetch('GET', url, {
-      Authorization: `Bearer ${token}`,
-    });
-
-    const status = res.info().status;
-    if (status !== 200) {
-      throw new Error(`Failed to download receipt (status ${status})`);
-    }
-    <Pdf
-  source={{ uri: filePath }}
-  onError={(error) => console.log('PDF render error:', error)}
-  style={{ flex: 1 }}
-/>
-
-    const filePath = res.path();
-    const exists = await ReactNativeBlobUtil.fs.exists(filePath);
-    console.log('Receipt saved to:', filePath, 'exists:', exists);
-
-
-    if (!exists) {
-      throw new Error('Downloaded file not found on disk');
+  const downloadReceipt = async (paymentId) => {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      Alert.alert('Authentication required', 'Please log in again.');
+      return;
     }
 
-    Alert.alert(
-      'Receipt Downloaded',
-      'Open or save the receipt?',
-      [
-        { text: 'Later', style: 'cancel' },
-{
-  text: 'Open / Save',
-  onPress: () => {
-    navigation.navigate('PdfViewer', {
-      filePath,
-      title: `Receipt ${paymentId}`,
-    });
-  },
-},
-      ]
-    );
-  } catch (error) {
-    console.error('Download receipt error:', error);
-    Alert.alert('Error', error.message || 'Failed to download receipt.');
-  }
-};
+    try {
+      const url = `${API_BASE_URL}/payments/${paymentId}/receipt`;
+      const path = `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/receipt_${paymentId}.pdf`;
+
+      const res = await ReactNativeBlobUtil.config({
+        fileCache: true,
+        path,
+      }).fetch('GET', url, {
+        Authorization: `Bearer ${token}`,
+      });
+
+      const status = res.info().status;
+      if (status !== 200) {
+        throw new Error(`Failed to download receipt (status ${status})`);
+      }
+      <Pdf
+        source={{ uri: filePath }}
+        onError={(error) => console.log('PDF render error:', error)}
+        style={{ flex: 1 }}
+      />
+
+      const filePath = res.path();
+      const exists = await ReactNativeBlobUtil.fs.exists(filePath);
+      console.log('Receipt saved to:', filePath, 'exists:', exists);
+
+
+      if (!exists) {
+        throw new Error('Downloaded file not found on disk');
+      }
+
+      Alert.alert(
+        'Receipt Downloaded',
+        'Open or save the receipt?',
+        [
+          { text: 'Later', style: 'cancel' },
+          {
+            text: 'Open / Save',
+            onPress: () => {
+              navigation.navigate('PdfViewer', {
+                filePath,
+                title: `Receipt ${paymentId}`,
+              });
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Download receipt error:', error);
+      Alert.alert('Error', error.message || 'Failed to download receipt.');
+    }
+  };
   // ===== EDIT ADDRESS =====
   const debounceRef = useRef(null);
   const abortRef = useRef(null);
@@ -906,42 +925,45 @@ const downloadReceipt = async (paymentId) => {
     }
   };
 
-  const saveAddress = async () => {
-    if (!editAddress || !editLat || !editLng) {
-      Alert.alert('Error', 'Please select a valid address');
-      return;
-    }
+const saveAddress = async () => {
+  if (!editAddress || !editLat || !editLng) {
+    Alert.alert('Error', 'Please select a valid address');
+    return;
+  }
 
-    const token = await AsyncStorage.getItem('token');
+  const token = await AsyncStorage.getItem('token');
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/requests/${latestRequest?.request_id}/address`, {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/requests/${latestRequest?.request_id}/address`,
+      {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           address: editAddress,
           location_lat: parseFloat(editLat),
-          location_lng: parseFloat(editLng)
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        Alert.alert('Success', 'Address updated successfully!');
-        setEditAddressModal(false);
-        loadDashboardData();
-      } else {
-        Alert.alert('Error', data.error || 'Failed to update address');
+          location_lng: parseFloat(editLng),
+        }),
       }
-    } catch (error) {
-      console.error('Save address error:', error);
-      Alert.alert('Error', 'Failed to update address');
+    );
+
+    const data = await response.json();
+
+    if (response.ok) {
+      Alert.alert('Success', 'Address updated successfully!');
+      setActiveTab('dashboard');   // 👈 tab switch instead of closing modal
+      loadDashboardData();
+    } else {
+      Alert.alert('Error', data.error || 'Failed to update address');
     }
-  };
+  } catch (error) {
+    console.error('Save address error:', error);
+    Alert.alert('Error', 'Failed to update address');
+  }
+};
 
   // ===== HELPERS =====
   const updateClock = () => {
@@ -1038,20 +1060,12 @@ const downloadReceipt = async (paymentId) => {
 
       <TouchableOpacity
         style={[styles.tabItem, activeTab === 'editaddress' && styles.tabItemActive]}
-        onPress={() => {
-          setActiveTab('editaddress');
-          if (latestRequest) {
-            setEditAddress(latestRequest.address || '');
-            setEditLat(String(latestRequest.location_lat || ''));
-            setEditLng(String(latestRequest.location_lng || ''));
-            setEditAddressModal(true);
-          } else {
-            Alert.alert('No Request', 'No active request to edit');
-          }
-        }}
+        onPress={() => setActiveTab('editaddress')}
       >
         <Text style={styles.tabIcon}>📍</Text>
-        <Text style={[styles.tabText, activeTab === 'editaddress' && styles.tabTextActive]}>Address</Text>
+        <Text style={[styles.tabText, activeTab === 'editaddress' && styles.tabTextActive]}>
+          Address
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -1082,55 +1096,52 @@ const downloadReceipt = async (paymentId) => {
 
   // ===== RENDER TABS — UNCHANGED =====
   const renderDashboard = () => (
-    <View style={styles.tabContent}>
-      {/* Request Header */}
-      <View style={styles.requestHeader}>
+    <View style={styles.dashboardWrapper}>
+      {/* Map as full-bleed background */}
+      <View style={styles.mapBackground}>
+        <LeafletMap
+          mode="customer"
+          customerLocation={customerLocation}
+          driverLocation={driverLocation}
+          routeCoordinates={routeCoordinates}
+          address={latestRequest?.address}
+          customerName={user?.name}
+          driverName={latestRequest?.driver_name}
+          distanceKm={distance}
+          durationMin={eta}
+        />
+      </View>
+
+      {/* Floating overlay: request id + status + ETA (right aligned, no bg) */}
+      <View style={styles.overlayTop} pointerEvents="box-none">
         <View style={styles.requestBadge}>
           <Text style={styles.trackingNumber}>
             #{latestRequest?.request_id || 'N/A'}
           </Text>
-          <View style={[styles.statusChip,
-          { backgroundColor: latestRequest?.status === 'completed' ? '#28a745' : '#ffc107' }
-          ]}>
+
+          <View
+            style={[
+              styles.statusChip,
+              {
+                backgroundColor:
+                  latestRequest?.status === 'completed' ? '#28a745' : '#ffc107',
+              },
+            ]}
+          >
             <Text style={styles.statusText}>
               {latestRequest?.status || 'No Active Request'}
             </Text>
           </View>
+
           {eta && (
             <View style={styles.etaBox}>
               <Text style={styles.etaText}>ETA {eta}</Text>
             </View>
           )}
         </View>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={() => loadDashboardData()}
-        >
-          <Text style={styles.refreshText}>⟳ Refresh</Text>
-        </TouchableOpacity>
-      </View>
-      {/* Map */}
-      <View style={styles.mapCard}>
-        <View style={styles.mapHeader}>
-          <Text style={styles.mapTitle}>Live Tracking</Text>
-        </View>
-        <View style={styles.mapContainer}>
-         <LeafletMap
-  mode="customer"
-  customerLocation={customerLocation}
-  driverLocation={driverLocation}
-  routeCoordinates={routeCoordinates}
-  address={latestRequest?.address}
-  customerName={user?.name}
-  driverName={latestRequest?.driver_name}
-  distanceKm={distance}
-  durationMin={eta}
-/>
-        </View>
       </View>
     </View>
   );
-
   const renderRecentActivity = () => (
     <View style={styles.tabContent}>
       <Text style={styles.tabTitle}>Recent Activity</Text>
@@ -1138,6 +1149,7 @@ const downloadReceipt = async (paymentId) => {
         <Text style={styles.emptyText}>No recent activity</Text>
       ) : (
         <FlatList
+          contentContainerStyle={styles.tabContentPadding}
           data={recentActivities}
           keyExtractor={(item) => String(item.request_id)}
           renderItem={({ item }) => (
@@ -1164,85 +1176,154 @@ const downloadReceipt = async (paymentId) => {
     </View>
   );
 
-const formatAmount = (val) => {
-  const n = typeof val === 'string'
-    ? Number(val.replace(/[^0-9.-]/g, ''))
-    : Number(val || 0);
-  return isNaN(n) ? '0.00' : n.toFixed(2);
-};
+  const formatAmount = (val) => {
+    const n = typeof val === 'string'
+      ? Number(val.replace(/[^0-9.-]/g, ''))
+      : Number(val || 0);
+    return isNaN(n) ? '0.00' : n.toFixed(2);
+  };
 
-const formatDate = (iso) => {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
-};
+  const formatDate = (iso) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+  };
 
-const renderReceipts = () => (
-  <View style={styles.tabContent}>
-    <Text style={styles.tabTitle}>My Receipts</Text>
+  const renderReceipts = () => (
+    <View style={styles.tabContent}>
+      <Text style={styles.tabTitle}>My Receipts</Text>
 
-    {receipts.length === 0 ? (
-      <Text style={styles.emptyText}>No receipts found</Text>
-    ) : (
-      <FlatList
-        data={receipts}
-        keyExtractor={(item) => String(item.payment_id)}
-        contentContainerStyle={{ paddingBottom: 20 }}
-        renderItem={({ item }) => (
-          <View style={styles.receiptItem}>
-            <View style={styles.receiptRow}>
-              <Text style={styles.receiptLabel}>Receipt #</Text>
-              <Text style={styles.receiptValue}>{item.receipt_number || '—'}</Text>
-            </View>
-            <View style={styles.receiptRow}>
-              <Text style={styles.receiptLabel}>Request #</Text>
-              <Text style={styles.receiptValue}>{item.request_id || '—'}</Text>
-            </View>
-            <View style={styles.receiptRow}>
-              <Text style={styles.receiptLabel}>Amount</Text>
-              <Text style={styles.receiptAmount}>
-                ₱{formatAmount(item.amount)}
-              </Text>
-            </View>
-            <View style={styles.receiptRow}>
-              <Text style={styles.receiptLabel}>Date</Text>
-              <Text style={styles.receiptValue}>
-                {formatDate(item.payment_date)}
-              </Text>
-            </View>
-            <View style={styles.receiptRow}>
-              <Text style={styles.receiptLabel}>Status</Text>
-              <View
-                style={[
-                  styles.receiptStatus,
-                  {
-                    backgroundColor:
-                      item.status === 'completed' ? '#28a745' : '#ffc107',
-                  },
-                ]}
-              >
-                <Text style={styles.receiptStatusText}>
-                  {item.status || 'Pending'}
+      {receipts.length === 0 ? (
+        <Text style={styles.emptyText}>No receipts found</Text>
+      ) : (
+        <FlatList
+
+          data={receipts}
+          keyExtractor={(item) => String(item.payment_id)}
+          contentContainerStyle={styles.tabContentPadding}
+          renderItem={({ item }) => (
+            <View style={styles.receiptItem}>
+              <View style={styles.receiptRow}>
+                <Text style={styles.receiptLabel}>Receipt #</Text>
+                <Text style={styles.receiptValue}>{item.receipt_number || '—'}</Text>
+              </View>
+              <View style={styles.receiptRow}>
+                <Text style={styles.receiptLabel}>Request #</Text>
+                <Text style={styles.receiptValue}>{item.request_id || '—'}</Text>
+              </View>
+              <View style={styles.receiptRow}>
+                <Text style={styles.receiptLabel}>Amount</Text>
+                <Text style={styles.receiptAmount}>
+                  ₱{formatAmount(item.amount)}
                 </Text>
               </View>
-            </View>
+              <View style={styles.receiptRow}>
+                <Text style={styles.receiptLabel}>Date</Text>
+                <Text style={styles.receiptValue}>
+                  {formatDate(item.payment_date)}
+                </Text>
+              </View>
+              <View style={styles.receiptRow}>
+                <Text style={styles.receiptLabel}>Status</Text>
+                <View
+                  style={[
+                    styles.receiptStatus,
+                    {
+                      backgroundColor:
+                        item.status === 'completed' ? '#28a745' : '#ffc107',
+                    },
+                  ]}
+                >
+                  <Text style={styles.receiptStatusText}>
+                    {item.status || 'Pending'}
+                  </Text>
+                </View>
+              </View>
 
-            {item.status === 'completed' ? (
-              <TouchableOpacity
-                style={styles.downloadButton}
-                onPress={() => downloadReceipt(item.payment_id)}
-              >
-                <Text style={styles.downloadButtonText}>Generate Receipt</Text>
-              </TouchableOpacity>
-            ) : (
-              <Text style={styles.receiptValue}>—</Text>
-            )}
-          </View>
-        )}
+              {item.status === 'completed' ? (
+                <TouchableOpacity
+                  style={styles.downloadButton}
+                  onPress={() => downloadReceipt(item.payment_id)}
+                >
+                  <Text style={styles.downloadButtonText}>Generate Receipt</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.receiptValue}>—</Text>
+              )}
+            </View>
+          )}
+        />
+      )}
+    </View>
+  );
+const renderEditAddress = () => {
+  if (!latestRequest) {
+    return (
+      <View style={styles.tabContent}>
+        <Text style={styles.emptyText}>No active request to edit</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      style={styles.tabContent}
+      contentContainerStyle={styles.tabContentPadding}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+    >
+      <Text style={styles.tabTitle}>Edit Address</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Search for an address..."
+        value={editAddress}
+        onChangeText={(text) => {
+          setEditAddress(text);
+          searchAddress(text);
+        }}
       />
-    )}
-  </View>
-);
+
+      {showSuggestions && addressSuggestions.length > 0 && (
+        <View style={styles.suggestionsList}>
+          {addressSuggestions.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.suggestionItem}
+              onPress={() => selectAddress(item)}
+            >
+              <Text style={styles.suggestionText}>{item.display_name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      <TouchableOpacity
+        style={[styles.currentLocationButton, locating && { opacity: 0.6 }]}
+        onPress={useCurrentLocation}
+        disabled={locating}
+      >
+        <Text style={styles.currentLocationText}>
+          {locating ? '📡 Getting your location...' : '📍 Use My Current Location'}
+        </Text>
+      </TouchableOpacity>
+
+      {editLat && editLng && (
+        <View style={styles.selectedLocation}>
+          <Text style={styles.selectedTitle}>📍 Location selected</Text>
+          <Text style={styles.selectedSubText}>{editAddress}</Text>
+          <Text style={styles.selectedSubText}>
+            Lat: {editLat}  •  Lng: {editLng}
+          </Text>
+        </View>
+      )}
+
+      <TouchableOpacity style={styles.saveButton} onPress={saveAddress}>
+        <Text style={styles.saveButtonText}>Save Changes</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+};
 
   {/* ================= PAYMENT TAB CONTENT ================= */ }
   const renderPayment = () => (
@@ -1397,110 +1478,35 @@ const renderReceipts = () => (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0046a8" />
 
-      {/* Top Navbar —  UNCHANGED */}
-
+      {/* Top Navbar */}
       <View style={styles.navbar}>
         <View style={styles.navbarContent}>
           <View style={styles.brand}>
             <Text style={styles.brandIcon}>😭</Text>
-            <Text style={styles.brandText}>Good<Text style={styles.brandSpan}>Wrench</Text></Text>
+            <Text style={styles.brandText}>
+              Good<Text style={styles.brandSpan}>Wrench</Text>
+            </Text>
           </View>
-          <View style={styles.navbarRight}>
-            <View style={styles.onlineStatus}>
-              <View style={styles.onlineDot} />
-              <Text style={styles.onlineText}>Online</Text>
-            </View>
-            <Text style={styles.clockText}>{currentTime}</Text>
-          </View>
+
         </View>
       </View>
 
-      {/* Profile Header (replaced sidebar profile card) */}
-      {renderProfileHeader()}
+      {/* Profile Header — only on dashboard */}
+      {activeTab === 'dashboard' && renderProfileHeader()}
 
-      {/* Main Panel —  NO SIDEBAR, FULL WIDTH */}
+      {/* Main Panel — full width, scrollable content per tab */}
       <View style={styles.mainPanel}>
         {activeTab === 'dashboard' && renderDashboard()}
         {activeTab === 'recent' && renderRecentActivity()}
         {activeTab === 'receipts' && renderReceipts()}
         {activeTab === 'payment' && renderPayment()}
+        {activeTab === 'editaddress' && renderEditAddress()}
       </View>
 
-      {/* BOTTOM TAB BAR — replaces sidebar */}
+      {/* Bottom Tab Bar */}
       {renderBottomTabBar()}
 
 
-      {/* Edit Address Modal */}
-      <Modal
-        visible={editAddressModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setEditAddressModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <ScrollView style={styles.modalContent} bounces={false}>
-
-            <TouchableOpacity
-              style={styles.modalClose}
-              onPress={() => setEditAddressModal(false)}
-            >
-              <Text style={styles.modalCloseText}>✕</Text>
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Edit Address</Text>
-            {/* 🔍 Search input */}
-            <TextInput
-              style={styles.input}
-              placeholder="Search for an address..."
-              value={editAddress}
-              onChangeText={(text) => {
-                setEditAddress(text);
-                searchAddress(text);
-              }}
-            />
-
-            {showSuggestions && addressSuggestions.length > 0 && (
-              <View style={styles.suggestionsList}>
-                {addressSuggestions.map((item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.suggestionItem}
-                    onPress={() => selectAddress(item)}
-                  >
-                    <Text style={styles.suggestionText}>{item.display_name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {/* 📍 Use current location */}
-            <TouchableOpacity
-              style={[styles.currentLocationButton, locating && { opacity: 0.6 }]}
-              onPress={useCurrentLocation}
-              disabled={locating}
-            >
-              <Text style={styles.currentLocationText}>
-                {locating ? '📡 Getting your location...' : '📍 Use My Current Location'}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Confirmation card — only when a location exists */}
-            {editLat && editLng && (
-              <View style={styles.selectedLocation}>
-                <Text style={styles.selectedTitle}>📍 Location selected</Text>
-                <Text style={styles.selectedSubText}>{editAddress}</Text>
-                <Text style={styles.selectedSubText}>
-                  Lat: {editLat}  •  Lng: {editLng}
-                </Text>
-              </View>
-            )}
-
-            <TouchableOpacity style={styles.saveButton} onPress={saveAddress}>
-              <Text style={styles.saveButtonText}>Save Changes</Text>
-            </TouchableOpacity>
-
-          </ScrollView>
-        </View>
-      </Modal>
     </View>
   );
 };

@@ -1011,47 +1011,47 @@ const DriverDashboardScreen = ({ navigation }) => {
     );
   };
   // TRACKING
-  const renderTracking = () => (
-    <View style={{ flex: 1, paddingHorizontal: 0, paddingTop: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: '600', marginBottom: 8 }}>Live Tracking</Text>
-      <Text style={{ color: '#64748b', marginBottom: 12 }}>
-        {trackingStatus || 'No active job – tracking idle.'}
-      </Text>
+const renderTracking = () => (
+  <View style={styles.trackingWrapper}>
+    {/* Map — fills the whole tab as background */}
+    <View style={styles.mapBackground}>
+      <LeafletMap
+        driverLocation={driverLocation}
+        customerLocation={customerLocation}
+        routeCoordinates={routeCoordinates}
+        heading={driverHeading}
+        povMode={povMode}
+        customerName={activeTripData?.customer_name}
+        driverName={user?.name}
+        address={activeTripData?.location}
+        distanceKm={routeInfo.distanceKm}
+        durationMin={routeInfo.durationMin}
+      />
+    </View>
 
-      <View style={[
-        styles.mapContainer,
-        {
-          height: 500,
-          borderRadius: 0,
-          overflow: 'hidden',
-          borderWidth: 1,
-          borderColor: '#010811',
-          width: 300,
-          position: 'relative', // <-- add this
-        }
-      ]}>
-        <LeafletMap
-          driverLocation={driverLocation}
-          customerLocation={customerLocation}
-          routeCoordinates={routeCoordinates}
-          heading={driverHeading}
-          povMode={povMode}                          // <-- add this
-          customerName={activeTripData?.customer_name}
-          driverName={user?.name}
-          address={activeTripData?.location}
-          distanceKm={routeInfo.distanceKm}
-          durationMin={routeInfo.durationMin}
-        />
-
-        <TouchableOpacity
-          style={styles.povButton}
-          onPress={() => setPovMode(prev => !prev)}
-        >
-          <Text style={styles.povButtonText}>{povMode ? '🧭 POV' : '⬆️ North'}</Text>
-        </TouchableOpacity>
+    {/* Floating top-left: title + status */}
+    <View style={styles.trackingOverlayTopLeft} pointerEvents="box-none">
+      <View style={styles.trackingInfoCard}>
+        <Text style={styles.trackingTitle}>Route Tracking</Text>
+        <Text style={styles.trackingStatusText}>
+          {trackingStatus || 'No active job – tracking idle.'}
+        </Text>
       </View>
     </View>
-  );
+
+    {/* Floating top-right: POV toggle */}
+    <View style={styles.trackingOverlayTopRight} pointerEvents="box-none">
+      <TouchableOpacity
+        style={styles.povButton}
+        onPress={() => setPovMode(prev => !prev)}
+      >
+        <Text style={styles.povButtonText}>
+          {povMode ? '🧭 POV' : '⬆️ North'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
   const tripStatusStyle = (status) => {
     switch (status) {
       case 'assigned': return { backgroundColor: '#dbeafe', color: '#1e40af' };
@@ -1066,7 +1066,7 @@ const DriverDashboardScreen = ({ navigation }) => {
     const allTrips = [...(myTrips || []), ...(completedTripsList || [])];
     return (
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 20 }}>My Trips</Text>
+        <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Work History</Text>
         <View style={{ flex: 1 }}>
           {allTrips.length === 0 ? (
             <View style={styles.whiteCard}>
@@ -1132,7 +1132,7 @@ const DriverDashboardScreen = ({ navigation }) => {
   };
   const renderEarnings = () => (
     <View style={{ flex: 1 }}>
-      <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 20 }}>Earnings</Text>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Earnings</Text>
       <View style={styles.gridRow}>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Total Trips</Text>
@@ -1186,20 +1186,15 @@ const DriverDashboardScreen = ({ navigation }) => {
         <View style={styles.headerBar}>
           <Text style={styles.headerTitle}> <Text style={styles.headerGreen}>GoodWrench</Text></Text>
           <View style={styles.headerRight}>
-            <View style={styles.onlineRow}>
-              <View style={styles.greenDot} />
-              <Text style={styles.onlineText}>Online</Text>
-            </View>
-            <Text style={styles.timeText}>{currentTime}</Text>
           </View>
         </View>
 
-        {renderProfileHeader()}
+        {activeTab === 'dashboard' && renderProfileHeader()}
 
         {/*  MAIN CONTENT — flex:1 ang naa sa styles */}
         <View style={styles.contentArea}>
           {activeTab === 'dashboard' && renderDashboard()}
-          <View style={{ flex: 1, display: activeTab === 'tracking' ? 'flex' : 'none' }}>
+          <View style={{ flex: 1,marginHorizontal: -16, display: activeTab === 'tracking' ? 'flex' : 'none' }}>
             {renderTracking()}
           </View>
           {activeTab === 'trips' && renderTrips()}
