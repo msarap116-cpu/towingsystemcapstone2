@@ -43,7 +43,7 @@ exports.getLatestRequest = async (req, res) => {
 exports.completeJobWithPhoto = async (req, res) => {
   try {
     const { requestId } = req.params;
-    const { status } = req.body; // 'completed', matches your enum
+    const { status } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'Completion photo is required.' });
@@ -51,15 +51,9 @@ exports.completeJobWithPhoto = async (req, res) => {
 
     const validStatuses = ['pending', 'assigned', 'in progress', 'completed', 'cancelled'];
     const finalStatus = validStatuses.includes(status) ? status : 'completed';
-
     const photoUrl = `/uploads/completion_photos/${req.file.filename}`;
 
-    await db.query(
-      `UPDATE service_requests
-       SET status = ?, completion_photo_url = ?, completed_at = NOW()
-       WHERE request_id = ?`,
-      [finalStatus, photoUrl, requestId]
-    );
+    await driverModel.completeRequestWithPhoto(requestId, finalStatus, photoUrl);
 
     res.json({ success: true, photoUrl, status: finalStatus });
   } catch (err) {

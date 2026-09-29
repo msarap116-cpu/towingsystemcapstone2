@@ -65,3 +65,11 @@ exports.updateRouteEstimate = async ({ requestId, driverId, distanceKm, duration
   );
   return result; // has affectedRows
 };
+exports.completeRequestWithPhoto = async (requestId, status, photoUrl) => {
+  return db.query(
+    `UPDATE service_requests
+     SET status = ?, completion_photo_url = ?, completed_at = NOW()
+     WHERE request_id = ?`,
+    [status, photoUrl, requestId]
+  );
+};

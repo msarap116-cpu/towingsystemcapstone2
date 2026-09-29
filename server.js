@@ -51,7 +51,12 @@ app.use('/api/payments',paymentRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/earnings',earningsRoutes);
-
+// Global error handler — keep JSON errors JSON, always
+app.use((err, req, res, next) => {
+  console.error('🔥 Unhandled error:', err.message);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ success: false, message: err.message || 'Server error' });
+});
 
 // HTML page routes
 app.get(['/', '/home'], (req, res) => {

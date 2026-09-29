@@ -770,15 +770,42 @@ const DriverDashboardScreen = ({ navigation }) => {
 
   const requestCameraPermission = async () => {
     if (Platform.OS !== 'android') return true;
-    const granted = await PermissionsAndroid.request(
+
+    const alreadyGranted = await PermissionsAndroid.check(
+      PermissionsAndroid.PERMISSIONS.CAMERA
+    );
+    if (alreadyGranted) return true;
+
+    const result = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.CAMERA,
       {
         title: 'Camera Permission',
         message: 'We need camera access to verify job completion.',
         buttonPositive: 'OK',
+        buttonNegative: 'Cancel',
       }
     );
-    return granted === PermissionsAndroid.RESULTS.GRANTED;
+
+    console.log('📷 Camera permission result:', result);
+
+    if (result === PermissionsAndroid.RESULTS.GRANTED) {
+      return true;
+    }
+
+    if (result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+      Alert.alert(
+        'Camera Permission Needed',
+        'Camera access was permanently denied. Please enable it in Settings to complete this job.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ]
+      );
+      return false;
+    }
+
+    Alert.alert('Permission required', 'Camera access is needed to complete this job.');
+    return false;
   };
 
   const openCompletionCamera = async (requestId, targetStatus = 'completed') => {
@@ -820,13 +847,23 @@ const DriverDashboardScreen = ({ navigation }) => {
       formData.append('request_id', completingRequestId);
       formData.append('status', completingTargetStatus || 'completed');
 
-      const res = await fetch(`${API_BASE_URL}/api/driver/trips/${completingRequestId}/complete-photo`, {
+      const res = await fetch(`${API_BASE_URL}/driver/trips/${completingRequestId}/complete-photo`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }, // no manual Content-Type
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
-      const data = await res.json();
+      const rawText = await res.text();
+      console.log('📦 status:', res.status);
+      console.log('📦 raw response:', rawText.slice(0, 500));
+
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error(`Server returned non-JSON (status ${res.status}). See console for raw response.`);
+      }
+
       if (!res.ok || !data.success) {
         throw new Error(data.message || 'Upload failed');
       }
@@ -1194,19 +1231,30 @@ const DriverDashboardScreen = ({ navigation }) => {
           </View>
         </Modal>
 
-        <Modal visible={photoModalVisible} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+        <Modal visible={photoModalVisible} transparent animationType="slide" onRequestClose={() => setPhotoModalVisible(false)}>
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>Confirm Completion Photo</Text>
               {capturedPhoto && (
-                <Image source={{ uri: capturedPhoto.uri }} style={{ width: '100%', height: 250, borderRadius: 8 }} />
+                <Image
+                  source={{ uri: capturedPhoto.uri }}
+                  style={{ width: '100%', height: 250, borderRadius: 8, marginVertical: 12 }}
+                />
               )}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 }}>
-                <TouchableOpacity onPress={() => setPhotoModalVisible(false)} disabled={uploadingPhoto}>
-                  <Text>Retake / Cancel</Text>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalBtn, styles.modalBtnGhost]}
+                  onPress={() => setPhotoModalVisible(false)}
+                  disabled={uploadingPhoto}
+                >
+                  <Text style={styles.modalBtnGhostText}>Retake / Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={uploadCompletionPhoto} disabled={uploadingPhoto}>
-                  {uploadingPhoto ? <ActivityIndicator /> : <Text>Confirm & Complete</Text>}
+                <TouchableOpacity
+                  style={[styles.modalBtn, styles.modalBtnSuccess || styles.tripBtnSuccess]}
+                  onPress={uploadCompletionPhoto}
+                  disabled={uploadingPhoto}
+                >
+                  {uploadingPhoto ? <ActivityIndicator /> : <Text style={styles.modalBtnDangerText || {}}>Confirm & Complete</Text>}
                 </TouchableOpacity>
               </View>
             </View>

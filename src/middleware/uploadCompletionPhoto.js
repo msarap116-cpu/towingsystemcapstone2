@@ -15,7 +15,7 @@ const storage = multer.diskStorage({
   }
 });
 
-module.exports = multer({
+const uploadCompletionPhoto = multer({
   storage,
   limits: { fileSize: 8 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
