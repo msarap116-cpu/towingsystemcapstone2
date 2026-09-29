@@ -96,7 +96,27 @@ function metersPerPixel(lat, zoom) {
         var customerMarker = null;
         var route = null;
 
-        function setMode(m) { mode = m; }
+       // function setMode(m) { mode = m; }
+       function setPov(pov, recenterCamera) {
+  lastPov = pov;
+
+  // Snap bearing immediately — no animation, no follow-gate
+  if (lastPov && lastHeading != null) {
+    map.setBearing(lastHeading);
+  } else {
+    map.setBearing(0);
+  }
+
+  // Optionally bring the camera back to the driver
+  if (recenterCamera) {
+    following = true;
+    if (mode === 'driver') {
+      applyDriverCamera(false);
+    } else {
+      fitAll();
+    }
+  }
+}
 
         function updateInfo(c, d) {
           customerPopupHtml = c;
@@ -125,29 +145,43 @@ function metersPerPixel(lat, zoom) {
 function applyDriverCamera(animate) {
   if (lastLat == null) return;
   var zoom = initialized ? map.getZoom() : 17;
+
+  // Where the driver marker should sit on the screen.
+  // 0.75 = 75% down (marker near the bottom, road ahead fills the top).
+  var markerScreenRatio = 0.75;
+
+  var size = map.getSize();
+  var bearingToApply = (lastPov && lastHeading != null) ? lastHeading : 0;
+
+  // ---- Work out how far to offset the camera ----
+  // If POV: push the camera forward so the marker is near the bottom.
+  // If not: center the marker normally.
   var target = [lastLat, lastLng];
-  var bearingToApply = 0;
 
   if (lastPov && lastHeading != null) {
-    bearingToApply = lastHeading;
-    var size = map.getSize();
-    var lookaheadPx = size.y * 0.28; // how far "ahead" the camera looks — tune this
+    // Distance from screen center to the desired marker position.
+    var offsetPx = (0.5 - markerScreenRatio) * size.y;
+    // (negative number — pushes camera forward/up)
+
     var mpp = metersPerPixel(lastLat, zoom);
-    target = destinationPoint(lastLat, lastLng, lastHeading, mpp * lookaheadPx);
+    var offsetMeters = mpp * Math.abs(offsetPx);
+
+    // Move the camera in the direction the driver is heading,
+    // so the driver marker ends up at ~75% down the screen.
+    target = destinationPoint(lastLat, lastLng, lastHeading, offsetMeters);
   }
 
   if (!initialized) {
-    map.setView(target, zoom);
+    map.setView(target, zoom, { animate: false });
     initialized = true;
-  } else if (animate) {
-    map.panTo(target, { animate: true, duration: 0.8 });
   } else {
-    map.setView(target, zoom);
+    map.setView(target, zoom, { animate: animate, duration: 0.8 });
   }
   map.setBearing(bearingToApply);
 }
 
 function updateDriver(lat, lng, heading, pov) {
+log('updateDriver heading=' + heading + ' pov=' + pov);
   if (!map.hasLayer(driverMarker)) driverMarker.addTo(map);
   driverMarker.setLatLng([lat, lng]);
   lastLat = lat; lastLng = lng; lastHeading = heading; lastPov = pov;
@@ -195,10 +229,15 @@ function updateDriver(lat, lng, heading, pov) {
   const inject = (code) => webviewRef.current?.injectJavaScript(code + '; true;');
 
   // 1) mode first (effects run in declaration order)
+  // useEffect(() => {
+  //   if (!mapReady) return;
+  //   inject(`setMode(${JSON.stringify(mode)})`);
+  // }, [mapReady, mode]);
+
   useEffect(() => {
-    if (!mapReady) return;
-    inject(`setMode(${JSON.stringify(mode)})`);
-  }, [mapReady, mode]);
+  if (!mapReady) return;
+  inject(`setPov(${povMode ? 'true' : 'false'}, true)`); // true = also recenter
+}, [mapReady, povMode]);
 
   // 2) popup text
   useEffect(() => {
@@ -234,6 +273,7 @@ function updateDriver(lat, lng, heading, pov) {
     const coords = JSON.stringify(routeCoordinates.map((c) => [c.latitude, c.longitude]));
     inject(`updateRoute(${coords})`);
   }, [mapReady, routeCoordinates]);
+
 
   const handleMessage = (e) => {
     const msg = e.nativeEvent.data;

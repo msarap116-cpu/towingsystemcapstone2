@@ -594,12 +594,12 @@ const reverseGeocode = async (latitude, longitude) => {
   const renderHero = () => (
     <View style={styles.heroSection}>
       <View style={styles.heroBadge}>
-        <Text style={styles.heroBadgeText}>✦ PANG BARYO2X LANG KAG PUROK ANAY</Text>
+        <Text style={styles.heroBadgeText}>✦ensure quality service</Text>
       </View>
 
       <Text style={styles.heroTitle}>
-        HINDI LANG PANG RESCUE{'\n'}
-        <Text style={styles.heroTitleAccent}>AT PANG HAWLING PA</Text>
+        WE ACCEPT HOME SERVICES{'\n'}
+        <Text style={styles.heroTitleAccent}>LIKE TOWING ADN ROADSIDE ASSISTANCE</Text>
       </Text>
 
       <Text style={styles.heroDescription}>
@@ -609,15 +609,15 @@ const reverseGeocode = async (latitude, longitude) => {
       <View style={styles.checklist}>
         <View style={styles.checklistItem}>
           <Text style={styles.checkIcon}>✅</Text>
-          <Text style={styles.checkText}>Own fleet + 24/7 dispatching center</Text>
+          <Text style={styles.checkText}>Trouble Shoot Vehicle problem</Text>
         </View>
         <View style={styles.checklistItem}>
           <Text style={styles.checkIcon}>✅</Text>
-          <Text style={styles.checkText}>Full-service roadside assistance</Text>
+          <Text style={styles.checkText}>Underchasis specialist</Text>
         </View>
         <View style={styles.checklistItem}>
           <Text style={styles.checkIcon}>✅</Text>
-          <Text style={styles.checkText}>Rates lower than competitors — price match guarantee</Text>
+          <Text style={styles.checkText}>Transmission Speacialist</Text>
         </View>
       </View>
 

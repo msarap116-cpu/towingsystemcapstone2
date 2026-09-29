@@ -422,33 +422,48 @@ const DriverDashboardScreen = ({ navigation }) => {
 
     watchIdRef.current = Geolocation.watchPosition(
       async position => {
-        const { latitude, longitude, accuracy } = position.coords;
-
-        // --- compute bearing from previous fix ---
-        let heading = null;
+        const { latitude, longitude, accuracy, heading: gpsHeading, speed } = position.coords;
         const prev = prevLocationRef.current;
-        if (prev) {
-          const moved = calculateDistance(prev.latitude, prev.longitude, latitude, longitude);
-          // only trust bearing if we actually moved a meaningful amount
-          // (calculateDistance returns km as a string, so compare in meters)
-          if (parseFloat(moved) * 1000 > 3) {
-            heading = calculateBearing(prev.latitude, prev.longitude, latitude, longitude);
-          } else {
-            heading = driverHeadingRef.current; // keep last known heading, don't spin at a stop
+
+        // ---- 1. Determine the raw heading ----
+        let rawHeading = driverHeadingRef.current ?? 0;
+
+        if (gpsHeading != null && gpsHeading >= 0 && speed != null && speed > 1.5) {
+          // Trust the device compass when moving > ~5.4 km/h
+          rawHeading = gpsHeading;
+        } else if (prev && accuracy <= 50) {
+          const movedMeters =
+            parseFloat(calculateDistance(prev.latitude, prev.longitude, latitude, longitude)) * 1000;
+          if (movedMeters > 10) {
+            rawHeading = calculateBearing(prev.latitude, prev.longitude, latitude, longitude);
           }
+          // else: keep rawHeading = last known (prevents jitter at stoplights)
         }
+
+        // ---- 2. Smooth the heading (handles 359° -> 1° wrap-around) ----
+        let smoothedHeading = rawHeading;
+        if (driverHeadingRef.current != null) {
+          const delta = ((rawHeading - driverHeadingRef.current + 540) % 360) - 180;
+          smoothedHeading = (driverHeadingRef.current + delta * 0.35 + 360) % 360;
+        }
+
+        // ---- 3. Update refs ----
         prevLocationRef.current = { latitude, longitude };
-        driverHeadingRef.current = heading;
+        driverHeadingRef.current = smoothedHeading;
 
-        console.log(`LIVE DRIVER GPS: ${latitude}, ${longitude} | Accuracy: ${accuracy}m | Heading: ${heading}`);
+        console.log(
+          `LIVE GPS: ${latitude.toFixed(5)}, ${longitude.toFixed(5)} | ` +
+          `acc: ${accuracy}m | speed: ${speed} | heading: ${smoothedHeading.toFixed(1)}°`
+        );
 
+        // ---- 4. Push to state (this triggers LeafletMap rotation) ----
         setDriverLocation({ latitude, longitude });
-        setDriverHeading(heading);
+        setDriverHeading(smoothedHeading);
 
+        // ---- 5. Route + upload (UNCHANGED from your original) ----
         const destination = customerLocationRef.current;
         if (destination) {
           try {
-            // throttle OSRM calls — don't recompute the route every single tick
             const now = Date.now();
             if (now - lastRouteCalcRef.current > ROUTE_RECALC_INTERVAL) {
               lastRouteCalcRef.current = now;
