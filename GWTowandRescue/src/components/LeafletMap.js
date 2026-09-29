@@ -42,6 +42,25 @@ const LeafletMap = ({
         window.onerror = function (msg, src, line) {
           log('JS ERROR: ' + msg + ' (line ' + line + ')');
         };
+        function destinationPoint(lat, lng, bearingDeg, distanceMeters) {
+  var R = 6371000;
+  var brng = bearingDeg * Math.PI / 180;
+  var lat1 = lat * Math.PI / 180;
+  var lng1 = lng * Math.PI / 180;
+  var lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(distanceMeters / R) +
+    Math.cos(lat1) * Math.sin(distanceMeters / R) * Math.cos(brng)
+  );
+  var lng2 = lng1 + Math.atan2(
+    Math.sin(brng) * Math.sin(distanceMeters / R) * Math.cos(lat1),
+    Math.cos(distanceMeters / R) - Math.sin(lat1) * Math.sin(lat2)
+  );
+  return [lat2 * 180 / Math.PI, ((lng2 * 180 / Math.PI) + 540) % 360 - 180];
+}
+
+function metersPerPixel(lat, zoom) {
+  return 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+}
 
         var mode = 'driver';
         var following = true;
@@ -100,22 +119,42 @@ const LeafletMap = ({
           if (map.hasLayer(driverMarker) && customerMarker) fitted = true;
         }
 
-        function updateDriver(lat, lng, bearing) {
-          if (!map.hasLayer(driverMarker)) driverMarker.addTo(map);
-          driverMarker.setLatLng([lat, lng]);
 
-          if (mode === 'driver') {
-            if (!initialized) {
-              map.setView([lat, lng], 17);
-              initialized = true;
-            } else if (following) {
-              map.panTo([lat, lng], { animate: true, duration: 0.8 });
-            }
-            if (bearing != null) map.setBearing(bearing);
-          } else {
-            maybeFit();
-          }
-        }
+       var lastLat = null, lastLng = null, lastHeading = null, lastPov = true;
+
+function applyDriverCamera(animate) {
+  if (lastLat == null) return;
+  var zoom = initialized ? map.getZoom() : 17;
+  var target = [lastLat, lastLng];
+  var bearingToApply = 0;
+
+  if (lastPov && lastHeading != null) {
+    bearingToApply = lastHeading;
+    var size = map.getSize();
+    var lookaheadPx = size.y * 0.28; // how far "ahead" the camera looks — tune this
+    var mpp = metersPerPixel(lastLat, zoom);
+    target = destinationPoint(lastLat, lastLng, lastHeading, mpp * lookaheadPx);
+  }
+
+  if (!initialized) {
+    map.setView(target, zoom);
+    initialized = true;
+  } else if (animate) {
+    map.panTo(target, { animate: true, duration: 0.8 });
+  } else {
+    map.setView(target, zoom);
+  }
+  map.setBearing(bearingToApply);
+}
+
+function updateDriver(lat, lng, heading, pov) {
+  if (!map.hasLayer(driverMarker)) driverMarker.addTo(map);
+  driverMarker.setLatLng([lat, lng]);
+  lastLat = lat; lastLng = lng; lastHeading = heading; lastPov = pov;
+
+  if (mode !== 'driver') { maybeFit(); return; }
+  if (following) applyDriverCamera(true);
+}
 
         function updateCustomer(lat, lng) {
           if (!customerMarker) {
@@ -138,15 +177,13 @@ const LeafletMap = ({
         }
 
         function recenter() {
-          following = true;
-          if (mode === 'driver') {
-            if (map.hasLayer(driverMarker)) {
-              map.setView(driverMarker.getLatLng(), Math.max(map.getZoom(), 17), { animate: true });
-            }
-          } else {
-            fitAll();
-          }
-        }
+  following = true;
+  if (mode === 'driver') {
+    applyDriverCamera(true);
+  } else {
+    fitAll();
+  }
+}
 
         log('page ready. setBearing: ' + (typeof L.Map.prototype.setBearing));
         true;
@@ -186,10 +223,10 @@ const LeafletMap = ({
 
   // 4) driver marker (+ POV rotation in driver mode)
   useEffect(() => {
-    if (!mapReady || !driverLocation) return;
-    const bearing = povMode ? (heading ?? 'null') : 0;
-    inject(`updateDriver(${driverLocation.latitude}, ${driverLocation.longitude}, ${bearing})`);
-  }, [mapReady, driverLocation, heading, povMode]);
+  if (!mapReady || !driverLocation) return;
+  const h = heading == null ? 'null' : heading;
+  inject(`updateDriver(${driverLocation.latitude}, ${driverLocation.longitude}, ${h}, ${povMode ? 'true' : 'false'})`);
+}, [mapReady, driverLocation, heading, povMode]);
 
   // 5) route
   useEffect(() => {
