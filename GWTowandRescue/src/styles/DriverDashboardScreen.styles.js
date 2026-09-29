@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   headerGreen: {
-    color: '#047857',
+    color: '#130866d2',
   },
   headerRight: {
     flexDirection: 'row',
@@ -234,7 +234,7 @@ roleBadge: {
   paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999,
   backgroundColor: '#e0f2fe',
 },
-roleText: { color: '#0369a1', fontSize: 11, fontWeight: '600' },
+roleText: { color: '#070707', fontSize: 11, fontWeight: '600' },
   povButton: {
     position: 'absolute',
     top: 12,

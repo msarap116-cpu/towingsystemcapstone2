@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import LeafletMap from '../components/LeafletMap';
 import Geolocation from '@react-native-community/geolocation';
 import styles from '../styles/DriverDashboardScreen.styles';
+import { launchCamera } from 'react-native-image-picker';
 import API_BASE_URL from '../config';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
@@ -84,6 +85,13 @@ const DriverDashboardScreen = ({ navigation }) => {
   const driverHeadingRef = useRef(null); // mirrors driverHeading, readable inside the GPS callback closure
 
   const [povMode, setPovMode] = useState(true); // start in POV mode
+
+  //photo verification on bushte
+  const [photoModalVisible, setPhotoModalVisible] = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [completingRequestId, setCompletingRequestId] = useState(null);
+  const [completingTargetStatus, setCompletingTargetStatus] = useState('completed');
 
   useEffect(() => {
     customerLocationRef.current = customerLocation;
@@ -616,8 +624,7 @@ const DriverDashboardScreen = ({ navigation }) => {
     }
     const statusOrder = {
       'assigned': 1,
-      'in progress': 2,
-      'completed': 3
+      'completed': 2
     };
     const currentStatus = trip.status;
     if (statusOrder[newStatus] < statusOrder[currentStatus]) {
@@ -678,7 +685,6 @@ const DriverDashboardScreen = ({ navigation }) => {
   const confirmCancelTrip = async () => {
     const requestId = cancelRequestId;
     if (!requestId) return;
-
     const token = await AsyncStorage.getItem('token');
     if (!token) {
       Alert.alert('Error', 'Please log in again.');
@@ -755,10 +761,87 @@ const DriverDashboardScreen = ({ navigation }) => {
       ]
     );
   };
+
   const onRefresh = async () => {
     setRefreshing(true);
     try { await loadDriverDashboardData(); }
     finally { setRefreshing(false); }
+  };
+
+  const requestCameraPermission = async () => {
+    if (Platform.OS !== 'android') return true;
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.CAMERA,
+      {
+        title: 'Camera Permission',
+        message: 'We need camera access to verify job completion.',
+        buttonPositive: 'OK',
+      }
+    );
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  };
+
+  const openCompletionCamera = async (requestId, targetStatus = 'completed') => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) {
+      Alert.alert('Permission required', 'Camera access is needed to complete this job.');
+      return;
+    }
+
+    setCompletingRequestId(requestId);
+    setCompletingTargetStatus(targetStatus); // new state, see below
+
+    launchCamera(
+      { mediaType: 'photo', cameraType: 'back', saveToPhotos: false, quality: 0.7 },
+      (response) => {
+        if (response.didCancel || response.errorCode) return;
+        const asset = response.assets && response.assets[0];
+        if (asset) {
+          setCapturedPhoto(asset);
+          setPhotoModalVisible(true);
+        }
+      }
+    );
+  };
+
+  const uploadCompletionPhoto = async () => {
+    if (!capturedPhoto || !completingRequestId) return;
+    setUploadingPhoto(true);
+
+    try {
+      const token = await AsyncStorage.getItem('token'); // fixed key
+
+      const formData = new FormData();
+      formData.append('photo', {
+        uri: capturedPhoto.uri,
+        type: capturedPhoto.type || 'image/jpeg',
+        name: capturedPhoto.fileName || `completion_${Date.now()}.jpg`,
+      });
+      formData.append('request_id', completingRequestId);
+      formData.append('status', completingTargetStatus || 'completed');
+
+      const res = await fetch(`${API_BASE_URL}/api/driver/trips/${completingRequestId}/complete-photo`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }, // no manual Content-Type
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Upload failed');
+      }
+
+      Alert.alert('Job Completed', 'Completion photo uploaded successfully.');
+      setPhotoModalVisible(false);
+      setCapturedPhoto(null);
+      setCompletingRequestId(null);
+      loadDriverDashboardData(); // your existing refresh — confirm this is the real function name
+    } catch (err) {
+      console.error('uploadCompletionPhoto error:', err);
+      Alert.alert('Upload Failed', err.message || 'Could not upload completion photo.');
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
   // ===== RENDER FUNCTIONS — BOTTOM TAB BAR =====
   const renderProfileHeader = () => (
@@ -771,7 +854,7 @@ const DriverDashboardScreen = ({ navigation }) => {
       <View style={styles.profileInfo}>
         <Text style={styles.profileName}>{user?.name || 'Driver'}</Text>
         <View style={styles.roleBadge}>
-          <Text style={styles.roleText}>🚛 Driver</Text>
+          <Text style={styles.roleText}> Driver</Text>
         </View>
       </View>
     </View>
@@ -875,11 +958,9 @@ const DriverDashboardScreen = ({ navigation }) => {
       </TouchableOpacity>
     );
   };
-
-  //  FIXED: removed undefined `latestRequest?.address` reference
   // TRACKING
   const renderTracking = () => (
-    <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 12 }}>
+    <View style={{ flex: 1, paddingHorizontal: 0, paddingTop: 12 }}>
       <Text style={{ fontSize: 20, fontWeight: '600', marginBottom: 8 }}>Live Tracking</Text>
       <Text style={{ color: '#64748b', marginBottom: 12 }}>
         {trackingStatus || 'No active job – tracking idle.'}
@@ -889,10 +970,11 @@ const DriverDashboardScreen = ({ navigation }) => {
         styles.mapContainer,
         {
           height: 500,
-          borderRadius: 12,
+          borderRadius: 0,
           overflow: 'hidden',
           borderWidth: 1,
-          borderColor: '#e2e8f0',
+          borderColor: '#010811',
+          width: 300,
           position: 'relative', // <-- add this
         }
       ]}>
@@ -959,19 +1041,20 @@ const DriverDashboardScreen = ({ navigation }) => {
                     <Text style={styles.tripAmount}>{formatPrice(item.amount)}</Text>
 
                     <View style={styles.tripActions}>
-                      {status === 'assigned' && (
+                      {/* {status === 'assigned' && (
                         <TouchableOpacity
                           style={[styles.tripBtn, styles.tripBtnPrimary]}
                           onPress={() => updateTripStatus(item.request_id, 'in progress')}
                         >
-                          <Text style={styles.tripBtnPrimaryText}>Start Trip</Text>
+                          <Text style={styles.tripBtnPrimaryText}>update</Text>
                         </TouchableOpacity>
-                      )}
+                      )} */}
 
-                      {status === 'in progress' && (
+                      {status === 'assigned' && (
                         <TouchableOpacity
                           style={[styles.tripBtn, styles.tripBtnSuccess]}
-                          onPress={() => updateTripStatus(item.request_id, 'completed')}
+                          // onPress={() => updateTripStatus(item.request_id, 'completed')}
+                          onPress={() => openCompletionCamera(item.request_id, 'completed')}
                         >
                           <Text style={styles.tripBtnSuccessText}>Complete</Text>
                         </TouchableOpacity>
@@ -1028,7 +1111,6 @@ const DriverDashboardScreen = ({ navigation }) => {
     </View>
   );
   // ===== MAIN RENDER =====
-  // ===== MAIN RENDER — FIXED NESTED SCROLLVIEW WARNING =====
   if (loading) {
     return (
       <SafeAreaProvider>
@@ -1050,7 +1132,7 @@ const DriverDashboardScreen = ({ navigation }) => {
 
         {/* Header / Navbar */}
         <View style={styles.headerBar}>
-          <Text style={styles.headerTitle}>🚛 Towing <Text style={styles.headerGreen}>system</Text></Text>
+          <Text style={styles.headerTitle}> <Text style={styles.headerGreen}>GoodWrench</Text></Text>
           <View style={styles.headerRight}>
             <View style={styles.onlineRow}>
               <View style={styles.greenDot} />
@@ -1106,6 +1188,25 @@ const DriverDashboardScreen = ({ navigation }) => {
                   onPress={confirmCancelTrip}
                 >
                   <Text style={styles.modalBtnDangerText}>Confirm Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal visible={photoModalVisible} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Confirm Completion Photo</Text>
+              {capturedPhoto && (
+                <Image source={{ uri: capturedPhoto.uri }} style={{ width: '100%', height: 250, borderRadius: 8 }} />
+              )}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 }}>
+                <TouchableOpacity onPress={() => setPhotoModalVisible(false)} disabled={uploadingPhoto}>
+                  <Text>Retake / Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={uploadCompletionPhoto} disabled={uploadingPhoto}>
+                  {uploadingPhoto ? <ActivityIndicator /> : <Text>Confirm & Complete</Text>}
                 </TouchableOpacity>
               </View>
             </View>

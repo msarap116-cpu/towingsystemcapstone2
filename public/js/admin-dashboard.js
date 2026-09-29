@@ -312,17 +312,17 @@ document.addEventListener('DOMContentLoaded', function () {
         showAlert("Map updated", "success");
     }
 
-function renderDrivers() {
-    console.log('driver data:', drivers);
-    const container = document.getElementById("driversListContainer");
-    if (!container) return;
+    function renderDrivers() {
+        console.log('driver data:', drivers);
+        const container = document.getElementById("driversListContainer");
+        if (!container) return;
 
-    if (!Array.isArray(drivers) || drivers.length === 0) {
-        container.innerHTML = `<p style="text-align:center; padding:2rem; color:#666;">No drivers found</p>`;
-        return;
-    }
+        if (!Array.isArray(drivers) || drivers.length === 0) {
+            container.innerHTML = `<p style="text-align:center; padding:2rem; color:#666;">No drivers found</p>`;
+            return;
+        }
 
-    container.innerHTML = `
+        container.innerHTML = `
         <div class="table-responsive">
             <table class="data-table">
                 <thead>
@@ -364,7 +364,7 @@ function renderDrivers() {
             </table>
         </div>
     `;
-}
+    }
 
     function renderCustomers(dataToRender) {
         const tbody = document.getElementById('customersTable');
@@ -585,9 +585,18 @@ function renderDrivers() {
         <td>${r.driver_name || '—'}</td>
         <td><span class="status-badge status-${r.status || 'pending'}">${r.status || 'pending'}</span></td>
         <td><span class="payment-status ${r.payment_status === 'paid' ? 'paid' : 'pending'}">${r.payment_status === 'paid' ? ' Paid' : 'Pending'}</span></td>
+        <td>
+    ${r.completion_photo_url
+                ? `<a href="${r.completion_photo_url}" target="_blank" rel="noopener">
+             <img src="${r.completion_photo_url}" alt="Completion proof"
+                  style="width:48px; height:48px; object-fit:cover; border-radius:6px; cursor:pointer; border:1px solid #ddd;" />
+           </a>`
+                : `<span style="color:#aaa; font-size:0.85em;">—</span>`
+            }
+</td>
         <td style="color:#666; font-size:0.9em;">${r.created_at || ''}</td>
        <td>
-    <div class="overflow-menu">
+        <div class="overflow-menu">
         <button class="btn-icon overflow-trigger" title="Actions">⋮</button>
 
         <div class="overflow-dropdown">
@@ -1256,25 +1265,25 @@ function renderDrivers() {
         }
     }
 
-function renderAdmins() {
-    console.log("admin data:", admins);
-    const container = document.getElementById("adminsListContainer");
+    function renderAdmins() {
+        console.log("admin data:", admins);
+        const container = document.getElementById("adminsListContainer");
 
-    if (!container) {
-        console.error("adminListContainer NOT FOUND");
-        return;
-    }
+        if (!container) {
+            console.error("adminListContainer NOT FOUND");
+            return;
+        }
 
-    if (!Array.isArray(admins) || admins.length === 0) {
-        container.innerHTML = `
+        if (!Array.isArray(admins) || admins.length === 0) {
+            container.innerHTML = `
             <p style="text-align:center; padding:2rem; color:#666;">
                 No admins found
             </p>
         `;
-        return;
-    }
+            return;
+        }
 
-    container.innerHTML = `
+        container.innerHTML = `
         <div class="table-responsive">
             <table class="data-table">
                 <thead>
@@ -1295,8 +1304,8 @@ function renderAdmins() {
                             <td>${admin.is_active ? 'Active' : 'Inactive'}</td>
                             <td>
                                 ${admin.created_at
-                                    ? new Date(admin.created_at).toLocaleDateString()
-                                    : '--'}
+                ? new Date(admin.created_at).toLocaleDateString()
+                : '--'}
                             </td>
                         </tr>
                     `).join('')}
@@ -1304,7 +1313,7 @@ function renderAdmins() {
             </table>
         </div>
     `;
-}
+    }
 
     async function init() {
         // Load user from sessionStorage (set during login)
@@ -1725,13 +1734,13 @@ async function loadServicePrices() {
                     <td><strong>${escapeHtml(service.name)}</strong></td>
                     <td>${escapeHtml(service.description || 'No description')}</td>
                     <td><strong>₱${price.toLocaleString('en-PH', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    })}</strong></td>
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })}</strong></td>
                     <td>
                         ${Number(service.is_active) === 1
-                            ? '<span class="status active">Active</span>'
-                            : '<span class="status inactive">Inactive</span>'}
+                    ? '<span class="status active">Active</span>'
+                    : '<span class="status inactive">Inactive</span>'}
                     </td>
                     <td>
                         <button

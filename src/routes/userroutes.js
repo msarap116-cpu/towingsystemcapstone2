@@ -7,25 +7,30 @@ const authMiddleware = require('../middleware/authMiddleware');
 const uploadProfilePicture = require('../middleware/uploadProfilePicture');
 // const authenticateToken = require('../middleware/authMiddleware');
 
+function noStore(req, res, next) {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+}
+
 // Public routes
-router.post('/register', userController.register);
+router.post('/register',noStore,userController.register);
 
-router.post('/login', userController.login);
+router.post('/login',noStore,userController.login);
 
-router.post('/check-email', userController.checkEmailAvailability);
+router.post('/check-email',noStore, userController.checkEmailAvailability);
 
 
 router.post('/', authMiddleware, userController.createUser);
 
-router.get('/profile', authMiddleware, userController.getProfile);
+router.get('/profile', authMiddleware,noStore, userController.getProfile);
 
 // router.put('/profile', authMiddleware, userController.updateProfile);
 
 // router.get('/drivers', authMiddleware, userController.getAllDrivers);
 
-router.post('/logout',authMiddleware, userController.logout);
+router.post('/logout',authMiddleware,noStore, userController.logout);
 
-router.put('/profile-picture',authMiddleware,uploadProfilePicture.single('profile_picture'), userController.updateProfilePicture);
+router.put('/profile-picture',authMiddleware,uploadProfilePicture.single('profile_picture'),noStore, userController.updateProfilePicture);
 //get all the users
 router.get('/',authMiddleware,userController.getAllUsers);
 // get single user

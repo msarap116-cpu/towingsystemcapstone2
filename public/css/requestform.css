@@ -1,5 +1,5 @@
 /* ===== CALTEX COLORS (from reference image) =====
-   Blue:    #0046a8  (deep Caltex blue)
+   Blue:    #0b3d84  (deep Caltex blue)
    Red:     #e30613  (Caltex red)
    Gray:    #eaeef2 / #d3d9e0 / #5a6c7d
    Backgrounds: soft grays / white
@@ -17,7 +17,7 @@ body {
 
     background-size: cover, cover;
     background-blend-mode: normal;
-    color: #0f172a;
+    color: #edeff3;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -25,7 +25,7 @@ body {
 
 /* ===== NAVBAR ===== */
 .navbar {
-    background: #eff0f1;
+    background: #0b3d84;
     padding: 0 24px;
     height: 64px;
     display: flex;
@@ -55,7 +55,7 @@ body {
     letter-spacing: -0.3px;
 }
 .brand-icon { font-size: 26px; line-height: 1; }
-.brand-text { color: #1a1717; }
+.brand-text { color: #f3efef; }
 .nav-menu {
     list-style: none;
     display: flex;
@@ -65,7 +65,7 @@ body {
     padding: 0;
 }
 .nav-item .nav-link {
-    color: rgba(0, 0, 0, 0.912);
+    color: rgba(249, 247, 247, 0.912);
     text-decoration: none;
     font-size: 15px;
     font-weight: 500;
@@ -74,7 +74,7 @@ body {
 }
 .nav-item .nav-link:hover { color:rgba(247, 0, 16, 0.85); }
 .nav-item .nav-link.active {
-    color: rgba(7, 0, 69, 0.85);;
+    color: rgba(243, 243, 246, 0.85);;
     border-bottom: 2px solid rgba(7, 0, 69, 0.85);;
 }
 
@@ -150,7 +150,7 @@ body {
     margin: 6px 0 4px;
 }
 .btn-location {
-    background: #0046a8;
+    background: #0b3d84;
     color: #fff;
     border: none;
     padding: 10px 20px;
@@ -187,7 +187,7 @@ body {
     border-radius: 16px;
     padding: 14px 16px;
     margin: 16px 0 24px;
-    border-left: 4px solid #0046a8;
+    border-left: 4px solid #0b3d84;
     font-size: 13px;
     color: #374151;
     line-height: 1.5;
@@ -293,7 +293,7 @@ body {
 }
 .confirmation-box h4 {
     font-size: 18px;
-    color: #0046a8;
+    color: #0b3d84;
     margin-bottom: 6px;
 }
 .confirmation-box p {
@@ -301,11 +301,11 @@ body {
     color: #374151;
     margin: 4px 0;
 }
-.confirmation-box strong { color: #0046a8; }
+.confirmation-box strong { color: #0b3d84; }
 
 /* ===== LINKS & NOTICE TEXT ===== */
 .form-group a {
-    color: #0046a8;
+    color: #0b3d84;
     text-decoration: none;
     font-weight: 500;
 }

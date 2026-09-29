@@ -41,22 +41,34 @@ exports.getLatestRequest = async (req, res) => {
 
 // POST /trips/:requestId/complete-photo
 exports.completeJobWithPhoto = async (req, res) => {
-  const { requestId } = req.params;
-  const driverId = req.user.id;
-  const photo = req.file;
-
-  if (!photo) {
-    return res.status(400).json({ error: 'Photo is required' });
-  }
-
   try {
-    await driverModel.markTripComplete(requestId, driverId, photo.path);
-    res.json({ success: true });
+    const { requestId } = req.params;
+    const { status } = req.body; // 'completed', matches your enum
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Completion photo is required.' });
+    }
+
+    const validStatuses = ['pending', 'assigned', 'in progress', 'completed', 'cancelled'];
+    const finalStatus = validStatuses.includes(status) ? status : 'completed';
+
+    const photoUrl = `/uploads/completion_photos/${req.file.filename}`;
+
+    await db.query(
+      `UPDATE service_requests
+       SET status = ?, completion_photo_url = ?, completed_at = NOW()
+       WHERE request_id = ?`,
+      [finalStatus, photoUrl, requestId]
+    );
+
+    res.json({ success: true, photoUrl, status: finalStatus });
   } catch (err) {
-    console.error('Error completing job:', err);
-    res.status(500).json({ error: 'Failed to complete job' });
+    console.error('completeJobWithPhoto error:', err);
+    res.status(500).json({ success: false, message: 'Failed to save completion photo.' });
   }
 };
+
+
 exports.saveRouteEstimate = async (req, res) => {
   const driver_id = req.user.id;
   const { id } = req.params; // request_id

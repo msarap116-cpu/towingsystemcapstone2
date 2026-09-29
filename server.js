@@ -10,10 +10,10 @@ require('dotenv').config();
 const db = require('./src/database/database');
 
 // Import User Model
-const User = require('./src/models/userModel');
+// const User = require('./src/models/userModel');
 
 // Import JWT function from userController (RECOMMENDED)
-const { generateToken } = require('./src/controllers/userController');
+// const { generateToken } = require('./src/controllers/userController');
 
 // Import routes
 const userroutes = require('./src/routes/userroutes');
@@ -37,10 +37,10 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use((req, res, next) => {
-    res.setHeader('Cache-Control', 'no-store');
-    next();
-});
+// app.use((req, res, next) => {
+//     res.setHeader('Cache-Control', 'no-store');
+//     next();
+// });
 
 // API routes
 app.use('/api/users/', userroutes);
@@ -88,7 +88,6 @@ app.get('/myvehicles', (req, res) => {
 
 app.use('/uploads',express.static(path.join(__dirname, 'uploads')));
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // app.post('/users/login', async (req, res) => {
 //     try {

@@ -47,7 +47,7 @@ body {
 
 /* top bar – Caltex deep blue */
 .top-bar {
-  background: #0046a8;
+  background: #0b3d84;
   color: #ffffff;
   padding: 10px 0;
   font-size: 14px;
@@ -96,7 +96,7 @@ body {
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #0046a8, #1a6bc4);
+  background: linear-gradient(135deg, #0b3d84, #1a6bc4);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -271,11 +271,11 @@ body {
 
 .btn-outline-dark {
   background: transparent;
-  border: 2px solid #0046a8;
+  border: 2px solid #0b3d84;
   padding: 12px 32px;
   border-radius: 50px;
   font-weight: 600;
-  color: #0046a8;
+  color: #0b3d84;
   text-decoration: none;
   transition: 0.2s;
   /* already here — good, keeps smooth animation */
@@ -286,9 +286,9 @@ body {
 }
 
 .btn-outline-dark:hover {
-  background: #0046a8;
+  background: #0b3d84;
   color: white;
-  border-color: #0046a8;
+  border-color: #0b3d84;
   transform: translateY(-2px);
   /* ← THIS LINE makes it lift up */
   box-shadow: 0 12px 22px rgba(0, 70, 168, 0.25);
@@ -440,7 +440,7 @@ body {
   padding: 10px 20px;
   border-radius: 40px;
   font-weight: 600;
-  color: #0046a8;
+  color: #0b3d84;
   cursor: pointer;
   transition: 0.2s;
 }
@@ -515,7 +515,7 @@ body {
 }
 
 footer {
-  background: #0046a8;
+  background: #0b3d84;
   color: #eaeef2;
   padding: 32px 0;
   text-align: center;
@@ -635,7 +635,7 @@ dialog#emergencyModal .modal-close:hover {
 }
 
 dialog#emergencyModal .form-container {
-  background: #0046a8;
+  background: #0b3d84;
   padding: 28px 26px;
   border-radius: 12px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);

@@ -79,7 +79,7 @@
         .search-input {
             padding: 8px 16px 8px 36px;
             border: 1px solid #e2e8f0;
-            border-radius: 40px;
+            border-radius: 10px;
             width: 220px;
             font-size: 0.85rem;
             background: white;

@@ -62,7 +62,7 @@ async function loadVehicles() {
 
     } catch (error) {
         console.error('loadVehicles error:', error);
-        showAlert('Network error while loading vehicles.', 'danger');
+        showAlert('Network error while loading vehicles.or login please', 'danger');
     }
 }
 

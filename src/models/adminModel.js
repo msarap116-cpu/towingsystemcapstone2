@@ -142,43 +142,28 @@ const Admin = {
 
     async getRequests() {
         const sql = `
-            SELECT
+           SELECT
     r.request_id,
     r.user_id,
     r.driver_id,
-
     u.name AS customer_name,
     u.phone AS customer_phone,
-
     dr.name AS driver_name,
-
     st.name AS service_name,
-
     v.vehicle_type,
-
     r.address AS location,
-
     r.location_lat,
     r.location_lng,
-
     r.status,
-    r.created_at
-
-        FROM service_requests r
-
-        JOIN users u
-            ON r.user_id = u.user_id
-
-        LEFT JOIN users dr
-            ON r.driver_id = dr.user_id
-
-        LEFT JOIN service_types st
-            ON r.service_type_id = st.service_type_id
-
-        LEFT JOIN vehicles v
-            ON r.vehicle_id = v.vehicle_id
-
-        ORDER BY r.created_at DESC
+    r.created_at,
+    r.completion_photo_url,
+    r.completed_at
+FROM service_requests r
+JOIN users u ON r.user_id = u.user_id
+LEFT JOIN users dr ON r.driver_id = dr.user_id
+LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
+LEFT JOIN vehicles v ON r.vehicle_id = v.vehicle_id
+ORDER BY r.created_at DESC
     `;
 
         const result = await db.query(sql);

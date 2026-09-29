@@ -6,15 +6,24 @@ const authenticateToken = require('../middleware/authMiddleware');
 const Request = require('../models/requestModel');
 const requireRole = require('../middleware/requireRole');
 
+function shortPrivateCache(seconds = 5) {
+    return (req, res, next) => {
+        res.setHeader('Cache-Control', `private, max-age=${seconds}`);
+        res.setHeader('Vary', 'Authorization');   // critical for auth'd GETs
+        next();
+    };
+}
+
+//debug log
 router.use((req, res, next) => {
     // console.log('requestRoutes hit:', req.method, req.path);
     next();
 });
 
-// === Specific Routes (Order matters!) === why?
+//Specific Routes (Order matters!) why?
 
 // GET /latest - This MUST come before GET /:id
-router.get('/latest', authenticateToken, async (req, res) => {
+router.get('/latest', authenticateToken,shortPrivateCache(5), async (req, res) => {
     const user_id = req.user.id ?? req.user.user_id;
 
     try {
@@ -42,7 +51,7 @@ router.get('/latest', authenticateToken, async (req, res) => {
 router.get(
     "/pending",
     authenticateToken,
-    requireRole("driver"),
+    requireRole("driver"),authenticateToken,shortPrivateCache(10),
     requestController.getPendingRequests
 );
 
@@ -50,7 +59,7 @@ router.get(
 router.get(
     "/my-trips",
     authenticateToken,
-    requireRole("driver"),
+    requireRole("driver"),shortPrivateCache(10),
     requestController.getMyTrips
 );
 
@@ -70,15 +79,19 @@ router.post('/driver-location', authenticateToken, async (req, res) => {
     }
 });
 
-router.post('/', authenticateToken, requestController.createRequest);
+// router.post('/', authenticateToken, requestController.createRequest);
+router.post('/', authenticateToken, (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+}, requestController.createRequest);
 
-router.get('/my-requests', authenticateToken, requestController.getMyRequests);
+router.get('/my-requests', authenticateToken,shortPrivateCache(10), requestController.getMyRequests);
 
 router.get('/', authenticateToken, requestController.getAllRequests);
 
-router.put('/:id/status', authenticateToken, requestController.updateStatus);
+router.put('/:id/status', authenticateToken, (req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, requestController.updateStatus);
 
-router.put('/:id/address', authenticateToken, requestController.updateAddress);
+router.put('/:id/address', authenticateToken, (req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, requestController.updateAddress);
 
 // Accept a request (assign driver, set status = 'assigned')
 
@@ -115,19 +128,19 @@ router.put('/:id/address', authenticateToken, requestController.updateAddress);
 router.put(
     "/:id/accept",
     authenticateToken,
-    requireRole("driver"),
+    requireRole("driver"),(req,res,next)=>{res.setHeader('Cache-Control','no-store');next();},
     requestController.acceptRequest
 );
 
 router.put(
     "/:id/cancel",
-    authenticateToken,
+    authenticateToken,(req,res,next)=>{res.setHeader('Cache-Control','no-store');next();},
     requestController.cancelRequest
 );
 
 router.put(
     "/:id",
-    authenticateToken,
+    authenticateToken,(req,res,next)=>{res.setHeader('Cache-Control','no-store');next();},
     requestController.updateRequest
 );
 // GET single request by ID
@@ -143,6 +156,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         const { id } = req.params;
         await Request.deleteById(id);
         res.json({ success: true, message: `Request #${id} deleted` });
+        res.setHeader('Cache-Control','no-store')
     } catch (err) {
         res.status(500).json({ error: 'Failed to delete request: ' + err.message });
     }

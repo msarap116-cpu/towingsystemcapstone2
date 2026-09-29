@@ -26,7 +26,11 @@ let addressSearchTimeout = null;
 let addressSearchController = null;
 
 let myLocationMarker = null;
+let lastRouteSignature = null;   // ← add
+let hasAutoFittedOnce = false;   // ← add
 
+const DEFAULT_MAP_CENTER = [6.5, 124.85]; // South Cotabato-ish
+const DEFAULT_MAP_ZOOM   = 11;
 const GEO_API_BASE = 'https://goodwrench-towing-rescue.onrender.com';
 const GEO_HEADERS = { Accept: 'application/json' };
 
@@ -56,8 +60,49 @@ const customerIcon = L.icon({
 });
 
 // Function to initialize map with boundaries
-function initMapWithBounds(mapDiv, initialCenter, initialZoom = 14) {
-    const map = L.map(mapDiv, {
+// function initMapWithBounds(mapDiv, initialCenter, initialZoom = 14) {
+//     const map = L.map(mapDiv, {
+//         maxBounds: L.latLngBounds(
+//             [MAP_CONFIG.bounds.southWest.lat, MAP_CONFIG.bounds.southWest.lng],
+//             [MAP_CONFIG.bounds.northEast.lat, MAP_CONFIG.bounds.northEast.lng]
+//         ),
+//         maxBoundsViscosity: MAP_CONFIG.boundsViscosity,
+//         minZoom: MAP_CONFIG.minZoom,
+//         maxZoom: MAP_CONFIG.maxZoom,
+//         bounceAtZoomLimits: false
+//     }).setView(initialCenter, initialZoom);
+
+//     // Add tile layer
+//     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+//         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+//         maxZoom: 19
+//     }).addTo(map);
+
+//     // Optional: Add boundary overlay
+//     const boundsLayer = L.rectangle(
+//         L.latLngBounds(
+//             [MAP_CONFIG.bounds.southWest.lat, MAP_CONFIG.bounds.southWest.lng],
+//             [MAP_CONFIG.bounds.northEast.lat, MAP_CONFIG.bounds.northEast.lng]
+//         ),
+//         {
+//             color: "#7700ff",
+//             weight: 2,
+//             fill: false,
+//             dashArray: "5, 10",
+//             interactive: true
+//         }
+//     ).addTo(map);
+
+//     boundsLayer.bindPopup("South Cotabato Service Area");
+
+//     return map;
+// };
+function initMap() {
+    if (map) return map;                    // already built
+    const mapDiv = document.getElementById('map');
+    if (!mapDiv) return null;
+
+    map = L.map('map', {
         maxBounds: L.latLngBounds(
             [MAP_CONFIG.bounds.southWest.lat, MAP_CONFIG.bounds.southWest.lng],
             [MAP_CONFIG.bounds.northEast.lat, MAP_CONFIG.bounds.northEast.lng]
@@ -66,53 +111,41 @@ function initMapWithBounds(mapDiv, initialCenter, initialZoom = 14) {
         minZoom: MAP_CONFIG.minZoom,
         maxZoom: MAP_CONFIG.maxZoom,
         bounceAtZoomLimits: false
-    }).setView(initialCenter, initialZoom);
+    }).setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
 
-    // Add tile layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19
     }).addTo(map);
 
-    // Optional: Add boundary overlay
-    const boundsLayer = L.rectangle(
-        L.latLngBounds(
-            [MAP_CONFIG.bounds.southWest.lat, MAP_CONFIG.bounds.southWest.lng],
-            [MAP_CONFIG.bounds.northEast.lat, MAP_CONFIG.bounds.northEast.lng]
-        ),
-        {
-            color: "#7700ff",
-            weight: 2,
-            fill: false,
-            dashArray: "5, 10",
-            interactive: true
-        }
-    ).addTo(map);
-
-    boundsLayer.bindPopup("South Cotabato Service Area");
-
+    setTimeout(() => map.invalidateSize(), 100);
     return map;
-};
+}
 
 // ONE function owns the fetch now
 async function loadLatestRequests() {
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+
     try {
-        const data = await apiFetch('/requests/latest');
-        const activities = Array.isArray(data) ? data : [data];
+        const t0 = performance.now();
+        const res = await fetch(`${API_BASE_URL}/requests/latest`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+         const t1 = performance.now();
+         console.log(`/requests/latest took ${(t1 - t0).toFixed(0)} ms`);
+        if (!res.ok) throw new Error(`${res.status} - ${await res.text()}`);
 
-        // Feed the recent-activity list
-        renderRecentActivity(activities);
+        const data = await res.json();
+        const request = Array.isArray(data) ? data[0] : data;
 
-        // Feed the map with just the newest request
-        await updateMapFromRequest(activities[0]);
-
+        await updateMapFromRequest(request);
     } catch (err) {
-        console.error('Failed to load latest requests:', err);
+        console.error('loadLatestRequests error:', err);
     }
 }
 // Extracted from the old loadUserMap() — now takes data instead of fetching it
 async function updateMapFromRequest(request) {
-
     if (pollingInterval) {
         clearInterval(pollingInterval);
         pollingInterval = null;
@@ -121,62 +154,45 @@ async function updateMapFromRequest(request) {
     const user = JSON.parse(sessionStorage.getItem("user") || '{}');
     const customerName = user.name || 'Customer';
 
+    // 🔑 Make sure the map exists even if initMap() hasn't run yet
+    if (!map) initMap();
+
     if (!request) {
-        console.warn('No active request found.');
+        console.warn('No active request — map stays at default view.');
         return;
     }
 
     latestRequestId = request.request_id;
     latestRequestData = request;
-
     updateRequestBadge(request);
 
+    // ----- terminal states: clear markers, keep the map -----
     if (request.status === 'completed' || request.status === 'cancelled') {
-        console.log(`Request #${request.request_id} is ${request.status}.`);
+        if (request.status === 'cancelled') latestRequestData = null;
 
-        if (request.status === 'cancelled') {
-            latestRequestData = null;
-        }
-
-        if (map) {
-            map.remove();
-            map = null;
-        }
-        customerMarker = null;
-        driverMarker = null;
-        routeLayer = null;
+        if (customerMarker) { map.removeLayer(customerMarker); customerMarker = null; }
+        if (driverMarker)   { map.removeLayer(driverMarker);   driverMarker   = null; }
+        if (routeLayer)     { map.removeLayer(routeLayer);     routeLayer     = null; }
         return;
     }
 
-    if (request.location_lat == null || request.location_lng == null) {
-        console.warn('No customer location data on request.');
-        return;
-    }
+    if (request.location_lat == null || request.location_lng == null) return;
 
     const customerLat = parseFloat(request.location_lat);
     const customerLng = parseFloat(request.location_lng);
+    if (Number.isNaN(customerLat) || Number.isNaN(customerLng)) return;
 
-    if (Number.isNaN(customerLat) || Number.isNaN(customerLng)) {
-        console.error('Invalid customer coordinates.');
-        return;
-    }
-
-    // Create the map only once
-    if (!map) {
-        map = L.map('map').setView([customerLat, customerLng], 15);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
-        }).addTo(map);
-
+    // ----- customer marker: create OR update -----
+    if (!customerMarker) {
         customerMarker = L.marker([customerLat, customerLng], { icon: customerIcon })
             .addTo(map)
-            .bindPopup(`<strong>📍 ${customerName}</strong><br>${request.address || 'Your requested location'}`)
-            .openPopup();
-
-        setTimeout(() => { if (map) map.invalidateSize(); }, 100);
+            .bindPopup(`<strong>📍 ${customerName}</strong><br>${request.address || 'Your requested location'}`);
+    } else {
+        customerMarker.setLatLng([customerLat, customerLng]);
+        customerMarker.setPopupContent(`<strong>📍 ${customerName}</strong><br>${request.address || 'Your requested location'}`);
     }
+
+    map.setView([customerLat, customerLng], 15);
 
     if (request.driver_lat != null && request.driver_lng != null) {
         await showDriverOnMap(
@@ -187,13 +203,12 @@ async function updateMapFromRequest(request) {
         );
     }
 
-    // Restart driver-location polling now that we have a confirmed active request
     pollingInterval = setInterval(() => pollDriverLocation(), POLL_INTERVAL_MS);
-};
+}
 
 // ---------- REFRESH MAP ----------
 function refreshMap() {
-    loadLatestRequests();  // ← was loadUserMap()
+    loadLatestRequests();
     showToast('Map refreshed');
 }
 window.refreshMap = refreshMap;
@@ -319,22 +334,11 @@ async function pollDriverLocation() {
 }
 
 // Show driver on map and draw route
+// module scope — persists across polls
+
+
 async function showDriverOnMap(driverLat, driverLng, customerLat, customerLng) {
-    // Pull driver info from the latest request data
-    const driverName = latestRequestData?.driver_name || 'Driver';
-    const driverPhone = latestRequestData?.driver_phone || '';
-    const vehicleType = latestRequestData?.vehicle_type || '';
-    const plate = latestRequestData?.license_plate || '';
-
-    // Build popup HTML once
-    const popupHtml = `
-        <strong>🚗 ${driverName}</strong><br>
-        ${vehicleType ? `${vehicleType}` : ''}
-        ${plate ? ` • ${plate}` : ''}
-        ${driverPhone ? `<br>📞 ${driverPhone}` : ''}
-        <br><em>On the way</em>
-    `;
-
+    // ---- 1. Ensure marker exists / update it ----
     if (!driverMarker) {
         driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
             .addTo(map)
@@ -344,22 +348,38 @@ async function showDriverOnMap(driverLat, driverLng, customerLat, customerLng) {
         driverMarker.setPopupContent(buildDriverPopup());
     }
 
-    const distance = calculateDistance(driverLat, driverLng, customerLat, customerLng);
-    if (parseFloat(distance) > 0.05) { // 0.05 km = 50 meters
+    // ---- 2. Compute distance once ----
+    const distance = parseFloat(
+        calculateDistance(driverLat, driverLng, customerLat, customerLng)
+    );
+
+    // ---- 3. Fit the camera only ONCE per request ----
+    if (!hasAutoFittedOnce && distance > 0.05) {
         const bounds = L.latLngBounds(
             [driverLat, driverLng],
             [customerLat, customerLng]
         );
         map.fitBounds(bounds, { padding: [60, 60] });
-    } else {
+        hasAutoFittedOnce = true;
+    } else if (!hasAutoFittedOnce) {
+        // driver already within 50m of customer — just center once
         map.setView([customerLat, customerLng], 16);
+        hasAutoFittedOnce = true;
     }
 
+    // ---- 4. Draw/refresh the route ----
     await drawRoute(driverLat, driverLng, customerLat, customerLng);
 }
 
 //draw route in the map
 async function drawRoute(fromLat, fromLng, toLat, toLng) {
+
+
+    //sig is a patch in the problem in slow start in dashboard
+    const sig = `${fromLat.toFixed(4)},${fromLng.toFixed(4)},${toLat.toFixed(4)},${toLng.toFixed(4)}`;
+    if (sig === lastRouteSignature) return;   // ← skip OSRM entirely
+    lastRouteSignature = sig;
+
     try {
         console.log('drawRoute inputs:', { fromLat, fromLng, toLat, toLng });
 
@@ -685,6 +705,13 @@ document.addEventListener("DOMContentLoaded", () => {
     loadDashboardData(); // Make sure this function exists in your dashboard.js or app.js
     loadLatestRequests();
     displayUserInfo();
+    initMap();
+
+    if (!restoreMapState()) {
+        loadLatestRequests();         // no saved state, fetch fresh
+    } else {
+        loadLatestRequests();         // still fetch fresh in background
+    }
 
     // This keeps the customer view updated when the admin changes something
     setInterval(() => {
@@ -1801,5 +1828,33 @@ function buildDriverPopup({ distanceKm, durationMin, straightDistance } = {}) {
         ${driverPhone ? `<br>📞 ${driverPhone}` : ''}
         ${extra ? `<hr style="margin:4px 0;border:none;border-top:1px solid #ddd">${extra}` : ''}
     `;
+}
+// Before leaving
+window.addEventListener('pagehide', () => {
+    if (!map) return;
+    sessionStorage.setItem('mapState', JSON.stringify({
+        center: map.getCenter(),
+        zoom: map.getZoom(),
+        request: latestRequestData,
+        requestId: latestRequestId
+    }));
+});
+
+// On dashboard load
+function restoreMapState() {
+    const raw = sessionStorage.getItem('mapState');
+    if (!raw) return false;
+    try {
+        const state = JSON.parse(raw);
+        initMap();
+        if (state.center) map.setView(state.center, state.zoom);
+        if (state.request) {
+            latestRequestId = state.requestId;
+            latestRequestData = state.request;
+            updateMapFromRequest(state.request);
+        }
+        sessionStorage.removeItem('mapState');
+        return true;
+    } catch { return false; }
 }
 
