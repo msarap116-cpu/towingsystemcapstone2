@@ -13,7 +13,7 @@ async function fetchWithRetry(url, options, retries = 1) {
         await new Promise(r => setTimeout(r, 2000));
     }
 }
-//==================================================================map gelocation=====================================================
+//map gelocation
 let map = null;
 let customerMarker = null;
 let driverMarker = null;
@@ -26,11 +26,11 @@ let addressSearchTimeout = null;
 let addressSearchController = null;
 
 let myLocationMarker = null;
-let lastRouteSignature = null;   // ← add
-let hasAutoFittedOnce = false;   // ← add
+let lastRouteSignature = null;
+let hasAutoFittedOnce = false;
 
-const DEFAULT_MAP_CENTER = [6.5, 124.85]; // South Cotabato-ish
-const DEFAULT_MAP_ZOOM   = 11;
+const DEFAULT_MAP_CENTER = [6.5, 124.85];
+const DEFAULT_MAP_ZOOM = 11;
 const GEO_API_BASE = 'https://goodwrench-towing-rescue.onrender.com';
 const GEO_HEADERS = { Accept: 'application/json' };
 
@@ -46,14 +46,14 @@ const MAP_CONFIG = {
 
 const driverIcon = L.icon({
     iconUrl: 'image/waypoint-red.png',
-    iconSize: [36, 36],                      // match your old circle size
-    iconAnchor: [18, 36],                    // tip points to the coordinate
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
     popupAnchor: [0, -36]
 });
 
 // CUSTOMER ICON
 const customerIcon = L.icon({
-    iconUrl: 'image/waypoint-blue.png',      // your blue icon
+    iconUrl: 'image/waypoint-blue.png',
     iconSize: [36, 36],
     iconAnchor: [18, 36],
     popupAnchor: [0, -36]
@@ -132,8 +132,8 @@ async function loadLatestRequests() {
         const res = await fetch(`${API_BASE_URL}/requests/latest`, {
             headers: { Authorization: `Bearer ${token}` }
         });
-         const t1 = performance.now();
-         console.log(`/requests/latest took ${(t1 - t0).toFixed(0)} ms`);
+        const t1 = performance.now();
+        console.log(`/requests/latest took ${(t1 - t0).toFixed(0)} ms`);
         if (!res.ok) throw new Error(`${res.status} - ${await res.text()}`);
 
         const data = await res.json();
@@ -171,8 +171,8 @@ async function updateMapFromRequest(request) {
         if (request.status === 'cancelled') latestRequestData = null;
 
         if (customerMarker) { map.removeLayer(customerMarker); customerMarker = null; }
-        if (driverMarker)   { map.removeLayer(driverMarker);   driverMarker   = null; }
-        if (routeLayer)     { map.removeLayer(routeLayer);     routeLayer     = null; }
+        if (driverMarker) { map.removeLayer(driverMarker); driverMarker = null; }
+        if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
         return;
     }
 
@@ -601,7 +601,7 @@ function updateRequestBadge(request) {
         }
     }
 }
-//======================================================= display user/driver =================================================
+// display user/driver
 
 //display the user info in the sidebar
 function displayUserInfo() {
@@ -663,6 +663,7 @@ function renderRecentActivity(activities) {
         `;
     }).join("");
 }
+
 //cancel request
 window.cancelRequest = async function (requestId) {
     const token = sessionStorage.getItem('token');
@@ -761,7 +762,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-//======================================== declarations getElementById ==========================================================
+// declarations getElementById
 const editAddressSection = document.getElementById('editAddressSection');
 const editAddressSidebarBtn = document.getElementById('editAddressNavBtn');
 const closeEditModalBtn = document.getElementById('closeModalBtn');
@@ -784,16 +785,16 @@ const useCurrentEditLocationBtn = document.getElementById('useCurrentEditLocatio
 
 //payments
 const paymentNavBtn = document.getElementById('paymentNavBtn');
-const paymentModal = document.getElementById('paymentSection');
+const paymentSection = document.getElementById('paymentSection');
 const gcashPaymentSection = document.getElementById('gcashPaymentSection');
-const closePaymentModal = document.getElementById('closePaymentModal');
+// const closePaymentModal = document.getElementById('closePaymentModal');
 const cancelPaymentBtn = document.getElementById('cancelPaymentBtn');
 const paymentRequestId = document.getElementById('paymentRequestId');
 const paymentAmount = document.getElementById('paymentAmount');
 const paymentMessage = document.getElementById('paymentMessage');
 
 
-//============================================================= payment section ======================================================
+// payment section
 function closePaymentModalFunction(event) {
     console.log('Closing ONLY GCash payment section');
 
@@ -807,7 +808,7 @@ function closePaymentModalFunction(event) {
     } else {
         console.error('gcashPaymentSection NOT FOUND');
     }
-}
+};
 const paymentMethodButtons =
     document.querySelectorAll(
         '.payment-method-btn'
@@ -821,7 +822,7 @@ if (paymentNavBtn) {
             openPaymentModal();
         }
     );
-}
+};
 function openPaymentModal(requestId) {
 
     console.log(
@@ -829,29 +830,31 @@ function openPaymentModal(requestId) {
         requestId
     );
 
-    if (!paymentModal) return;
+    if (!paymentSection) return;
 
-    paymentModal.classList.add('show');
+    paymentSection.classList.add('show');
 
     paymentMessage.textContent = '';
 
     loadPaymentRequestInfo(requestId);
-}
-function closePaymentModalFunction() {
-    console.log('Closing GCash payment section dfdf');
-
-    if (gcashPaymentSection) {
-        gcashPaymentSection.style.display = 'none';
-    }
 };
-if (closePaymentModal) {
 
-    closePaymentModal.addEventListener(
-        'click',
-        closePaymentModalFunction
-    );
-    console.log('closepaymentmodafunction is hit')
-}
+// function closePaymentModalFunction() {
+//     console.log('Closing GCash payment section dfdf');
+
+//     if (gcashPaymentSection) {
+//         gcashPaymentSection.style.display = 'none';
+//     }
+// };
+// if (closePaymentModal) {
+
+//     closePaymentModal.addEventListener(
+//         'click',
+//         closePaymentModalFunction
+//     );
+//     console.log('closepaymentmodafunction is hit')
+// };
+
 if (cancelPaymentBtn) {
     cancelPaymentBtn.addEventListener('click', function (event) {
         event.preventDefault();
@@ -859,7 +862,7 @@ if (cancelPaymentBtn) {
 
         gcashPaymentSection.style.display = 'none';
     });
-}
+};
 async function loadMyPayments() {
     const token = sessionStorage.getItem('token');
     if (!token) return;
@@ -881,7 +884,8 @@ async function loadMyPayments() {
     } catch (error) {
         console.error('Failed to load payments:', error);
     }
-}
+};
+
 //loads the payment info
 function loadPaymentRequestInfo() {
     if (!latestRequestData) {
@@ -976,9 +980,9 @@ async function processPaymentMethod(method, requestId) {
 
         console.log('Existing payment:', payment);
 
-        // =========================
+        //
         // CASH PAYMENT
-        // =========================
+        //
         if (method === 'cash') {
 
             if (payment) {
@@ -1006,9 +1010,9 @@ async function processPaymentMethod(method, requestId) {
             return;
         }
 
-        // =========================
+        //
         // GCASH PAYMENT
-        // =========================
+        //
         if (method === 'gcash') {
 
             if (payment) {
@@ -1060,7 +1064,8 @@ async function processPaymentMethod(method, requestId) {
             error.message ||
             'Unable to check payment status.';
     }
-}
+};
+
 //function for paying in gcash
 async function startGCashPayment(requestId) {
     const token = sessionStorage.getItem('token');
@@ -1220,25 +1225,7 @@ async function selectCashPayment(requestId) {
     }
 }
 
-//when selecting gcash payment
-// async function selectCashPayment(requestId) {
-
-//     console.log(
-//         '💵 CASH FUNCTION HIT'
-//     );
-
-//     console.log(
-//         'Request ID:',
-//         requestId
-//     );
-
-//     paymentMessage.textContent =
-//         `Cash selected for Request #${requestId}.`;
-
-// }
-
-
-//================================================================address section =====================================================
+//ADDRESS SECTION
 async function useCurrentEditLocation() {
     console.log("📍 Getting current location...");
 
@@ -1325,7 +1312,7 @@ async function useCurrentEditLocation() {
     );
 }
 
-// ========== SEARCH ADDRESS ==========
+//  SEARCH ADDRESS
 async function searchAddressLocations(query) {
     const addressSuggestions = document.getElementById('addressSuggestions');
 
@@ -1381,7 +1368,7 @@ async function searchAddressLocations(query) {
     }
 }
 
-// ========== SELECT ADDRESS RESULT ==========
+//  SELECT ADDRESS RESULT
 function selectAddressResult(result) {
     const editAddressInput = document.getElementById('editAddressInput');
     const editLocationLat = document.getElementById('editLocationLat');
@@ -1408,7 +1395,7 @@ function selectAddressResult(result) {
     console.log('Selected address:', { address, lat, lng });
 }
 
-// ========== GEOCODE ADDRESS (manual input) ==========
+//  GEOCODE ADDRESS (manual input)
 async function geocodeAddress(address) {
     try {
         // Server already appends ", Philippines" and sets countrycodes=ph,
@@ -1502,7 +1489,6 @@ document.getElementById('closeEditAddressSection')?.addEventListener('click', ()
 });
 
 
-// SAVE ADDRESS — Full updated logic (Section mode)
 
 
 // base line sang popular people
@@ -1513,13 +1499,13 @@ window.addEventListener('beforeunload', () => {
 });
 
 
-//=================================================================download receipt==================================================
+//DOWNLOAD RECEIPTS
 
 //sidebar nav button functions
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Ready');
 
-    // ========== DECLARE ALL ELEMENTS ==========
+    //  DECLARE ALL ELEMENTS
     const dashboardNav = document.getElementById('dashboardNav');
     const receiptNavBtn = document.getElementById('receiptNavBtn');
     const recentNavBtn = document.getElementById('recentNavBtn');
@@ -1528,14 +1514,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const dashboardPanel = document.getElementById('dashboardPanel');
     const receiptPanel = document.getElementById('receiptPanel');
     const recentPanel = document.getElementById('recent-panel');
-    const paymentSection = document.getElementById('paymentSection');
     const editAddressSection = document.getElementById('editAddressSection');
     const useCurrentEditLocationBtn = document.getElementById('useCurrentEditLocationBtn');
     const editAddressInput = document.getElementById('editAddressInput');
-    const addressSuggestions = document.getElementById('addressSuggestions');
+    // const addressSuggestions = document.getElementById('addressSuggestions');
     const saveEditAddressBtn = document.getElementById('saveAddressBtn');
 
-    // ========== showPanel() ==========
+    //showPanel
     function showPanel(panel, navItem) {
         dashboardPanel.hidden = true;
         receiptPanel.hidden = true;
@@ -1553,22 +1538,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (navItem) navItem.classList.add('active');
     }
 
-    // ========== DASHBOARD ==========
+    // inside DOMContentLoaded, right after defining showPanel:
+    window.openPaymentPanel = () => showPanel(paymentSection, paymentNavBtn);
+    //  DASHBOARD
     dashboardNav?.addEventListener('click', () => showPanel(dashboardPanel, dashboardNav));
 
-    // ========== RECEIPTS ==========
+    //  RECEIPTS
     receiptNavBtn?.addEventListener('click', async () => {
         showPanel(receiptPanel, receiptNavBtn);
         console.log('receipt clicked');
         await loadMyReceipts();
     });
 
-    // ========== RECENT ==========
+    //  RECENT
     recentNavBtn?.addEventListener('click', () => showPanel(recentPanel, recentNavBtn));
 
-    // ========== PAYMENT ==========
+    //  PAYMENT
     paymentNavBtn?.addEventListener('click', () => showPanel(paymentSection, paymentNavBtn));
-    document.getElementById('closePaymentSection')?.addEventListener('click', () => showPanel(dashboardPanel, dashboardNav));
+
+    // document.getElementById('closePaymentSection')?.addEventListener('click', () => showPanel(dashboardPanel, dashboardNav));
     // document.getElementById('cancelPaymentBtn')?.addEventListener('click', () => showPanel(dashboardPanel, dashboardNav));
 
 
@@ -1612,15 +1600,15 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('editAddressNavBtn NOT FOUND — check your HTML ID!');
     }
 
-    // ========== CLOSE EDIT ADDRESS ==========
+    //  CLOSE EDIT ADDRESS
     document.getElementById('closeEditAddressSection')?.addEventListener('click', () => {
         showPanel(dashboardPanel, dashboardNav);
     });
 
-    // ========== USE CURRENT LOCATION BUTTON ==========
+    //  USE CURRENT LOCATION BUTTON
     useCurrentEditLocationBtn?.addEventListener('click', useCurrentEditLocation);
 
-    // ========== ADDRESS SEARCH INPUT ==========
+    //  ADDRESS SEARCH INPUT
     editAddressInput?.addEventListener('input', () => {
         const query = editAddressInput.value.trim();
         const editLocationLat = document.getElementById('editLocationLat');
@@ -1635,7 +1623,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addressSearchTimeout = setTimeout(() => searchAddressLocations(query), 500);
     });
 
-    // ========== SAVE ADDRESS ==========
+    //  SAVE ADDRESS
     saveEditAddressBtn?.addEventListener('click', async (e) => {
         e.preventDefault();
         const editAddressInput = document.getElementById('editAddressInput');
@@ -1715,6 +1703,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
 }); // END DOMContentLoaded
 
+function showPaymentSection() {
+    paymentMessage.textContent = '';
+    loadPaymentRequestInfo();
+    window.openPaymentPanel();
+}
+
+// Called when the dashboard opens with ?pay=123
+async function openPaymentFromQuery() {
+    const payId = new URLSearchParams(window.location.search).get('pay');
+    if (!payId) return;
+
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        // Reuse the endpoint we already made: it returns the unpaid request + amount
+        const res = await fetch(`${API_BASE_URL}/requests/can-create`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (data.canRequest === false && String(data.request.id) === payId) {
+            latestRequestData = {
+                request_id: data.request.id,
+                total_amount: data.request.amount
+            };
+            showPaymentSection();
+        }
+    } catch (err) {
+        console.error('Open payment from link failed:', err);
+    } finally {
+        // clean the URL so a refresh doesn't reopen it
+        history.replaceState(null, '', window.location.pathname);
+    }
+}
+
 window.downloadReceipt = async function (paymentId) {
     const token = sessionStorage.getItem('token');
 
@@ -1755,6 +1779,7 @@ window.downloadReceipt = async function (paymentId) {
         alert(error.message);
     }
 };
+
 async function loadMyReceipts() {
     const tbody = document.getElementById('receiptsTableBody');
 
@@ -1783,6 +1808,7 @@ async function loadMyReceipts() {
         }
     }
 }
+
 function renderReceipts(receipts) {
     const tbody = document.getElementById('receiptsTableBody');
     if (!receipts || receipts.length === 0) {

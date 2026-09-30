@@ -114,6 +114,30 @@ const Request = {
 
     return rows?.[0] || null;
   },
+  async getUnpaidByUser(user_id) {
+    const sql = `
+        SELECT
+            r.request_id,
+            r.total_amount,
+            p.status AS payment_status
+        FROM service_requests r
+        LEFT JOIN payments p ON p.request_id = r.request_id
+        WHERE r.user_id = ?
+          AND r.status = 'completed'
+          AND (p.payment_id IS NULL
+               OR p.status NOT IN ('completed', 'refunded'))
+        ORDER BY r.created_at DESC
+        LIMIT 1
+    `;
+
+    const result = await db.query(sql, [user_id]);
+
+    const rows = Array.isArray(result?.[0])
+        ? result[0]
+        : result;
+
+    return rows?.[0] || null;
+},
 
  async getLatestByUserForCooldown(user_id) {
     const sql = `

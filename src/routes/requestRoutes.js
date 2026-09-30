@@ -48,20 +48,12 @@ router.get('/latest', authenticateToken,shortPrivateCache(5), async (req, res) =
 });
 
 // GET /pending all unassigned pending requests for drivers This MUST come before GET /:id
-router.get(
-    "/pending",
-    authenticateToken,
-    requireRole("driver"),authenticateToken,shortPrivateCache(10),
-    requestController.getPendingRequests
-);
+router.get("/pending",authenticateToken,requireRole("driver"),authenticateToken,shortPrivateCache(10),requestController.getPendingRequests);
 
 // GET /my-trips – all requests assigned to this driver - This MUST come before GET /:id
-router.get(
-    "/my-trips",
-    authenticateToken,
-    requireRole("driver"),shortPrivateCache(10),
-    requestController.getMyTrips
-);
+router.get("/my-trips",authenticateToken,requireRole("driver"),shortPrivateCache(10),requestController.getMyTrips);
+
+router.get('/can-create', authenticateToken, requestController.checkCanRequest);
 
 router.post('/driver-location', authenticateToken, async (req, res) => {
     const { lat, lng, request_id } = req.body;
@@ -85,7 +77,9 @@ router.post('/', authenticateToken, (req, res, next) => {
     next();
 }, requestController.createRequest);
 
-router.get('/my-requests', authenticateToken,shortPrivateCache(10), requestController.getMyRequests);
+router.get('/my-requests', authenticateToken,shortPrivateCache(10),
+requestController.getMyRequests
+);
 
 router.get('/', authenticateToken, requestController.getAllRequests);
 
@@ -126,15 +120,12 @@ router.put('/:id/address', authenticateToken, (req,res,next)=>{res.setHeader('Ca
 //     }
 // });
 router.put(
-    "/:id/accept",
-    authenticateToken,
-    requireRole("driver"),(req,res,next)=>{res.setHeader('Cache-Control','no-store');next();},
+    "/:id/accept", authenticateToken,requireRole("driver"),(req,res,next)=>{res.setHeader('Cache-Control','no-store');next();},
     requestController.acceptRequest
 );
 
 router.put(
-    "/:id/cancel",
-    authenticateToken,(req,res,next)=>{res.setHeader('Cache-Control','no-store');next();},
+    "/:id/cancel", authenticateToken,(req,res,next)=>{res.setHeader('Cache-Control','no-store');next();},
     requestController.cancelRequest
 );
 
@@ -145,8 +136,7 @@ router.put(
 );
 // GET single request by ID
 router.get(
-    "/:id",
-    authenticateToken,
+    "/:id", authenticateToken,
     requestController.getRequestById
 );
 
@@ -162,15 +152,11 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 });
 router.post(
-    '/:id/charges',
-    authenticateToken,
-    requireRole('driver', 'admin'),
+    '/:id/charges',authenticateToken,requireRole('driver', 'admin'),
     requestController.addAdditionalCharge
 );
 
-router.get(
-    '/:id/receipt',
-    authenticateToken,
+router.get('/:id/receipt',authenticateToken,
     requestController.getReceipt
 );
 

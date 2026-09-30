@@ -27,6 +27,20 @@ exports.createRequest = async (req, res) => {
                 }
             });
         }
+        // NEW: block if a finished request is still unpaid
+        const unpaid = await Request.getUnpaidByUser(user_id);
+
+        if (unpaid) {
+            return res.status(402).json({
+                error: "Please settle your previous payment before making a new request.",
+                code: "UNPAID_REQUEST",
+                request: {
+                    id: unpaid.request_id,
+                    amount: unpaid.total_amount,
+                    payment_status: unpaid.payment_status || 'none'
+                }
+            });
+        }
 
 
         const latestRequest =
@@ -578,5 +592,28 @@ exports.getReceipt = async (req, res) => {
     } catch (error) {
         console.error('Get receipt error:', error);
         res.status(400).json({ error: error.message });
+    }
+};
+exports.checkCanRequest = async (req, res) => {
+    try {
+        const user_id = req.user.id ?? req.user.user_id;
+        const unpaid = await Request.getUnpaidByUser(user_id);
+
+        if (unpaid) {
+            return res.json({
+                canRequest: false,
+                code: 'UNPAID_REQUEST',
+                request: {
+                    id: unpaid.request_id,
+                    amount: unpaid.total_amount,
+                    payment_status: unpaid.payment_status || 'none'
+                }
+            });
+        }
+
+        res.json({ canRequest: true });
+    } catch (error) {
+        console.error('Check can request error:', error);
+        res.status(500).json({ error: 'Failed to check payment status.' });
     }
 };

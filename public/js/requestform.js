@@ -494,6 +494,8 @@ async function handleRequestSubmit(e) {
             document.getElementById('emergencyForm').style.display = 'none';
             document.getElementById('requestId').textContent = data.request.id;
             document.getElementById('confirmation').style.display = 'block';
+        } else if (response.status === 402 && data.code === 'UNPAID_REQUEST') {
+            showUnpaidModal(data.request);
         } else {
             showAlert(data.error || 'Failed to submit request', 'danger');
         }
@@ -528,5 +530,62 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 });
+async function checkUnpaidBalance() {
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
 
+    try {
+        const response = await fetch(`${API_BASE_URL}/requests/can-create`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (response.ok && data.canRequest === false) {
+            showUnpaidModal(data.request);
+        }
+    } catch (err) {
+        // Fail open: the backend still blocks the submit anyway
+        console.error('Unpaid check failed:', err);
+    }
+}
+
+function showUnpaidModal(req) {
+    // Disable the form so nothing can be filled in behind the modal
+    document.querySelectorAll('#emergencyForm input, #emergencyForm select, #emergencyForm textarea, #emergencyForm button')
+        .forEach(el => el.disabled = true);
+
+    const statusText = {
+        none: 'no payment has been started',
+        awaiting_payment: 'you have not chosen a payment method',
+        awaiting_cash: 'you chose cash, please pay your driver',
+        pending: 'your GCash proof is awaiting verification',
+        failed: 'your GCash proof was rejected, please resubmit'
+    }[req.payment_status] || 'payment is not completed';
+
+    const modalHtml = `
+    <div class="modal fade" id="unpaidModal" data-bs-backdrop="static"
+         data-bs-keyboard="false" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Payment Required</h5>
+          </div>
+          <div class="modal-body">
+            <p>You have an unpaid request (#${req.id}, ₱${req.amount}).</p>
+            <p class="mb-0 text-muted">Status: ${statusText}.</p>
+            <p class="mt-2 mb-0">Please settle it before making a new request.</p>
+          </div>
+          <div class="modal-footer">
+            <a href="dashboard.html?pay=${req.id}" class="btn btn-primary">Go to Payment</a>
+            <a href="dashboard.html" class="btn btn-outline-secondary">Back to Dashboard</a>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    new bootstrap.Modal(document.getElementById('unpaidModal')).show();
+}
+
+document.addEventListener('DOMContentLoaded', checkUnpaidBalance);
 
