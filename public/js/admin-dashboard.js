@@ -549,6 +549,7 @@ document.addEventListener('DOMContentLoaded', function () {
     </tr>
 `).join('');
     }
+
     window.deletePayment = async function (paymentId) {
         if (!confirm('Are you sure you want to delete this payment record? This cannot be undone.')) {
             return;
@@ -575,69 +576,69 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         tbody.innerHTML = dataToRender.map(r => `
-       <tr>
-        <td><strong>#${r.request_id}</strong></td>
-        <td>
-            <div><strong>${r.customer_name || 'Unknown'}</strong></div>
-            <div style="font-size:0.9em; color:#666;">${r.customer_phone || '123'}</div>
-        </td>
-        <td style="max-width:300px; white-space:normal; word-wrap:break-word;">${r.location || 'Unknown'}</td>
-        <td>${r.driver_name || '—'}</td>
-        <td><span class="status-badge status-${r.status || 'pending'}">${r.status || 'pending'}</span></td>
-        <td><span class="payment-status ${r.payment_status === 'paid' ? 'paid' : 'pending'}">${r.payment_status === 'paid' ? ' Paid' : 'Pending'}</span></td>
-        <td>
-    ${r.completion_photo_url
-                ? `<a href="${r.completion_photo_url}" target="_blank" rel="noopener">
-             <img src="${r.completion_photo_url}" alt="Completion proof"
-                  style="width:48px; height:48px; object-fit:cover; border-radius:6px; cursor:pointer; border:1px solid #ddd;" />
-           </a>`
-                : `<span style="color:#aaa; font-size:0.85em;">—</span>`
-            }
-</td>
-        <td style="color:#666; font-size:0.9em;">${r.created_at || ''}</td>
-       <td>
-        <div class="overflow-menu">
-        <button class="btn-icon overflow-trigger" title="Actions">⋮</button>
+   <tr>
+    <td><strong>#${r.request_id}</strong></td>
+    <td>
+        <div><strong>${r.customer_name || 'Unknown'}</strong></div>
+        <div style="font-size:0.9em; color:#666;">${r.customer_phone || '123'}</div>
+    </td>
+    <td style="max-width:300px; white-space:normal; word-wrap:break-word;">${r.location || 'Unknown'}</td>
+    <td>${r.driver_name || '—'}</td>
+    <td><span class="status-badge status-${r.status || 'pending'}">${r.status || 'pending'}</span></td>
+    <td><span class="payment-status ${r.payment_status === 'paid' ? 'paid' : 'pending'}">${r.payment_status === 'paid' ? ' Paid' : 'Pending'}</span></td>
+    <td style="color:#666; font-size:0.9em;">${r.created_at || ''}</td>
+   <td>
+    <div class="overflow-menu">
+    <button class="btn-icon overflow-trigger" title="Actions">⋮</button>
 
-        <div class="overflow-dropdown">
+    <div class="overflow-dropdown">
 
-            ${!r.driver_id && r.status === 'pending'
-                ? `<button
-                        class="dropdown-item"
-                        onclick="openAssignDriverModal(${r.request_id})">
-                         Assign Driver
-                    </button>`
-                : ''
-            }
+        ${!r.driver_id && r.status === 'pending'
+            ? `<button
+                    class="dropdown-item"
+                    onclick="openAssignDriverModal(${r.request_id})">
+                     Assign Driver
+                </button>`
+            : ''
+        }
 
-            <button
-                class="dropdown-item"
-                onclick="editRequest(${r.request_id})"
-                title="Edit Request">
-                ✏️ Edit Request
-            </button>
+        ${r.completion_photo_url
+            ? `<button
+                    class="dropdown-item"
+                    onclick="viewCompletionProof('${r.completion_photo_url}', ${r.request_id})">
+                    📷Completion Photo
+                </button>`
+            : ''
+        }
 
-            <button
-                class="dropdown-item"
-                onclick="openCustomerModal(${r.user_id})"
-                title="View Customer">
-                👤 View Customer
-            </button>
+        <button
+            class="dropdown-item"
+            onclick="editRequest(${r.request_id})"
+            title="Edit Request">
+            ✏️ Edit Request
+        </button>
 
-            <button
-                class="dropdown-item"
-                onclick="deleteRequest(${r.request_id})"
-                title="Delete Request"
-                style="color:#dc3545;">
-                🗑️ Delete Request
-            </button>
+        <button
+            class="dropdown-item"
+            onclick="openCustomerModal(${r.user_id})"
+            title="View Customer">
+            👤 View Customer
+        </button>
 
-        </div>
+        <button
+            class="dropdown-item"
+            onclick="deleteRequest(${r.request_id})"
+            title="Delete Request"
+            style="color:#dc3545;">
+            🗑️ Delete Request
+        </button>
+
+    </div>
     </div>
 </td>
 
-    </tr>
-    `).join("");
+</tr>
+`).join("");
     }
 
     document.addEventListener('click', function (e) {
@@ -1416,6 +1417,24 @@ window.viewPaymentProof = async function (paymentId) {
 
     }
 
+};
+window.viewCompletionProof = function (photoUrl, requestId) {
+    if (!photoUrl) {
+        alert('This request has no completion photo.');
+        return;
+    }
+
+    document.getElementById('completionProofImage').src = photoUrl;
+    document.getElementById('completionProofMeta').textContent = `Request #${requestId}`;
+    document.getElementById('completionProofModal').classList.add('show');
+};
+
+window.closeCompletionProofModal = function () {
+    document.getElementById('completionProofModal').classList.remove('show');
+};
+
+window.closeCompletionProofModal = function () {
+  document.getElementById('completionProofModal').classList.remove('show');
 };
 
 function closeProofModal() {
