@@ -550,7 +550,6 @@ async function checkUnpaidBalance() {
 }
 
 function showUnpaidModal(req) {
-    // Disable the form so nothing can be filled in behind the modal
     document.querySelectorAll('#emergencyForm input, #emergencyForm select, #emergencyForm textarea, #emergencyForm button')
         .forEach(el => el.disabled = true);
 
@@ -584,8 +583,18 @@ function showUnpaidModal(req) {
     </div>`;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    new bootstrap.Modal(document.getElementById('unpaidModal')).show();
-}
 
+    const el = document.getElementById('unpaidModal');
+
+    if (window.bootstrap?.Modal) {
+        new bootstrap.Modal(el).show();
+    } else {
+        // Fallback: plain CSS-driven visible modal, no JS required
+        console.warn('Bootstrap JS not loaded — showing fallback modal');
+        el.classList.add('show');
+        el.style.display = 'block';
+        el.style.background = 'rgba(0,0,0,0.5)';
+    }
+}
 document.addEventListener('DOMContentLoaded', checkUnpaidBalance);
 
