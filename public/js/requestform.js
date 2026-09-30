@@ -550,8 +550,9 @@ async function checkUnpaidBalance() {
 }
 
 function showUnpaidModal(req) {
-    document.querySelectorAll('#emergencyForm input, #emergencyForm select, #emergencyForm textarea, #emergencyForm button')
-        .forEach(el => el.disabled = true);
+    document.querySelectorAll(
+        '#emergencyForm input, #emergencyForm select, #emergencyForm textarea, #emergencyForm button'
+    ).forEach(el => el.disabled = true);
 
     const statusText = {
         none: 'no payment has been started',
@@ -561,40 +562,42 @@ function showUnpaidModal(req) {
         failed: 'your GCash proof was rejected, please resubmit'
     }[req.payment_status] || 'payment is not completed';
 
+    // avoid duplicates if called twice
+    if (document.getElementById('unpaidModal')) return;
+
     const modalHtml = `
-    <div class="modal fade" id="unpaidModal" data-bs-backdrop="static"
-         data-bs-keyboard="false" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Payment Required</h5>
-          </div>
-          <div class="modal-body">
-            <p>You have an unpaid request (#${req.id}, ₱${req.amount}).</p>
-            <p class="mb-0 text-muted">Status: ${statusText}.</p>
-            <p class="mt-2 mb-0">Please settle it before making a new request.</p>
-          </div>
-          <div class="modal-footer">
-            <a href="dashboard.html?pay=${req.id}" class="btn btn-primary">Go to Payment</a>
-            <a href="dashboard.html" class="btn btn-outline-secondary">Back to Dashboard</a>
-          </div>
+        <div class="custom-modal-backdrop" id="unpaidModalBackdrop"></div>
+        <div class="custom-modal" id="unpaidModal" role="dialog" aria-modal="true">
+            <div class="modal-header">
+                <h5 class="modal-title">Payment Required</h5>
+            </div>
+            <div class="modal-body">
+                <p>You have an unpaid request (#${req.id}, ₱${req.amount}).</p>
+                <p style="color:#6c757d;margin:0;">Status: ${statusText}.</p>
+                <p style="margin-top:8px;">Please settle it before making a new request.</p>
+            </div>
+            <div class="modal-footer">
+                <a href="dashboard.html" class="modal-btn modal-btn-secondary">Back to Dashboard</a>
+                <a href="dashboard.html?pay=${req.id}" class="modal-btn modal-btn-primary">Go to Payment</a>
+            </div>
         </div>
-      </div>
-    </div>`;
+    `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-    const el = document.getElementById('unpaidModal');
+    const backdrop = document.getElementById('unpaidModalBackdrop');
+    const modal = document.getElementById('unpaidModal');
 
-    if (window.bootstrap?.Modal) {
-        new bootstrap.Modal(el).show();
-    } else {
-        // Fallback: plain CSS-driven visible modal, no JS required
-        console.warn('Bootstrap JS not loaded — showing fallback modal');
-        el.classList.add('show');
-        el.style.display = 'block';
-        el.style.background = 'rgba(0,0,0,0.5)';
-    }
+    // trigger transition
+    requestAnimationFrame(() => {
+        backdrop.classList.add('show');
+        modal.classList.add('show');
+    });
+
+    // backdrop click = go back to dashboard
+    backdrop.addEventListener('click', () => {
+        window.location.href = 'dashboard.html';
+    });
 }
 document.addEventListener('DOMContentLoaded', checkUnpaidBalance);
 

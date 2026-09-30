@@ -316,6 +316,71 @@ body {
     color: #5a6c7d;
     margin-top: 8px;
 }
+/* --- Custom modal (no Bootstrap JS needed) --- */
+
+.custom-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 1040;
+    display: none;
+}
+
+.custom-modal-backdrop.show {
+    display: block;
+}
+
+.custom-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    width: min(500px, 90vw);
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    z-index: 1050;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    overflow: hidden;
+    font-family: inherit;
+}
+
+.custom-modal.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.custom-modal .modal-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid #e5e5e5;
+    background: #f8f9fa;
+}
+
+.custom-modal .modal-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #212529;
+}
+
+.custom-modal .modal-body {
+    padding: 18px 20px;
+    color: #212529;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+.custom-modal .modal-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #e5e5e5;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    background: #f8f9fa;
+}
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 640px) {
@@ -328,3 +393,28 @@ body {
     .btn-submit { width: 100%; }
     .btn-location { width: 100%; text-align: center; justify-content: center; }
 }
+.modal-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.modal-btn-primary {
+    background: #dc3545;   /* red like your screenshot */
+    color: #fff;
+    border-color: #dc3545;
+}
+
+.modal-btn-primary:hover { background: #c82333; }
+
+.modal-btn-secondary {
+    background: #fff;
+    color: #333;
+    border-color: #ccc;
+}
+
+.modal-btn-secondary:hover { background: #f2f2f2; }
