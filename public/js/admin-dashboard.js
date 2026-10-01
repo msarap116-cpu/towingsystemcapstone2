@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ? data
                 : data.requests || [];
 
-            console.log("Admin fetched fresh requests:", requests);
+            // console.log("Admin fetched fresh requests:", requests);
 
             renderRequests(requests);
 
@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             drivers = await apiFetch("/admin/drivers");
 
-            console.log("Drivers loaded:", drivers);
+            // console.log("Drivers loaded:", drivers);
 
             renderDrivers();
 
@@ -109,15 +109,15 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             const result = await apiFetch("/admin/admins");
 
-            console.log("FULL ADMIN API RESULT:", result);
-            console.log("result.admins:", result.admins);
-            console.log("Is result.admins an array?", Array.isArray(result.admins));
+            // console.log("FULL ADMIN API RESULT:", result);
+            // console.log("result.admins:", result.admins);
+            // console.log("Is result.admins an array?", Array.isArray(result.admins));
 
             admins = result.admins || [];
 
-            console.log("FINAL admins variable:", admins);
-            console.log("Is admins an array?", Array.isArray(admins));
-            console.log("Number of admins:", admins.length);
+            // console.log("FINAL admins variable:", admins);
+            // console.log("Is admins an array?", Array.isArray(admins));
+            // console.log("Number of admins:", admins.length);
 
             renderAdmins();
 
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             payments = await apiFetch('/admin/payments');
 
-            console.log('Payments loaded:', payments);
+            // console.log('Payments loaded:', payments);
             renderPayments();
         } catch (err) {
             console.error('Failed to load payments:', err);
@@ -313,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function renderDrivers() {
-        console.log('driver data:', drivers);
+        // console.log('driver data:', drivers);
         const container = document.getElementById("driversListContainer");
         if (!container) return;
 
@@ -476,7 +476,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     function renderPayments() {
-        console.log('payments data:', payments);
+        // console.log('payments data:', payments);
 
         const tbody = document.getElementById('paymentsTable');
 
@@ -1280,7 +1280,7 @@ function paymentBadge(status) {
     }
 
     function renderAdmins() {
-        console.log("admin data:", admins);
+        // console.log("admin data:", admins);
         const container = document.getElementById("adminsListContainer");
 
         if (!container) {
@@ -1860,7 +1860,7 @@ async function saveServicePrice() {
             }
         );
 
-        console.log('Price updated:', data);
+        // console.log('Price updated:', data);
 
         closeModal('servicePriceModal');
 
