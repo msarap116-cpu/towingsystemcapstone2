@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Alert } from 'react-native';
 import Pdf from 'react-native-pdf';
 import Share from 'react-native-share';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 
 
 
@@ -9,30 +10,39 @@ const PdfViewerScreen = ({ route }) => {
   const { filePath, title } = route.params;
   console.log('PdfViewerScreen params:', route.params);
 
+
 const saveToDownloads = async () => {
-  // 1. Check if filePath exists
   if (!filePath) {
-    Alert.alert('Error', 'No file to save — please try downloading again.');
+    Alert.alert('Error', 'No file to save.');
     return;
   }
 
-  // 2. Clean the path: remove any accidental 'file://' prefixes
-  // so we can add it back consistently in the Share.open call.
-  const cleanPath = filePath.replace('file://', '');
+  // Clean the path to ensure it's a proper file URI
+  const sourcePath = filePath.startsWith('file://')
+    ? filePath.replace('file://', '')
+    : filePath;
+
+  // Define a filename (you can make this dynamic)
+  const fileName = `${title || 'receipt'}.pdf`;
 
   try {
-    await Share.open({
-      title: title || 'Save Receipt',
-      // 3. Use the cleaned path with the 'file://' scheme
-      url: `file://${cleanPath}`,
-      type: 'application/pdf',
-      saveToFiles: true,
-    });
+    // This method handles both modern (Android 10+) and legacy storage
+    await ReactNativeBlobUtil.fs.cp(
+      sourcePath,
+      `content://media/external/downloads/${fileName}` // Note: This is a simplified example
+    );
+    Alert.alert('Success', 'File saved to Downloads!');
   } catch (e) {
-    // Share.open often rejects with "User did not share" when the dialog is dismissed.
-    // This is usually not a real error.
-    if (e?.message !== 'User did not share') {
-      console.error('Save PDF error:', e);
+    console.error('Save error:', e);
+    // Fallback for older Android or other issues
+    try {
+      await ReactNativeBlobUtil.fs.cp(
+        sourcePath,
+        `${ReactNativeBlobUtil.fs.dirs.DownloadDir}/${fileName}`
+      );
+      Alert.alert('Success', 'File saved to Downloads!');
+    } catch (err) {
+      Alert.alert('Error', 'Could not save file to Downloads.');
     }
   }
 };
