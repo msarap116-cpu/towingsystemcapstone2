@@ -20,6 +20,7 @@ import { Picker } from '@react-native-picker/picker';
 import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles/RequestFormScreen.style';
+import { useFocusEffect } from '@react-navigation/native';
 import API_BASE_URL from '../config';
 
 
@@ -47,6 +48,8 @@ const RequestFormScreen = ({ navigation, route }) => {
     const [showGuestModal, setShowGuestModal] = useState(false);
     const [addressSuggestions, setAddressSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [showUnpaidModal, setShowUnpaidModal] = useState(false);
+    const [unpaidRequest, setUnpaidRequest] = useState(null);
 
     const searchTimer = useRef(null);
     const addressSearchController = useRef(null);
@@ -72,6 +75,13 @@ const RequestFormScreen = ({ navigation, route }) => {
         };
     }, []);
 
+    useFocusEffect(
+        useCallback(() => {
+            checkUnpaidBalance();
+        }, [])
+    );
+
+
     const checkAuthAndLoadVehicles = async () => {
         try {
             const token = await AsyncStorage.getItem('token');
@@ -86,6 +96,34 @@ const RequestFormScreen = ({ navigation, route }) => {
             console.error('Auth check error:', error);
         }
     };
+    // --- check for unpaid previous request ---
+    const checkUnpaidBalance = async () => {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) return;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/requests/can-create`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+
+            if (res.ok && data.canRequest === false) {
+                setUnpaidRequest(data.request);
+                setShowUnpaidModal(true);
+            }
+        } catch (err) {
+            // Fail open — backend still blocks submit anyway
+            console.error('Unpaid check failed:', err);
+        }
+    };
+
+    const statusTextFor = (status) => ({
+        none: 'no payment has been started',
+        awaiting_payment: 'you have not chosen a payment method',
+        awaiting_cash: 'you chose cash, please pay your driver',
+        pending: 'your GCash proof is awaiting verification',
+        failed: 'your GCash proof was rejected, please resubmit',
+    }[status] || 'payment is not completed');
 
 
     const searchTimeout = useRef(null);
@@ -472,6 +510,9 @@ const RequestFormScreen = ({ navigation, route }) => {
                         }
                     ]
                 );
+            } else if (response.status === 402 && data.code === 'UNPAID_REQUEST') {
+                setUnpaidRequest(data.request);
+                setShowUnpaidModal(true);
             } else {
                 Alert.alert('Error', data.error || 'Failed to submit request');
             }
@@ -557,8 +598,8 @@ const RequestFormScreen = ({ navigation, route }) => {
                                             key={type.value}
                                             label={type.label}
                                             value={type.value}
-                                            color="#0a0a0a"        // 👈 ADD — Android only
-                                            style={{ color: '#f2f3f6' }}  // 👈 ADD — helps on some versions
+                                            color="#0a0a0a"
+                                            style={{ color: '#f2f3f6' }}
                                         />
                                     ))}
                                 </Picker>
@@ -574,8 +615,8 @@ const RequestFormScreen = ({ navigation, route }) => {
                                     onValueChange={(value) => updateField('vehicleId', value)}
                                     enabled={!loading && !submitted && !isGuest && vehicles.length > 0}
                                     style={styles.picker}
-                                    dropdownIconColor="#000000"   // 👈 ADD THIS
-                                    mode="dropdown"               // 👈 ADD THIS
+                                    dropdownIconColor="#000000"
+                                    mode="dropdown"
                                 >
                                     <Picker.Item
                                         label={loadingVehicles ? "Loading your vehicles..." : "Select a vehicle"}
@@ -588,7 +629,7 @@ const RequestFormScreen = ({ navigation, route }) => {
                                             key={vehicle.vehicle_id}
                                             label={`${vehicle.make} ${vehicle.model} — ${vehicle.license_plate}${vehicle.is_default ? ' (Default)' : ''}`}
                                             value={String(vehicle.vehicle_id)}
-                                            color="#111113"        // 👈 ADD
+                                            color="#111113"
                                             style={{ color: '#dde0e6' }}
                                         />
                                     ))}
@@ -693,10 +734,14 @@ const RequestFormScreen = ({ navigation, route }) => {
                             activeOpacity={0.8}
                             style={[
                                 styles.submitButton,
-                                (loading || submitted || isGuest || vehicles.length === 0) && styles.submitButtonDisabled
+                                (loading || submitted || isGuest || vehicles.length === 0 || showUnpaidModal)
+                                && styles.submitButtonDisabled
                             ]}
                             onPress={handleSubmit}
-                            disabled={loading || submitted || isGuest || vehicles.length === 0}
+                            disabled={
+                                loading || submitted || isGuest ||
+                                vehicles.length === 0 || showUnpaidModal
+                            }
                         >
                             {loading ? (
                                 <ActivityIndicator color="#fff" />
@@ -761,6 +806,59 @@ const RequestFormScreen = ({ navigation, route }) => {
                         >
                             <Text style={styles.modalCancelText}>Cancel</Text>
                         </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Unpaid Balance Modal */}
+            <Modal
+                visible={showUnpaidModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => { /* must not dismiss — force action */ }}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitle}>Payment Required</Text>
+
+                        {unpaidRequest && (
+                            <>
+                                <Text style={styles.modalText}>
+                                    You have an unpaid request (#{unpaidRequest.id}, ₱{unpaidRequest.amount}).
+                                </Text>
+                                <Text style={[styles.modalText, { color: '#6c757d' }]}>
+                                    Status: {statusTextFor(unpaidRequest.payment_status)}.
+                                </Text>
+                                <Text style={styles.modalText}>
+                                    Please settle it before making a new request.
+                                </Text>
+                            </>
+                        )}
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.modalButtonRegister]}
+                                onPress={() => {
+                                    setShowUnpaidModal(false);
+                                    navigation.navigate('Dashboard', {
+                                        screen: 'Dashboard',
+                                        params: { pay: unpaidRequest?.id },
+                                    });
+                                }}
+                            >
+                                <Text style={styles.modalButtonText}>Go to Payment</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.modalButtonLogin]}
+                                onPress={() => {
+                                    setShowUnpaidModal(false);
+                                    navigation.navigate('Dashboard');
+                                }}
+                            >
+                                <Text style={styles.modalButtonText}>Back to Dashboard</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>

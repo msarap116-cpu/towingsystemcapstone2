@@ -30,7 +30,7 @@ import API_BASE_URL from '../config';
 // Import icons (you can use react-native-vector-icons or emojis)
 // For now using emojis, replace with your actual icons
 
-const DashboardScreen = ({ navigation }) => {
+const DashboardScreen = ({ navigation, route }) => {
   // ===== STATE =====
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,6 +64,7 @@ const DashboardScreen = ({ navigation }) => {
   const [gcashReference, setGcashReference] = useState('');
   const [gcashProof, setGcashProof] = useState(null);
   // const [showGcashForm, setShowGcashForm] = useState(false);
+
   // Replace:
   //   const [showGcashForm, setShowGcashForm] = useState(false);
   // With for the future adding methods:
@@ -121,6 +122,16 @@ const DashboardScreen = ({ navigation }) => {
     setEditLng(String(latestRequest.location_lng || ''));
   }
 }, [activeTab, latestRequest]);
+
+useEffect(() => {
+    const payId = route?.params?.pay;
+    if (!payId || !latestRequest) return;
+
+    if (String(latestRequest.request_id) === String(payId)) {
+        setPaymentAmount(`₱${Number(latestRequest.amount || 0).toFixed(2)}`);
+        setActiveTab('payment');
+    }
+}, [route?.params?.pay, latestRequest]);
 
   useEffect(() => {
     if (activeTab !== 'dashboard' || !latestRequest) {
