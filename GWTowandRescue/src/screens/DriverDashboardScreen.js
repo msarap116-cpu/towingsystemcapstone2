@@ -106,7 +106,7 @@ const [paymentsLoading, setPaymentsLoading] = useState(false);
     checkAuth();
 
     return () => {
-      clearInterval(clockInterval);
+
 
       stopGPSTracking();
 
@@ -944,6 +944,36 @@ const refreshPayments = async () => {
       setUploadingPhoto(false);
     }
   };
+  const fetchDriverPayments = async () => {
+  const token = await AsyncStorage.getItem('token');
+  if (!token) return [];
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/payments/driver/mine`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+
+    if (res.status === 401) {
+      const body = await res.json().catch(() => ({}));
+      if (body.code === 'SESSION_EXPIRED') {
+        await handleAuthFailure();
+      }
+      return [];
+    }
+
+    if (!res.ok) {
+      console.warn('payments body:', await res.text());
+      return [];
+    }
+
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error('fetchDriverPayments FAILED:', e.message);
+    return [];
+  }
+};
   // ===== RENDER FUNCTIONS — BOTTOM TAB BAR =====
   const renderProfileHeader = () => (
     <View style={styles.profileHeader}>
@@ -1110,6 +1140,15 @@ const renderTracking = () => (
       default: return { backgroundColor: '#e2e8f0', color: '#334155' };
     }
   };
+  const paymentStatusStyle = (status) => {
+  switch (status) {
+    case 'paid':          return { backgroundColor: '#dcfce7', color: '#166534' };
+    case 'awaiting_cash': return { backgroundColor: '#fef3c7', color: '#92400e' };
+    case 'pending':       return { backgroundColor: '#e2e8f0', color: '#334155' };
+    case 'failed':        return { backgroundColor: '#fee2e2', color: '#991b1b' };
+    default:              return { backgroundColor: '#e2e8f0', color: '#334155' };
+  }
+};
   const renderTrips = () => {
 
     const allTrips = [...(myTrips || []), ...(completedTripsList || [])];

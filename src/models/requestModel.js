@@ -116,18 +116,13 @@ const Request = {
   },
   async getUnpaidByUser(user_id) {
     const sql = `
-        SELECT
-            r.request_id,
-            r.total_amount,
-            p.status AS payment_status
-        FROM service_requests r
-        LEFT JOIN payments p ON p.request_id = r.request_id
-        WHERE r.user_id = ?
-          AND r.status = 'completed'
-          AND (p.payment_id IS NULL
-               OR p.status NOT IN ('completed', 'refunded'))
-        ORDER BY r.created_at DESC
-        LIMIT 1
+     SELECT r.request_id, r.total_amount, p.status AS payment_status
+FROM service_requests r
+JOIN payments p ON p.request_id = r.request_id     -- INNER JOIN
+WHERE r.user_id = ?
+  AND r.status = 'completed'
+  AND p.status NOT IN ('completed', 'refunded')
+ORDER BY r.created_at DESC
     `;
 
     const result = await db.query(sql, [user_id]);
