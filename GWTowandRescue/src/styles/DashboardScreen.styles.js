@@ -339,7 +339,47 @@ const styles = StyleSheet.create({
     paddingVertical: 12, alignItems: 'center', marginTop: 4,
   },
   saveButtonText: { color: '#fff', fontWeight: '600', fontSize: 15 },
-
+// Add to styles object
+noRequestOverlay: {
+  position: 'absolute',
+  top: 0, left: 0, right: 0, bottom: 0,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: 'rgba(255,255,255,0.85)',
+},
+noRequestText: {
+  fontSize: 18,
+  fontWeight: '700',
+  color: '#1a1a2e',
+  marginBottom: 8,
+},
+noRequestSubText: {
+  fontSize: 14,
+  color: '#666',
+  textAlign: 'center',
+  paddingHorizontal: 40,
+},
+// ===== DASHBOARD =====
+dashboardWrapper: {
+  flex: 1,
+  position: 'relative',
+},
+mapBackground: {
+  flex: 1,
+  // Ensure the map has an absolute container
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+},
+overlayTop: {
+  position: 'absolute',
+  top: 12,
+  right: 12,
+  left: 12,
+  alignItems: 'flex-end',
+},
 });
 
 export default styles;

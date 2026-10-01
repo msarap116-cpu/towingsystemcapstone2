@@ -317,51 +317,55 @@ useEffect(() => {
 
   // ===== DASHBOARD DATA =====
   const loadDashboardData = async (silent = false) => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
+  try {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return;
 
-      // Load latest request
-      const res = await fetch(`${API_BASE_URL}/requests/latest`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-        cache: 'no-store'
-      });
+    // Load latest request
+    const res = await fetch(`${API_BASE_URL}/requests/latest`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      cache: 'no-store'
+    });
 
-      if (res.ok) {
-        const data = await res.json();
-        const request = Array.isArray(data) ? data[0] : data;
-        console.log('POLL RESULT:', request?.id, request?.status);
-        console.log('RENDERING WITH STATUS:', latestRequest?.status);
+    console.log('Response status:', res.status);
 
-        setLatestRequest(request);
-        if (request) {
-          setRequestId(request.request_id);
-          setCustomerLocation({
-            latitude: parseFloat(request.location_lat),
-            longitude: parseFloat(request.location_lng)
+    const data = await res.json();           // ✅ read ONCE, declare `data` here
+    console.log('Raw data:', JSON.stringify(data));
+
+    if (res.ok) {
+      const request = Array.isArray(data) ? data[0] : data;
+      console.log('POLL RESULT:', request?.request_id, request?.status);
+      console.log('RENDERING WITH STATUS:', latestRequest?.status);
+
+      setLatestRequest(request);
+      if (request) {
+        setRequestId(request.request_id);
+        setCustomerLocation({
+          latitude: parseFloat(request.location_lat),
+          longitude: parseFloat(request.location_lng)
+        });
+        if (request.driver_lat && request.driver_lng) {
+          setDriverLocation({
+            latitude: parseFloat(request.driver_lat),
+            longitude: parseFloat(request.driver_lng)
           });
-          if (request.driver_lat && request.driver_lng) {
-            setDriverLocation({
-              latitude: parseFloat(request.driver_lat),
-              longitude: parseFloat(request.driver_lng)
-            });
-          }
         }
       }
-
-      // Load recent activities
-      await loadRecentActivity();
-
-      // Load receipts
-      await loadMyReceipts();
-
-    } catch (error) {
-      console.error('Dashboard load error:', error);
-      if (!silent) {
-        Alert.alert('Error', 'Failed to load dashboard data');
-      }
     }
-  };
+
+    // Load recent activities
+    await loadRecentActivity();
+
+    // Load receipts
+    await loadMyReceipts();
+
+  } catch (error) {
+    console.error('Dashboard load error:', error);
+    if (!silent) {
+      Alert.alert('Error', 'Failed to load dashboard data');
+    }
+  }
+};
 
   // ===== MAP FUNCTIONS =====
   const loadUserMap = async () => {
@@ -1144,24 +1148,25 @@ const saveAddress = async () => {
   );
 
   // ===== RENDER TABS — UNCHANGED =====
-  const renderDashboard = () => (
-    <View style={styles.dashboardWrapper}>
-      {/* Map as full-bleed background */}
-      <View style={styles.mapBackground}>
-        <LeafletMap
-          mode="customer"
-          customerLocation={customerLocation}
-          driverLocation={driverLocation}
-          routeCoordinates={routeCoordinates}
-          address={latestRequest?.address}
-          customerName={user?.name}
-          driverName={latestRequest?.driver_name}
-          distanceKm={distance}
-          durationMin={eta}
-        />
-      </View>
+const renderDashboard = () => (
+  <View style={styles.dashboardWrapper}>
+    {/* Map as full-bleed background */}
+    <View style={styles.mapBackground}>
+      <LeafletMap
+        mode="customer"
+        customerLocation={customerLocation}
+        driverLocation={driverLocation}
+        routeCoordinates={routeCoordinates}
+        address={latestRequest?.address}
+        customerName={user?.name}
+        driverName={latestRequest?.driver_name}
+        distanceKm={distance}
+        durationMin={eta}
+      />
+    </View>
 
-      {/* Floating overlay: request id + status + ETA (right aligned, no bg) */}
+    {/* Floating overlay: request id + status + ETA (right aligned, no bg) */}
+    {latestRequest ? (
       <View style={styles.overlayTop} pointerEvents="box-none">
         <View style={styles.requestBadge}>
           <Text style={styles.trackingNumber}>
@@ -1189,8 +1194,16 @@ const saveAddress = async () => {
           )}
         </View>
       </View>
-    </View>
-  );
+    ) : (
+      <View style={styles.noRequestOverlay}>
+        <Text style={styles.noRequestText}>No active request</Text>
+        <Text style={styles.noRequestSubText}>
+          Tap "Request" to create a new service request
+        </Text>
+      </View>
+    )}
+  </View>
+);
   const renderRecentActivity = () => (
     <View style={styles.tabContent}>
       <Text style={styles.tabTitle}>Recent Activity</Text>
