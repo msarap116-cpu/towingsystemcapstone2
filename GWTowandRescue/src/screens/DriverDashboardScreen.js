@@ -43,6 +43,9 @@ const DriverDashboardScreen = ({ navigation }) => {
   const [completedTrips, setCompletedTrips] = useState(0);
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [totalEarnings, setTotalEarnings] = useState(0);
+  // Add these near your other list states
+const [driverPayments, setDriverPayments] = useState([]);
+const [paymentsLoading, setPaymentsLoading] = useState(false);
   // Lists
   const [pendingRequests, setPendingRequests] = useState([]);
   const [myTrips, setMyTrips] = useState([]);
@@ -101,9 +104,6 @@ const DriverDashboardScreen = ({ navigation }) => {
   // ===== LIFECYCLE =====
   useEffect(() => {
     checkAuth();
-    updateClock();
-
-    const clockInterval = setInterval(updateClock, 10000);
 
     return () => {
       clearInterval(clockInterval);
@@ -284,62 +284,116 @@ const DriverDashboardScreen = ({ navigation }) => {
       return { today: 0, allTime: 0 };
     }
   };
+const confirmCashReceived = (paymentId) => {
+  Alert.alert(
+    'Confirm Cash Payment',
+    'Confirm that you received cash payment from the customer?',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Confirm',
+        onPress: async () => {
+          const token = await AsyncStorage.getItem('token');
+          if (!token) {
+            Alert.alert('Error', 'Please log in again.');
+            return;
+          }
 
-  const loadDriverDashboardData = async () => {
-    console.log('🌐 API_BASE_URL =', API_BASE_URL);
-    console.log('🔄 loadDriverDashboardData called');
-    try {
-      console.log('📡 Fetching dashboard data...');
-      const [pending, trips, earnings] = await Promise.all([
-        fetchPendingRequests(),
-        fetchMyTrips(),
-        fetchEarningsSummary()
-      ]);
-      console.log(' Dashboard data received:', { pending, trips, earnings }); // fixed
+          try {
+            const response = await fetch(
+              `${API_BASE_URL}/payments/${paymentId}/cash-received`,
+              {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
 
-      setPendingRequests(pending);
-      const active = trips.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
-      console.log('active trips:', active);
-      const completed = trips.filter(t => t.status === 'completed');
-      setMyTrips(active);
-      setCompletedTripsList(completed);
-      setPaymentHistory(completed.slice(0, 10));
-      setAvailableJobs(pending.length);
-      setActiveTrips(active.length);
-      setCompletedTrips(completed.length);
-      setTodayEarnings(earnings.today || 0);
-      setTotalEarnings(earnings.allTime || 0);
+            const data = await response.json();
 
-      //  FIX: use completedTripsList, not `completed` (which is .length!)
-      // setPaymentHistory(completedTripsList.slice(0, 10));
-      // ⚠️ note: completedTripsList here is still the OLD state value (stale closure) —
-      // setCompletedTripsList(completed) above hasn't applied yet. Consider using
-      // `completed.slice(0, 10)` directly instead.
+            if (!response.ok || !data.success) {
+              Alert.alert('Error', data.message || 'Unable to confirm cash payment.');
+              return;
+            }
 
-      // Check for active trip for tracking
-      const activeTrip = active.find(t => t.status === 'assigned' || t.status === 'in progress');
-      console.log('activeTrip:', activeTrip);
-      if (activeTrip) {
-        setActiveRequestId(activeTrip.request_id);
-        setActiveTripData(activeTrip);
+            Alert.alert(
+              'Payment Confirmed',
+              `Cash payment confirmed.\nReceipt: ${data.receipt_number}`
+            );
 
-        console.log('lat/lng:', activeTrip.location_lat, activeTrip.location_lng);
-        if (activeTrip.location_lat && activeTrip.location_lng) {
-          setCustomerLocation({
-            latitude: parseFloat(activeTrip.location_lat),
-            longitude: parseFloat(activeTrip.location_lng)
-          });
-          setTrackingStatus(`Active job #${activeTrip.request_id} – tracking in progress.`);
-        }
-      } else {
-        setActiveRequestId(null);
-        setActiveTripData(null);
-        setTrackingStatus('No active job – waiting for assignment.');
+            // Refresh whatever shows this driver's payments
+            await refreshPayments();
+          } catch (error) {
+            console.error('Cash confirmation error:', error);
+            Alert.alert('Error', 'Unable to confirm cash payment.');
+          }
+        },
+      },
+    ]
+  );
+};
+
+const refreshPayments = async () => {
+  setPaymentsLoading(true);
+  try {
+    const payments = await fetchDriverPayments();
+    setDriverPayments(payments);
+  } finally {
+    setPaymentsLoading(false);
+  }
+};
+ const loadDriverDashboardData = async () => {
+  try {
+    console.log('📡 Fetching dashboard data...');
+    const [pending, trips, earnings, payments] = await Promise.all([   // 👈 add payments
+      fetchPendingRequests(),
+      fetchMyTrips(),
+      fetchEarningsSummary(),
+      fetchDriverPayments(),   // 👈 add this call
+    ]);
+    console.log(' Dashboard data received:', { pending, trips, earnings, payments });
+
+    setPendingRequests(pending);
+    const active = trips.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
+    console.log('active trips:', active);
+    const completed = trips.filter(t => t.status === 'completed');
+    setMyTrips(active);
+    setCompletedTripsList(completed);
+    setPaymentHistory(completed.slice(0, 10));
+    setAvailableJobs(pending.length);
+    setActiveTrips(active.length);
+    setCompletedTrips(completed.length);
+    setTodayEarnings(earnings.today || 0);
+    setTotalEarnings(earnings.allTime || 0);
+
+    setDriverPayments(payments);   //now `payments` exists
+
+    // Check for active trip for tracking
+    const activeTrip = active.find(t => t.status === 'assigned' || t.status === 'in progress');
+    console.log('activeTrip:', activeTrip);
+    if (activeTrip) {
+      setActiveRequestId(activeTrip.request_id);
+      setActiveTripData(activeTrip);
+
+      console.log('lat/lng:', activeTrip.location_lat, activeTrip.location_lng);
+      if (activeTrip.location_lat && activeTrip.location_lng) {
+        setCustomerLocation({
+          latitude: parseFloat(activeTrip.location_lat),
+          longitude: parseFloat(activeTrip.location_lng)
+        });
+        setTrackingStatus(`Active job #${activeTrip.request_id} – tracking in progress.`);
       }
-    } catch (error) {
-      console.error('loadDriverDashboardData error:', error);
+    } else {
+      setActiveRequestId(null);
+      setActiveTripData(null);
+      setTrackingStatus('No active job – waiting for assignment.');
     }
-  };
+  } catch (error) {
+    console.error('loadDriverDashboardData error:', error);
+  }
+};
 
   // ===== MAP FUNCTIONS =====
   const initDriverMap = async () => {
@@ -742,11 +796,6 @@ const DriverDashboardScreen = ({ navigation }) => {
     }
   };
 
-  // ===== HELPERS =====
-  const updateClock = () => {
-    const now = new Date();
-    setCurrentTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-  };
 
   const getInitials = (name) => {
     if (!name) return 'AD';
@@ -1130,38 +1179,94 @@ const renderTracking = () => (
       </View>
     );
   };
-  const renderEarnings = () => (
-    <View style={{ flex: 1 }}>
-      <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Earnings</Text>
-      <View style={styles.gridRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Total Trips</Text>
-          <Text style={styles.statValue}>{(completedTrips || 0) + (activeTrips || 0)}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Total Revenue</Text>
-          <Text style={styles.statValue}>{formatPrice(totalEarnings ?? 0)}</Text>
-        </View>
+const renderEarnings = () => (
+  <View style={{ flex: 1 }}>
+    <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Earnings</Text>
+
+    <View style={styles.gridRow}>
+      <View style={styles.statCard}>
+        <Text style={styles.statLabel}>Total Trips</Text>
+        <Text style={styles.statValue}>
+          {(completedTrips || 0) + (activeTrips || 0)}
+        </Text>
       </View>
-      <View style={[styles.whiteCard, { flex: 1, marginTop: 16 }]}>
-        <Text style={styles.cardTitle}>Payment History</Text>
-        {paymentHistory?.length ? (
-          <FlatList
-            data={paymentHistory}
-            keyExtractor={(item) => String(item.request_id)}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={loadDriverDashboardData} />
-            }
-            renderItem={({ item }) => (
-              <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
-                <Text>#{item.request_id} — {formatPrice(item.amount)}</Text>
-              </View>
-            )}
-          />
-        ) : <Text style={styles.emptyMsg}>No payments yet</Text>}
+      <View style={styles.statCard}>
+        <Text style={styles.statLabel}>Total Revenue</Text>
+        <Text style={styles.statValue}>{formatPrice(totalEarnings ?? 0)}</Text>
       </View>
     </View>
-  );
+
+    <View style={[styles.whiteCard, { flex: 1, marginTop: 16 }]}>
+      <Text style={styles.cardTitle}>Payment History</Text>
+
+      {paymentsLoading && driverPayments.length === 0 ? (
+        <ActivityIndicator style={{ marginTop: 16 }} />
+      ) : driverPayments?.length ? (
+        <FlatList
+          data={driverPayments}
+          keyExtractor={(item) => String(item.payment_id)}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          renderItem={({ item }) => {
+            const badge = paymentStatusStyle(item.status);
+            return (
+              <View
+                style={{
+                  paddingVertical: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#f1f5f9',
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                  }}
+                >
+                  <Text style={{ fontWeight: '600' }}>#{item.request_id}</Text>
+                  <Text>{formatPrice(item.amount)}</Text>
+                  <Text
+                    style={[
+                      {
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 12,
+                        fontSize: 11,
+                        fontWeight: '600',
+                        overflow: 'hidden',
+                      },
+                      badge,
+                    ]}
+                  >
+                    {item.status}
+                  </Text>
+                  <Text style={{ color: '#64748b', fontSize: 12 }}>
+                    {item.payment_method}
+                  </Text>
+                </View>
+
+                {item.payment_method === 'cash' &&
+                  item.status === 'awaiting_cash' && (
+                    <TouchableOpacity
+                      style={[styles.acceptBtn, { marginTop: 8, alignSelf: 'flex-start' }]}
+                      onPress={() => confirmCashReceived(item.payment_id)}
+                    >
+                      <Text style={styles.acceptBtnText}>Mark Cash Received</Text>
+                    </TouchableOpacity>
+                  )}
+              </View>
+            );
+          }}
+        />
+      ) : (
+        <Text style={styles.emptyMsg}>No payments yet</Text>
+      )}
+    </View>
+  </View>
+);
   // ===== MAIN RENDER =====
   if (loading) {
     return (

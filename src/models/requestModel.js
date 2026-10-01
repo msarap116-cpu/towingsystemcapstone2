@@ -733,6 +733,17 @@ async addAdditionalCharge({
     `;
 
     await db.query(updateSql, [request_id, request_id]);
+    // keep any in-flight payment row in sync with the new total
+const syncPaymentSql = `
+    UPDATE payments p
+    JOIN service_requests r ON r.request_id = p.request_id
+    SET p.amount = r.total_amount,
+        p.updated_at = NOW()
+    WHERE p.request_id = ?
+      AND p.status NOT IN ('completed', 'refunded')
+`;
+
+await db.query(syncPaymentSql, [request_id]);
 
     return true;
 }

@@ -73,6 +73,7 @@ const DashboardScreen = ({ navigation, route }) => {
   const [gcashProofType, setGcashProofType] = useState('image/jpeg');
   const [gcashProofName, setGcashProofName] = useState('proof.jpg');
   const PAYMENT_DRAFT_KEY = 'payment_draft';
+  const [paymentRecord, setPaymentRecord] = useState(null);
 
   // Edit address state
 
@@ -124,14 +125,53 @@ const DashboardScreen = ({ navigation, route }) => {
 }, [activeTab, latestRequest]);
 
 useEffect(() => {
-    const payId = route?.params?.pay;
-    if (!payId || !latestRequest) return;
+    if (!latestRequest) return;
 
-    if (String(latestRequest.request_id) === String(payId)) {
-        setPaymentAmount(`₱${Number(latestRequest.amount || 0).toFixed(2)}`);
+    // Always sync the displayed amount to the request's real total.
+    // Prefer total_amount, fall back to amount, then 0.
+    const raw =
+        latestRequest.total_amount ??
+        latestRequest.amount ??
+        0;
+
+    setPaymentAmount(`₱${Number(raw).toFixed(2)}`);
+
+    // If navigated with ?pay=<id>, jump to the payment tab
+    const payId = route?.params?.pay;
+    if (payId && String(latestRequest.request_id) === String(payId)) {
         setActiveTab('payment');
     }
-}, [route?.params?.pay, latestRequest]);
+}, [latestRequest, route?.params?.pay]);
+useEffect(() => {
+    if (!latestRequest?.request_id) {
+        setPaymentRecord(null);
+        return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) return;
+
+            const res = await fetch(
+                `${API_BASE_URL}/payments/request/${latestRequest.request_id}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            const data = await res.json();
+
+            if (!cancelled) {
+                setPaymentRecord(res.ok ? data.payment : null);
+            }
+        } catch (err) {
+            console.warn('Payment record load failed:', err);
+            if (!cancelled) setPaymentRecord(null);
+        }
+    })();
+
+    return () => { cancelled = true; };
+}, [latestRequest?.request_id]);
 
   useEffect(() => {
     if (activeTab !== 'dashboard' || !latestRequest) {
@@ -553,11 +593,9 @@ useEffect(() => {
     }
   };
 
-  const isPaid =
-    latestRequest?.status === 'completed' ||
-    latestRequest?.payment_status === 'paid' ||
-    latestRequest?.payment_status === 'completed' ||
-    latestRequest?.is_paid === true;
+const isPaid =
+    paymentRecord?.status === 'completed' ||
+    paymentRecord?.status === 'refunded';
 
   // ---------- GCASH START ----------
   const startGCashPayment = async (requestId, token) => {

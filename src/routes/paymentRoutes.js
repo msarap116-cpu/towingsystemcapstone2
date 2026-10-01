@@ -30,10 +30,7 @@ router.post(
                 });
             }
 
-            const request = await Payment.getRequestPaymentInfo(
-                request_id,
-                userId
-            );
+            const request = await Payment.getRequestPaymentInfo(request_id, userId);
 
             if (!request) {
                 return res.status(404).json({
@@ -42,45 +39,61 @@ router.post(
                 });
             }
 
-            const existingPayment =
-                await Payment.findActivePayment(
-                    request_id,
-                    userId
-                );
+            // Trust the request total, not the payment row's stored amount.
+            const amount = Number(request.total_amount ?? request.amount ?? 0);
+
+            const existingPayment = await Payment.findActivePayment(request_id, userId);
 
             if (existingPayment) {
+                if (existingPayment.status === 'completed') {
+                    return res.json({
+                        success: true,
+                        payment: existingPayment,
+                        existing: true
+                    });
+                }
+
+                // Self-heal: force amount + method + status back to "ready for GCash"
+                await db.query(
+                    `UPDATE payments
+                     SET amount = ?,
+                         payment_method = 'gcash',
+                         status = 'awaiting_payment',
+                         updated_at = NOW()
+                     WHERE payment_id = ?`,
+                    [amount, existingPayment.payment_id]
+                );
+
                 return res.json({
                     success: true,
-                    payment: existingPayment,
+                    payment: {
+                        ...existingPayment,
+                        amount,
+                        payment_method: 'gcash',
+                        status: 'awaiting_payment'
+                    },
                     existing: true
                 });
             }
 
-            const paymentId =
-                await Payment.createPaymentIntent({
-                    requestId: request.request_id,
-                    userId,
-                    amount: Number(request.amount)
-                });
+            const paymentId = await Payment.createPaymentIntent({
+                requestId: request.request_id,
+                userId,
+                amount
+            });
 
             const payment = {
                 payment_id: paymentId,
                 request_id: request.request_id,
                 user_id: userId,
-                amount: Number(request.amount),
+                amount,
                 payment_method: 'gcash',
                 status: 'awaiting_payment'
             };
 
-            return res.json({
-                success: true,
-                payment,
-                existing: false
-            });
-
+            return res.json({ success: true, payment, existing: false });
         } catch (error) {
             console.error('Start GCash payment error:', error);
-
             return res.status(500).json({
                 success: false,
                 message: 'Unable to start GCash payment.'
