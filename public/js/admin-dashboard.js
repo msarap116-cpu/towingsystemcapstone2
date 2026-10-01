@@ -564,6 +564,19 @@ document.addEventListener('DOMContentLoaded', function () {
             showAlert('Could not delete payment', 'danger');
         }
     };
+    const PAYMENT_LABELS = {
+    completed:        { cls: 'paid',     text: 'Paid' },
+    pending:          { cls: 'pending',  text: 'Pending' },
+    awaiting_payment: { cls: 'pending',  text: 'Awaiting Payment' },
+    awaiting_cash:    { cls: 'pending',  text: 'Awaiting Cash' },
+    failed:           { cls: 'failed',   text: 'Failed' },
+    refunded:         { cls: 'refunded', text: 'Refunded' },
+};
+
+function paymentBadge(status) {
+    const p = PAYMENT_LABELS[status] || { cls: 'unpaid', text: 'No Payment' };
+    return `<span class="payment-status ${p.cls}">${p.text}</span>`;
+}
 
     function renderRequests(dataToRender) { // <--- Accept data as a parameter
         const tbody = document.getElementById("requestsTable");
@@ -585,7 +598,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <td style="max-width:300px; white-space:normal; word-wrap:break-word;">${r.location || 'Unknown'}</td>
     <td>${r.driver_name || '—'}</td>
     <td><span class="status-badge status-${r.status || 'pending'}">${r.status || 'pending'}</span></td>
-    <td><span class="payment-status ${r.payment_status === 'paid' ? 'paid' : 'pending'}">${r.payment_status === 'paid' ? ' Paid' : 'Pending'}</span></td>
+   <td>${paymentBadge(r.payment_status)}</td>
     <td style="color:#666; font-size:0.9em;">${r.created_at || ''}</td>
    <td>
     <div class="overflow-menu">

@@ -140,42 +140,45 @@ const Admin = {
         return header;
     },
 
-    async getRequests() {
-        const sql = `
-           SELECT
-    r.request_id,
-    r.user_id,
-    r.driver_id,
-    u.name AS customer_name,
-    u.phone AS customer_phone,
-    dr.name AS driver_name,
-    st.name AS service_name,
-    v.vehicle_type,
-    r.address AS location,
-    r.location_lat,
-    r.location_lng,
-    r.status,
-    r.created_at,
-    r.completion_photo_url,
-    r.completed_at
-FROM service_requests r
-JOIN users u ON r.user_id = u.user_id
-LEFT JOIN users dr ON r.driver_id = dr.user_id
-LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
-LEFT JOIN vehicles v ON r.vehicle_id = v.vehicle_id
-ORDER BY r.created_at DESC
+async getRequests() {
+    const sql = `
+        SELECT
+            r.request_id,
+            r.user_id,
+            r.driver_id,
+            u.name AS customer_name,
+            u.phone AS customer_phone,
+            dr.name AS driver_name,
+            st.name AS service_name,
+            v.vehicle_type,
+            r.address AS location,
+            r.location_lat,
+            r.location_lng,
+            r.status,
+            r.created_at,
+            r.completion_photo_url,
+            r.completed_at,
+            p.status AS payment_status,
+            p.payment_method,
+            p.amount AS payment_amount,
+            p.reference_number
+        FROM service_requests r
+        JOIN users u ON r.user_id = u.user_id
+        LEFT JOIN users dr ON r.driver_id = dr.user_id
+        LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
+        LEFT JOIN vehicles v ON r.vehicle_id = v.vehicle_id
+        LEFT JOIN payments p ON p.request_id = r.request_id
+        ORDER BY r.created_at DESC
     `;
 
-        const result = await db.query(sql);
-
-        const rows = Array.isArray(result[0])
-            ? result[0]
-            : Array.isArray(result)
-                ? result
-                : [];
-
-        return rows;
-    },
+    const result = await db.query(sql);
+    const rows = Array.isArray(result[0])
+        ? result[0]
+        : Array.isArray(result)
+            ? result
+            : [];
+    return rows;
+},
 
 
     async getStatistics() {

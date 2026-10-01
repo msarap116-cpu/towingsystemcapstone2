@@ -53,6 +53,7 @@ exports.deletePayment = async (req, res) => {
 exports.getRequests = async (req, res) => {
     try {
         const requests = await Admin.getRequests();
+        console.log("SAMPLE ROW:", requests[0]);   // temporary
         res.json(requests);
     } catch (err) {
         console.error("Error fetching requests:", err);
