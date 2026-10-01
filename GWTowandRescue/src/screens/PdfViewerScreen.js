@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Alert } from 'react-native';
 import Pdf from 'react-native-pdf';
 import Share from 'react-native-share';
+
 
 
 const PdfViewerScreen = ({ route }) => {
@@ -9,18 +10,27 @@ const PdfViewerScreen = ({ route }) => {
   console.log('PdfViewerScreen params:', route.params);
 
 const saveToDownloads = async () => {
+  // 1. Check if filePath exists
   if (!filePath) {
     Alert.alert('Error', 'No file to save — please try downloading again.');
     return;
   }
+
+  // 2. Clean the path: remove any accidental 'file://' prefixes
+  // so we can add it back consistently in the Share.open call.
+  const cleanPath = filePath.replace('file://', '');
+
   try {
     await Share.open({
       title: title || 'Save Receipt',
-      url: `file://${filePath}`,
+      // 3. Use the cleaned path with the 'file://' scheme
+      url: `file://${cleanPath}`,
       type: 'application/pdf',
       saveToFiles: true,
     });
   } catch (e) {
+    // Share.open often rejects with "User did not share" when the dialog is dismissed.
+    // This is usually not a real error.
     if (e?.message !== 'User did not share') {
       console.error('Save PDF error:', e);
     }
