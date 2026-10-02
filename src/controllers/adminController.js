@@ -5,7 +5,7 @@ const Admin = require('../models/adminModel');
 const Request = require('../models/requestModel');
 const Notification = require('../models/notificationModel');
 
-console.log("RUNNING NEW QUERY");
+// console.log("RUNNING NEW QUERY");
 
 
 exports.getDrivers = async (req, res) => {
