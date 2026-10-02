@@ -15,11 +15,12 @@ import {
   Platform,
   Image,
   PermissionsAndroid,
-  Linking
+  Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LeafletMap from '../components/LeafletMap';
-import Geolocation from '@react-native-community/geolocation';
+// import Geolocation from '@react-native-community/geolocation';
+import Geolocation from 'react-native-geolocation-service';
 import styles from '../styles/DriverDashboardScreen.styles';
 import { launchCamera } from 'react-native-image-picker';
 import API_BASE_URL from '../config';
@@ -150,7 +151,23 @@ const [paymentsLoading, setPaymentsLoading] = useState(false);
     console.log('GPS tracking stopped');
   };
 
+// Place this OUTSIDE initDriverMap — at the top level of your component or file
+// const diagnoseLocation = async () => {
+//   // 1. Runtime permission check
+//   if (Platform.OS === 'android') {
+//     const granted = await PermissionsAndroid.check(
+//       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+//     );
+//     console.log('FINE_LOCATION granted at runtime:', granted);
+//   }
 
+//   // 2. Can we get a cached position?
+//   Geolocation.getCurrentPosition(
+//     (pos) => console.log('Cached position OK:', pos.coords),
+//     (err) => console.log('Cached position failed:', err),
+//     { enableHighAccuracy: false, timeout: 5000, maximumAge: Infinity }
+//   );
+// };
   // ===== AUTH FUNCTIONS =====
   const checkAuth = async () => {
     const token = await AsyncStorage.getItem('token');
@@ -397,77 +414,74 @@ const refreshPayments = async () => {
 
   // ===== MAP FUNCTIONS =====
   const initDriverMap = async () => {
-    try {
-      // Use the extracted helper instead of inline PermissionsAndroid calls
-      const hasPermission = await requestLocationPermission();
-      if (!hasPermission) {
-        Alert.alert(
-          'Permission denied',
-          'Please allow location access for live tracking.'
-        );
-        return;
-      }
-
-      let position;
-      try {
-        position = await getInitialLocation();
-      } catch (error) {
-        console.warn('High-accuracy location failed. Trying network location:', error);
-        position = await new Promise((resolve, reject) => {
-          Geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: false,
-            timeout: 30000,
-            maximumAge: 300000,
-          });
-
-        });
-      }
-
-      // Do not update state if the tracking tab was already closed
-      if (activeTab !== 'tracking') {
-        return;
-      }
-
-      const { latitude, longitude } = position.coords;
-
-      setDriverLocation({
-        latitude,
-        longitude,
-      });
-
-      setMapRegion({
-        latitude,
-        longitude,
-        latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
-      });
-
-      // Start watching only after the initial location succeeds
-      startGPSTracking();
-    } catch (error) {
-      console.error('Unable to obtain initial location:', error);
-      if (error?.code === 2) {
-        promptEnableLocation();
-      } else {
-        Alert.alert('Location error', 'Unable to get your current location.');
-      }
-    }
-  };
-
-
-  const getInitialLocation = () => {
-    return new Promise((resolve, reject) => {
-      Geolocation.getCurrentPosition(
-        resolve,
-        reject,
-        {
-          enableHighAccuracy: true,
-          timeout: 30000,
-          maximumAge: 60000,
-        }
+  try {
+    const hasPermission = await requestLocationPermission();
+    if (!hasPermission) {
+      Alert.alert(
+        'Permission denied',
+        'Please allow location access for live tracking.'
       );
+      return;
+    }
+
+    // getInitialLocation already retries internally with fused fallback
+    const position = await getInitialLocation();
+
+    if (activeTab !== 'tracking') return;
+    if (!position?.coords) throw new Error('Location returned no coordinates');
+
+    const { latitude, longitude } = position.coords;
+
+    setDriverLocation({ latitude, longitude });
+    setMapRegion({
+      latitude,
+      longitude,
+      latitudeDelta: 0.02,
+      longitudeDelta: 0.02,
     });
-  };
+
+    startGPSTracking();
+  } catch (error) {
+    console.error('Unable to obtain initial location:', error);
+    if (error?.code === 2) {
+      promptEnableLocation();
+    } else if (error?.code === 3) {
+      Alert.alert(
+        'Location timeout',
+        'Could not get your location in time. Please try again.'
+      );
+    } else {
+      Alert.alert('Location error', 'Unable to get your current location.');
+    }
+  }
+};
+const getInitialLocation = () =>
+  new Promise((resolve, reject) => {
+    Geolocation.getCurrentPosition(
+      resolve,
+      (error) => {
+        console.warn('High-accuracy failed, retrying with fused fallback:', error);
+        Geolocation.getCurrentPosition(
+          resolve,
+          reject,
+          {
+            enableHighAccuracy: false,
+            timeout: 15000,
+            maximumAge: 60000,
+            forceRequestLocation: true,   // ⭐
+            showLocationDialog: true,     // ⭐
+          }
+        );
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 10000,
+        forceRequestLocation: true,       // ⭐ this was missing or wrong
+        showLocationDialog: true,         // ⭐
+      }
+    );
+  });
 
 
   const startGPSTracking = () => {
@@ -530,14 +544,16 @@ const refreshPayments = async () => {
         }
       },
       error => { console.error('GPS watch error:', error); },
-      {
-        enableHighAccuracy: false,
-        maximumAge: 10000,
-        timeout: 30000,
-        distanceFilter: 5,
-        interval: 5000,
-        fastestInterval: 3000,
-      }
+{
+    enableHighAccuracy: true,
+    maximumAge: 5000,
+    timeout: 30000,
+    distanceFilter: 5,
+    interval: 5000,
+    fastestInterval: 3000,
+    forceRequestLocation: true,
+    showLocationDialog: true,
+  }
     );
   };
 
@@ -974,6 +990,7 @@ const refreshPayments = async () => {
     return [];
   }
 };
+
   // ===== RENDER FUNCTIONS — BOTTOM TAB BAR =====
   const renderProfileHeader = () => (
     <View style={styles.profileHeader}>
