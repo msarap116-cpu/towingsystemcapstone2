@@ -26,7 +26,7 @@
 
 import { Platform } from 'react-native';
 
-const LAN_URL = 'http://192.168.0.106:3000/api'; // local dev only
+const LAN_URL = 'http://192.168.0.120:3000/api'; // local dev only
 const PROD_URL = 'https://goodwrench-towing-rescue.onrender.com/api';
 
 // Debug/Metro builds → LAN_URL automatically
