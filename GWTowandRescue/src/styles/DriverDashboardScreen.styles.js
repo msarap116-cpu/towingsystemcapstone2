@@ -10,9 +10,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: 20,
     paddingBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#0046a8',
   },
   headerTitle: {
     fontSize: 22,
@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   headerGreen: {
-    color: '#130866d2',
+    color: '#fefeffd2',
   },
   headerRight: {
     flexDirection: 'row',

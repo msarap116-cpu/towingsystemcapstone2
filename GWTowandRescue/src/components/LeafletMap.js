@@ -21,7 +21,7 @@ const LeafletMap = ({
   const webviewRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const [following, setFollowing] = useState(true);
-  const [webViewKey, setWebViewKey] = useState(0);   // ⭐ NEW
+  const [webViewKey, setWebViewKey] = useState(0);
 
   const html = useMemo(() => `
     <!DOCTYPE html>
@@ -95,22 +95,30 @@ const LeafletMap = ({
         var customerMarker = null;
         var route = null;
 
-        function setPov(pov, recenterCamera) {
-          lastPov = pov;
-          if (lastPov && lastHeading != null) {
-            map.setBearing(lastHeading);
-          } else {
-            map.setBearing(0);
-          }
-          if (recenterCamera) {
-            following = true;
-            if (mode === 'driver') {
-              applyDriverCamera(false);
-            } else {
-              fitAll();
-            }
-          }
-        }
+       function setPov(pov, recenterCamera) {
+  lastPov = pov;
+  if (mode === 'customer') {
+    map.setBearing(0);
+    if (recenterCamera) { following = true; applyCustomerCamera(false); }
+    return;
+  }
+  map.setBearing(lastPov && lastHeading != null ? lastHeading : 0);
+  if (recenterCamera) {
+    following = true;
+    applyDriverCamera(false);
+  }
+}
+
+        function setMode(m) {
+  mode = m;
+  following = true;
+  fitted = false;
+  initialized = false;
+  if (m === 'customer' && customerMarker) {
+    applyCustomerCamera(false);
+    fitted = true;
+  }
+}
 
         function updateInfo(c, d) {
           customerPopupHtml = c;
@@ -127,11 +135,29 @@ const LeafletMap = ({
           else if (pts.length === 1) map.setView(pts[0], 15);
         }
 
-        function maybeFit() {
-          if (mode !== 'customer' || fitted || !following) return;
-          fitAll();
-          if (map.hasLayer(driverMarker) && customerMarker) fitted = true;
-        }
+        function applyCustomerCamera(animate) {
+  if (!customerMarker) return;
+  var zoom = initialized ? map.getZoom() : 15;
+  if (!initialized) {
+    map.setView(customerMarker.getLatLng(), zoom, { animate: false });
+    initialized = true;
+  } else {
+    map.setView(customerMarker.getLatLng(), zoom, { animate: animate, duration: 0.8 });
+  }
+  map.setBearing(0); // no rotation in customer mode
+}
+
+function maybeFit() {
+  if (mode !== 'customer' || fitted || !following) return;
+  // Center on customer if we have one, otherwise fit both markers
+  if (customerMarker) {
+    applyCustomerCamera(false);
+    fitted = true;
+  } else {
+    fitAll();
+    if (map.hasLayer(driverMarker) && customerMarker) fitted = true;
+  }
+}
 
         function applyDriverCamera(animate) {
           if (lastLat == null) return;
@@ -167,16 +193,21 @@ const LeafletMap = ({
         }
 
         function updateCustomer(lat, lng) {
-          if (!customerMarker) {
-            customerMarker = L.marker([lat, lng], { icon: customerIcon })
-              .addTo(map)
-              .bindPopup(function () { return customerPopupHtml; })
-              .openPopup();
-          } else {
-            customerMarker.setLatLng([lat, lng]);
-          }
-          maybeFit();
-        }
+  var isNew = !customerMarker;
+  if (isNew) {
+    customerMarker = L.marker([lat, lng], { icon: customerIcon })
+  .addTo(map)
+  .bindPopup(function () { return customerPopupHtml; }, { autoPan: false })
+  .openPopup();
+  } else {
+    customerMarker.setLatLng([lat, lng]);
+  }
+  // On first appearance, snap the camera to the customer
+  if (isNew && mode === 'customer' && !initialized) {
+    applyCustomerCamera(false);
+    fitted = true;
+  }
+}
 
         function updateRoute(coords) {
           log('updateRoute called with ' + coords.length + ' points');
@@ -186,14 +217,15 @@ const LeafletMap = ({
           }
         }
 
-        function recenter() {
-          following = true;
-          if (mode === 'driver') {
-            applyDriverCamera(true);
-          } else {
-            fitAll();
-          }
-        }
+       function recenter() {
+  following = true;
+  if (mode === 'driver') {
+    applyDriverCamera(true);
+  } else {
+    // Only fit-all if the user explicitly asks; initial view stays on customer
+    fitAll();
+  }
+}
 
         log('page ready. setBearing: ' + (typeof L.Map.prototype.setBearing));
         true;
@@ -208,6 +240,11 @@ const LeafletMap = ({
     if (!mapReady) return;
     inject(`setPov(${povMode ? 'true' : 'false'}, true)`);
   }, [mapReady, povMode]);
+
+  useEffect(() => {
+  if (!mapReady) return;
+  inject(`setMode(${JSON.stringify(mode)})`);
+}, [mapReady, mode]);
 
   useEffect(() => {
     if (!mapReady) return;
