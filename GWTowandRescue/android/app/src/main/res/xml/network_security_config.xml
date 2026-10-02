@@ -5,6 +5,9 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>              <!-- Android emulator -->
+        <domain includeSubdomains="true">192.168.0.103</domain>        <!-- Your Mac's LAN IP -->
+        <domain includeSubdomains="true">192.168.0.106</domain>        <!-- (from earlier attempts) -->
         <domain includeSubdomains="true">goodwrench-towing-rescue.onrender.com</domain>
     </domain-config>
 </network-security-config>
