@@ -6,7 +6,7 @@ const esc = (s) =>
   String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const LeafletMap = ({
-  mode = 'driver', // 'driver' = follow driver (POV) | 'customer' = free camera
+  mode = 'driver',
   driverLocation,
   customerLocation,
   routeCoordinates,
@@ -21,6 +21,7 @@ const LeafletMap = ({
   const webviewRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const [following, setFollowing] = useState(true);
+  const [webViewKey, setWebViewKey] = useState(0);   // ⭐ NEW
 
   const html = useMemo(() => `
     <!DOCTYPE html>
@@ -43,24 +44,23 @@ const LeafletMap = ({
           log('JS ERROR: ' + msg + ' (line ' + line + ')');
         };
         function destinationPoint(lat, lng, bearingDeg, distanceMeters) {
-  var R = 6371000;
-  var brng = bearingDeg * Math.PI / 180;
-  var lat1 = lat * Math.PI / 180;
-  var lng1 = lng * Math.PI / 180;
-  var lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(distanceMeters / R) +
-    Math.cos(lat1) * Math.sin(distanceMeters / R) * Math.cos(brng)
-  );
-  var lng2 = lng1 + Math.atan2(
-    Math.sin(brng) * Math.sin(distanceMeters / R) * Math.cos(lat1),
-    Math.cos(distanceMeters / R) - Math.sin(lat1) * Math.sin(lat2)
-  );
-  return [lat2 * 180 / Math.PI, ((lng2 * 180 / Math.PI) + 540) % 360 - 180];
-}
-
-function metersPerPixel(lat, zoom) {
-  return 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
-}
+          var R = 6371000;
+          var brng = bearingDeg * Math.PI / 180;
+          var lat1 = lat * Math.PI / 180;
+          var lng1 = lng * Math.PI / 180;
+          var lat2 = Math.asin(
+            Math.sin(lat1) * Math.cos(distanceMeters / R) +
+            Math.cos(lat1) * Math.sin(distanceMeters / R) * Math.cos(brng)
+          );
+          var lng2 = lng1 + Math.atan2(
+            Math.sin(brng) * Math.sin(distanceMeters / R) * Math.cos(lat1),
+            Math.cos(distanceMeters / R) - Math.sin(lat1) * Math.sin(lat2)
+          );
+          return [lat2 * 180 / Math.PI, ((lng2 * 180 / Math.PI) + 540) % 360 - 180];
+        }
+        function metersPerPixel(lat, zoom) {
+          return 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+        }
 
         var mode = 'driver';
         var following = true;
@@ -68,13 +68,13 @@ function metersPerPixel(lat, zoom) {
         var fitted = false;
         var customerPopupHtml = 'Customer';
         var driverPopupHtml = 'Driver';
+        var lastLat = null, lastLng = null, lastHeading = null, lastPov = true;   // ⭐ moved up
 
         var map = L.map('map', { rotate: true, touchRotate: true }).setView([6.51, 124.85], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // user drags the map -> stop auto-follow, tell React Native
         map.on('dragstart', function () {
           if (following) { following = false; log('follow:off'); }
         });
@@ -90,33 +90,27 @@ function metersPerPixel(lat, zoom) {
           iconSize: [20,20], iconAnchor: [10,10]
         });
 
-        // popups read the latest text every time they open
         var driverMarker = L.marker([0,0], { icon: driverIcon })
           .bindPopup(function () { return driverPopupHtml; });
         var customerMarker = null;
         var route = null;
 
-       // function setMode(m) { mode = m; }
-       function setPov(pov, recenterCamera) {
-  lastPov = pov;
-
-  // Snap bearing immediately — no animation, no follow-gate
-  if (lastPov && lastHeading != null) {
-    map.setBearing(lastHeading);
-  } else {
-    map.setBearing(0);
-  }
-
-  // Optionally bring the camera back to the driver
-  if (recenterCamera) {
-    following = true;
-    if (mode === 'driver') {
-      applyDriverCamera(false);
-    } else {
-      fitAll();
-    }
-  }
-}
+        function setPov(pov, recenterCamera) {
+          lastPov = pov;
+          if (lastPov && lastHeading != null) {
+            map.setBearing(lastHeading);
+          } else {
+            map.setBearing(0);
+          }
+          if (recenterCamera) {
+            following = true;
+            if (mode === 'driver') {
+              applyDriverCamera(false);
+            } else {
+              fitAll();
+            }
+          }
+        }
 
         function updateInfo(c, d) {
           customerPopupHtml = c;
@@ -139,56 +133,38 @@ function metersPerPixel(lat, zoom) {
           if (map.hasLayer(driverMarker) && customerMarker) fitted = true;
         }
 
+        function applyDriverCamera(animate) {
+          if (lastLat == null) return;
+          var zoom = initialized ? map.getZoom() : 17;
+          var markerScreenRatio = 0.75;
+          var size = map.getSize();
+          var bearingToApply = (lastPov && lastHeading != null) ? lastHeading : 0;
+          var target = [lastLat, lastLng];
 
-       var lastLat = null, lastLng = null, lastHeading = null, lastPov = true;
+          if (lastPov && lastHeading != null) {
+            var offsetPx = (0.5 - markerScreenRatio) * size.y;
+            var mpp = metersPerPixel(lastLat, zoom);
+            var offsetMeters = mpp * Math.abs(offsetPx);
+            target = destinationPoint(lastLat, lastLng, lastHeading, offsetMeters);
+          }
 
-function applyDriverCamera(animate) {
-  if (lastLat == null) return;
-  var zoom = initialized ? map.getZoom() : 17;
+          if (!initialized) {
+            map.setView(target, zoom, { animate: false });
+            initialized = true;
+          } else {
+            map.setView(target, zoom, { animate: animate, duration: 0.8 });
+          }
+          map.setBearing(bearingToApply);
+        }
 
-  // Where the driver marker should sit on the screen.
-  // 0.75 = 75% down (marker near the bottom, road ahead fills the top).
-  var markerScreenRatio = 0.75;
-
-  var size = map.getSize();
-  var bearingToApply = (lastPov && lastHeading != null) ? lastHeading : 0;
-
-  // ---- Work out how far to offset the camera ----
-  // If POV: push the camera forward so the marker is near the bottom.
-  // If not: center the marker normally.
-  var target = [lastLat, lastLng];
-
-  if (lastPov && lastHeading != null) {
-    // Distance from screen center to the desired marker position.
-    var offsetPx = (0.5 - markerScreenRatio) * size.y;
-    // (negative number — pushes camera forward/up)
-
-    var mpp = metersPerPixel(lastLat, zoom);
-    var offsetMeters = mpp * Math.abs(offsetPx);
-
-    // Move the camera in the direction the driver is heading,
-    // so the driver marker ends up at ~75% down the screen.
-    target = destinationPoint(lastLat, lastLng, lastHeading, offsetMeters);
-  }
-
-  if (!initialized) {
-    map.setView(target, zoom, { animate: false });
-    initialized = true;
-  } else {
-    map.setView(target, zoom, { animate: animate, duration: 0.8 });
-  }
-  map.setBearing(bearingToApply);
-}
-
-function updateDriver(lat, lng, heading, pov) {
-log('updateDriver heading=' + heading + ' pov=' + pov);
-  if (!map.hasLayer(driverMarker)) driverMarker.addTo(map);
-  driverMarker.setLatLng([lat, lng]);
-  lastLat = lat; lastLng = lng; lastHeading = heading; lastPov = pov;
-
-  if (mode !== 'driver') { maybeFit(); return; }
-  if (following) applyDriverCamera(true);
-}
+        function updateDriver(lat, lng, heading, pov) {
+          log('updateDriver heading=' + heading + ' pov=' + pov);
+          if (!map.hasLayer(driverMarker)) driverMarker.addTo(map);
+          driverMarker.setLatLng([lat, lng]);
+          lastLat = lat; lastLng = lng; lastHeading = heading; lastPov = pov;
+          if (mode !== 'driver') { maybeFit(); return; }
+          if (following) applyDriverCamera(true);
+        }
 
         function updateCustomer(lat, lng) {
           if (!customerMarker) {
@@ -211,13 +187,13 @@ log('updateDriver heading=' + heading + ' pov=' + pov);
         }
 
         function recenter() {
-  following = true;
-  if (mode === 'driver') {
-    applyDriverCamera(true);
-  } else {
-    fitAll();
-  }
-}
+          following = true;
+          if (mode === 'driver') {
+            applyDriverCamera(true);
+          } else {
+            fitAll();
+          }
+        }
 
         log('page ready. setBearing: ' + (typeof L.Map.prototype.setBearing));
         true;
@@ -228,18 +204,11 @@ log('updateDriver heading=' + heading + ' pov=' + pov);
 
   const inject = (code) => webviewRef.current?.injectJavaScript(code + '; true;');
 
-  // 1) mode first (effects run in declaration order)
-  // useEffect(() => {
-  //   if (!mapReady) return;
-  //   inject(`setMode(${JSON.stringify(mode)})`);
-  // }, [mapReady, mode]);
-
   useEffect(() => {
-  if (!mapReady) return;
-  inject(`setPov(${povMode ? 'true' : 'false'}, true)`); // true = also recenter
-}, [mapReady, povMode]);
+    if (!mapReady) return;
+    inject(`setPov(${povMode ? 'true' : 'false'}, true)`);
+  }, [mapReady, povMode]);
 
-  // 2) popup text
   useEffect(() => {
     if (!mapReady) return;
     const customerHtml = `📍 ${esc(customerName || 'Customer')}<br>${esc(address || 'Customer location')}`;
@@ -254,26 +223,22 @@ log('updateDriver heading=' + heading + ' pov=' + pov);
     inject(`updateInfo(${JSON.stringify(customerHtml)}, ${JSON.stringify(driverHtml)})`);
   }, [mapReady, customerName, address, driverName, distanceKm, durationMin]);
 
-  // 3) customer marker
   useEffect(() => {
     if (!mapReady || !customerLocation) return;
     inject(`updateCustomer(${customerLocation.latitude}, ${customerLocation.longitude})`);
   }, [mapReady, customerLocation]);
 
-  // 4) driver marker (+ POV rotation in driver mode)
   useEffect(() => {
-  if (!mapReady || !driverLocation) return;
-  const h = heading == null ? 'null' : heading;
-  inject(`updateDriver(${driverLocation.latitude}, ${driverLocation.longitude}, ${h}, ${povMode ? 'true' : 'false'})`);
-}, [mapReady, driverLocation, heading, povMode]);
+    if (!mapReady || !driverLocation) return;
+    const h = heading == null ? 'null' : heading;
+    inject(`updateDriver(${driverLocation.latitude}, ${driverLocation.longitude}, ${h}, ${povMode ? 'true' : 'false'})`);
+  }, [mapReady, driverLocation, heading, povMode]);
 
-  // 5) route
   useEffect(() => {
     if (!mapReady || !routeCoordinates?.length) return;
     const coords = JSON.stringify(routeCoordinates.map((c) => [c.latitude, c.longitude]));
     inject(`updateRoute(${coords})`);
   }, [mapReady, routeCoordinates]);
-
 
   const handleMessage = (e) => {
     const msg = e.nativeEvent.data;
@@ -289,6 +254,7 @@ log('updateDriver heading=' + heading + ' pov=' + pov);
   return (
     <View style={styles.container}>
       <WebView
+        key={webViewKey}                                 // ⭐ forces remount after crash
         ref={webviewRef}
         source={{ html, baseUrl: 'https://localhost' }}
         style={styles.map}
@@ -296,9 +262,16 @@ log('updateDriver heading=' + heading + ' pov=' + pov);
         domStorageEnabled
         originWhitelist={['*']}
         cacheEnabled
+        androidLayerType="hardware"                      // ⭐ stability
         onLoadEnd={() => setMapReady(true)}
         onMessage={handleMessage}
         onError={(e) => console.error('WebView error:', e)}
+        onRenderProcessGone={() => {                     // ⭐ catches the crash
+          console.log('WebView process killed by Android, remounting...');
+          setMapReady(false);
+          setWebViewKey(prev => prev + 1);
+          return true;
+        }}
       />
       {!following && (
         <TouchableOpacity style={styles.recenterBtn} onPress={handleRecenter}>
