@@ -4,7 +4,7 @@ import {
   View, Text, FlatList, TouchableOpacity, ActivityIndicator,
   RefreshControl, SafeAreaView,
 } from 'react-native';
-import styles from '../styles'; // your existing styles file
+import styles from '../styles/DriverDashboardScreen.styles'; // your existing styles file
 import {
   fetchNotifications, fetchUnreadCount,
   markNotificationRead, markAllNotificationsRead,

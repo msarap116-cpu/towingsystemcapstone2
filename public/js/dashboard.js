@@ -647,7 +647,9 @@ function renderRecentActivity(activities) {
 
         return `
             <div class="history-item">
-                <strong>#${a.request_id}</strong>
+                <span>#${a.request_id || "#"}</span>
+                <span>#${a.address || "--"}</span>
+                <span>#${a.total_amount || "--"}</span>
                 <span>${a.service_type || "Service Request"}</span>
                 <span>${a.status || "Unknown"}</span>
                 ${canCancel ? `

@@ -3,7 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons'; // or react-native-vector-icons
-import styles from '../styles';
+import styles from '../styles/DriverDashboardScreen.styles';
 import { fetchUnreadCount } from '../services/notificationService';
 
 export default function NotificationBell({ navigation }) {

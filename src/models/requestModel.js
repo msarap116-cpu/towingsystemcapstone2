@@ -250,6 +250,7 @@ async getLatestByUser(user_id) {
     const rows = await db.query(sql, [user_id]);
     return rows;
 },
+
   async getLatestPendingForDriver() {
   const sql = `
     SELECT

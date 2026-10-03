@@ -11,7 +11,8 @@ import DashboardScreen from './src/screens/DashboardScreen';
 import DriverDashboardScreen from './src/screens/DriverDashboardScreen';
 import RequestFormScreen from './src/screens/RequestFormScreen';
 import PdfViewerScreen from './src/screens/PdfViewerScreen';
-import NotificationsScreen from './screens/NotificationsScreen';
+import NotificationScreen from './src/screens/NotificationScreen';
+
 
 
 const Stack = createNativeStackNavigator();
@@ -62,8 +63,8 @@ const App = () => {
                 <Stack.Screen name="DriverDashboard" component={DriverDashboardScreen} options={{ headerShown: false }} />
                 <Stack.Screen name="RequestForm" component={RequestFormScreen} options={{ headerShown: false }} />
                 <Stack.Screen name="PdfViewer" component={PdfViewerScreen} />
-                <Stack.Screen name="Notifications"component={NotificationsScreen} options={{ headerShown: false }} // we use our own SafeAreaView header
-/>
+                <Stack.Screen name="Notifications" component={NotificationScreen} options={{ headerShown: false }}/>
+
             </Stack.Navigator>
         </NavigationContainer>
     );
