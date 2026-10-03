@@ -593,7 +593,7 @@ function paymentBadge(status) {
     <td><strong>#${r.request_id}</strong></td>
     <td>
         <div><strong>${r.customer_name || 'Unknown'}</strong></div>
-        <div style="font-size:0.9em; color:#666;">${r.customer_phone || '123'}</div>
+      <!--  <div style="font-size:0.9em; color:#666;">${r.customer_phone || '123'}</div>-->
     </td>
     <td style="max-width:300px; white-space:normal; word-wrap:break-word;">${r.location || 'Unknown'}</td>
     <td>${r.driver_name || '—'}</td>
@@ -619,7 +619,7 @@ function paymentBadge(status) {
             ? `<button
                     class="dropdown-item"
                     onclick="viewCompletionProof('${r.completion_photo_url}', ${r.request_id})">
-                    📷Completion Photo
+                    Completion Photo
                 </button>`
             : ''
         }
@@ -628,14 +628,14 @@ function paymentBadge(status) {
             class="dropdown-item"
             onclick="editRequest(${r.request_id})"
             title="Edit Request">
-            ✏️ Edit Request
+            Edit Request
         </button>
 
         <button
             class="dropdown-item"
             onclick="openCustomerModal(${r.user_id})"
             title="View Customer">
-            👤 View Customer
+             View Customer
         </button>
 
         <button
@@ -643,7 +643,7 @@ function paymentBadge(status) {
             onclick="deleteRequest(${r.request_id})"
             title="Delete Request"
             style="color:#dc3545;">
-            🗑️ Delete Request
+             Delete Request
         </button>
 
     </div>
@@ -707,6 +707,7 @@ function paymentBadge(status) {
             hint.style.display = 'none';
         }
     }
+
     window.switchTab = function (tabName) {
         document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
         document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));

@@ -207,11 +207,7 @@ async function updateMapFromRequest(request) {
 }
 
 // ---------- REFRESH MAP ----------
-function refreshMap() {
-    loadLatestRequests();
-    showToast('Map refreshed');
-}
-window.refreshMap = refreshMap;
+
 
 function showTab(tabId) {
     document.querySelectorAll('.tab-panel').forEach(panel => {

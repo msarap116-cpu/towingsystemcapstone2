@@ -94,28 +94,28 @@ const HomeScreen = () => {
       icon: towIcon,
       title: 'Towing',
       description: 'Towing Vehicle service',
-      price: '150'
+      price: '1000'
     },
     {
       id: '3',
       icon: carBatteryIcon,
       title: 'Jump start',
       description: 'Replace and jump start battery service',
-      price: '150'
+      price: '1000'
     },
     {
       id: '2',
       icon: flatTireIcon,
       title: 'Flat tire change',
       description: 'Replace Tire/Alternative tire repair',
-      price: '150'
+      price: '1000'
     },
     {
       id: '4',
       icon: canisterIcon,
       title: 'Fuel delivery',
       description: 'Out of gas? We bring diesel or gasoline directly to you',
-      price: '150 + 20'
+      price: '1000 + '
     }
   ];
 

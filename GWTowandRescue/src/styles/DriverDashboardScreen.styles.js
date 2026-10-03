@@ -186,7 +186,7 @@ requestItem: {
 },
 requestName: { fontWeight: '600', fontSize: 15 },
 requestLocation: { color: '#64748b', fontSize: 13, marginTop: 2 },
-requestAmount: { color: '#16a34a', fontWeight: '600', marginTop: 4 },
+requestAmount: { color: '#0b0b0b', fontWeight: '600', marginTop: 4 },
 acceptBtn: {
   backgroundColor: '#1a4b6d', paddingVertical: 8,
   paddingHorizontal: 14, borderRadius: 8, marginLeft: 10,
@@ -204,7 +204,7 @@ tripStatusPill: {
   overflow: 'hidden',
 },
 tripLocation: { color: '#475569', marginBottom: 4 },
-tripAmount: { color: '#16a34a', fontWeight: '600' },
+tripAmount: { color: '#090909', fontWeight: '600' },
 tripActions: {
   flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap',
 },
@@ -213,10 +213,10 @@ tripBtn: {
 },
 tripBtnPrimary: { backgroundColor: '#1a4b6d' },
 tripBtnPrimaryText: { color: '#fff', fontWeight: '600' },
-tripBtnSuccess: { backgroundColor: '#16a34a' },
+tripBtnSuccess: { backgroundColor: '#0046a8' },
 tripBtnSuccessText: { color: '#fff', fontWeight: '600' },
-tripBtnDanger: { backgroundColor: '#fee2e2' },
-tripBtnDangerText: { color: '#b91c1c', fontWeight: '600' },
+tripBtnDanger: { backgroundColor: '#dc0b0b' },
+tripBtnDangerText: { color: '#f8f4f4', fontWeight: '600' },
 
 profileHeader: {
   flexDirection: 'row', alignItems: 'center',
@@ -332,7 +332,103 @@ roleText: { color: '#070707', fontSize: 11, fontWeight: '600' },
     fontSize: 13,
     fontWeight: '700',
   },
+// Add-Charge / secondary button on trip cards
+tripBtnSecondary: {
+  backgroundColor: '#f5f8fa',
+  borderWidth: 1,
+  borderColor: '#0046a8',
+},
+tripBtnSecondaryText: {
+  color: '#0369a1',
+  fontWeight: '600',
+  fontSize: 13,
+},
 
+// Modal primary button (you already have Ghost/Danger/Success)
+modalBtnPrimary: {
+  backgroundColor: '#f6f7f8',
+},
+modalBtnPrimaryText: {
+  color: '#100f0f',
+  fontWeight: '600',
+},
+modalSubtitle: {
+  fontSize: 13,
+  color: '#64748b',
+  marginBottom: 12,
+},// --- NOTIFICATIONS ---
+notifBellWrap: {
+  position: 'relative',
+  padding: 4,
+},
+notifBadge: {
+  position: 'absolute',
+  top: -2,
+  right: -2,
+  minWidth: 18,
+  height: 18,
+  borderRadius: 9,
+  backgroundColor: '#dc2626',
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingHorizontal: 4,
+},
+notifBadgeText: {
+  color: '#fff',
+  fontSize: 10,
+  fontWeight: '700',
+},
+notifItem: {
+  backgroundColor: '#fff',
+  borderRadius: 14,
+  padding: 14,
+  marginBottom: 10,
+  borderLeftWidth: 4,
+  borderLeftColor: '#e2e8f0',
+},
+notifItemUnread: {
+  borderLeftColor: '#0046a8',
+  backgroundColor: '#f0f7ff',
+},
+notifRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+},
+notifType: {
+  fontSize: 11,
+  fontWeight: '700',
+  color: '#0046a8',
+  textTransform: 'uppercase',
+  marginBottom: 4,
+},
+notifMessage: {
+  fontSize: 14,
+  color: '#1e293b',
+  lineHeight: 20,
+},
+notifTime: {
+  fontSize: 11,
+  color: '#94a3b8',
+  marginTop: 6,
+},
+notifActions: {
+  flexDirection: 'row',
+  justifyContent: 'flex-end',
+  marginTop: 8,
+  gap: 8,
+},
+notifActionBtn: {
+  paddingVertical: 6,
+  paddingHorizontal: 12,
+  borderRadius: 8,
+  backgroundColor: '#f1f5f9',
+},
+notifActionText: {
+  fontSize: 12,
+  color: '#334155',
+  fontWeight: '600',
+},
 
 });
 export default styles;

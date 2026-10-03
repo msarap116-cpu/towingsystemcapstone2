@@ -84,11 +84,6 @@ const DashboardScreen = ({ navigation, route }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [locating, setLocating] = useState(false);
 
-  // Pin modal
-  const [pinModalVisible, setPinModalVisible] = useState(false);
-  const [pinName, setPinName] = useState('');
-  const [savedPins, setSavedPins] = useState([]);
-
   // Polling
   const pollingInterval = useRef(null);
 
@@ -117,61 +112,79 @@ const DashboardScreen = ({ navigation, route }) => {
   }, []);
 
   useEffect(() => {
-  if (activeTab === 'editaddress' && latestRequest) {
-    setEditAddress(latestRequest.address || '');
-    setEditLat(String(latestRequest.location_lat || ''));
-    setEditLng(String(latestRequest.location_lng || ''));
-  }
-}, [activeTab, latestRequest]);
+    if (activeTab === 'editaddress' && latestRequest) {
+      setEditAddress(latestRequest.address || '');
+      setEditLat(String(latestRequest.location_lat || ''));
+      setEditLng(String(latestRequest.location_lng || ''));
+    }
+  }, [activeTab, latestRequest]);
 
-useEffect(() => {
+  useEffect(() => {
+    if (!latestRequest) return;
+
+    if (isRequestTerminal(latestRequest)) {
+      // Stop polling — nothing more will change
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current);
+        pollingInterval.current = null;
+      }
+
+      // Wipe everything off the map
+      setDriverLocation(null);
+      setRouteCoordinates([]);
+      setDistance('');
+      setEta('');
+    }
+  }, [latestRequest?.status]);
+
+  useEffect(() => {
     if (!latestRequest) return;
 
     // Always sync the displayed amount to the request's real total.
     // Prefer total_amount, fall back to amount, then 0.
     const raw =
-        latestRequest.total_amount ??
-        latestRequest.amount ??
-        0;
+      latestRequest.total_amount ??
+      latestRequest.amount ??
+      0;
 
     setPaymentAmount(`₱${Number(raw).toFixed(2)}`);
 
     // If navigated with ?pay=<id>, jump to the payment tab
     const payId = route?.params?.pay;
     if (payId && String(latestRequest.request_id) === String(payId)) {
-        setActiveTab('payment');
+      setActiveTab('payment');
     }
-}, [latestRequest, route?.params?.pay]);
-useEffect(() => {
+  }, [latestRequest, route?.params?.pay]);
+  useEffect(() => {
     if (!latestRequest?.request_id) {
-        setPaymentRecord(null);
-        return;
+      setPaymentRecord(null);
+      return;
     }
 
     let cancelled = false;
 
     (async () => {
-        try {
-            const token = await AsyncStorage.getItem('token');
-            if (!token) return;
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) return;
 
-            const res = await fetch(
-                `${API_BASE_URL}/payments/request/${latestRequest.request_id}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            const data = await res.json();
+        const res = await fetch(
+          `${API_BASE_URL}/payments/request/${latestRequest.request_id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const data = await res.json();
 
-            if (!cancelled) {
-                setPaymentRecord(res.ok ? data.payment : null);
-            }
-        } catch (err) {
-            console.warn('Payment record load failed:', err);
-            if (!cancelled) setPaymentRecord(null);
+        if (!cancelled) {
+          setPaymentRecord(res.ok ? data.payment : null);
         }
+      } catch (err) {
+        console.warn('Payment record load failed:', err);
+        if (!cancelled) setPaymentRecord(null);
+      }
     })();
 
     return () => { cancelled = true; };
-}, [latestRequest?.request_id]);
+  }, [latestRequest?.request_id]);
 
   useEffect(() => {
     if (activeTab !== 'dashboard' || !latestRequest) {
@@ -317,55 +330,61 @@ useEffect(() => {
 
   // ===== DASHBOARD DATA =====
   const loadDashboardData = async (silent = false) => {
-  try {
-    const token = await AsyncStorage.getItem('token');
-    if (!token) return;
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
 
-    // Load latest request
-    const res = await fetch(`${API_BASE_URL}/requests/latest`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-      cache: 'no-store'
-    });
+      // Load latest request
+      const res = await fetch(`${API_BASE_URL}/requests/latest`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        cache: 'no-store'
+      });
 
-    console.log('Response status:', res.status);
+      console.log('Response status:', res.status);
 
-    const data = await res.json();           // ✅ read ONCE, declare `data` here
-    console.log('Raw data:', JSON.stringify(data));
+      const data = await res.json();           // ✅ read ONCE, declare `data` here
+      console.log('Raw data:', JSON.stringify(data));
 
-    if (res.ok) {
-      const request = Array.isArray(data) ? data[0] : data;
-      console.log('POLL RESULT:', request?.request_id, request?.status);
-      console.log('RENDERING WITH STATUS:', latestRequest?.status);
+      if (res.ok) {
+        const request = Array.isArray(data) ? data[0] : data;
+        console.log('POLL RESULT:', request?.request_id, request?.status);
+        console.log('RENDERING WITH STATUS:', latestRequest?.status);
 
-      setLatestRequest(request);
-      if (request) {
-        setRequestId(request.request_id);
-        setCustomerLocation({
-          latitude: parseFloat(request.location_lat),
-          longitude: parseFloat(request.location_lng)
-        });
-        if (request.driver_lat && request.driver_lng) {
-          setDriverLocation({
-            latitude: parseFloat(request.driver_lat),
-            longitude: parseFloat(request.driver_lng)
+        setLatestRequest(request);
+        if (request) {
+          setRequestId(request.request_id);
+          setCustomerLocation({
+            latitude: parseFloat(request.location_lat),
+            longitude: parseFloat(request.location_lng),
           });
+
+          if (isRequestTerminal(request)) {
+            setDriverLocation(null);
+            setRouteCoordinates([]);
+            setDistance('');
+            setEta('');
+          } else if (request.driver_lat && request.driver_lng) {
+            setDriverLocation({
+              latitude: parseFloat(request.driver_lat),
+              longitude: parseFloat(request.driver_lng),
+            });
+          }
         }
       }
+
+      // Load recent activities
+      await loadRecentActivity();
+
+      // Load receipts
+      await loadMyReceipts();
+
+    } catch (error) {
+      console.error('Dashboard load error:', error);
+      if (!silent) {
+        Alert.alert('Error', 'Failed to load dashboard data');
+      }
     }
-
-    // Load recent activities
-    await loadRecentActivity();
-
-    // Load receipts
-    await loadMyReceipts();
-
-  } catch (error) {
-    console.error('Dashboard load error:', error);
-    if (!silent) {
-      Alert.alert('Error', 'Failed to load dashboard data');
-    }
-  }
-};
+  };
 
   // ===== MAP FUNCTIONS =====
   const loadUserMap = async () => {
@@ -382,6 +401,15 @@ useEffect(() => {
     });
 
     setCustomerLocation({ latitude: lat, longitude: lng });
+
+    // ⛔ Do not draw driver/route for terminal requests
+    if (isRequestTerminal(latestRequest)) {
+      setDriverLocation(null);
+      setRouteCoordinates([]);
+      setDistance('');
+      setEta('');
+      return;
+    }
 
     if (latestRequest.driver_lat && latestRequest.driver_lng) {
       const dLat = parseFloat(latestRequest.driver_lat);
@@ -424,30 +452,39 @@ useEffect(() => {
       try {
         const token = await AsyncStorage.getItem('token');
         const res = await fetch(`${API_BASE_URL}/requests/latest`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-          cache: 'no-store'
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          const request = Array.isArray(data) ? data[0] : data; // <-- request is defined HERE
-          console.log('POLL RESULT:', request?.id, request?.status);
-          console.log('RENDERING WITH STATUS:', latestRequest?.status);
-          setLatestRequest(request); // <-- so this call has to live HERE too, same scope
+        if (!res.ok) return;
 
-          if (request?.driver_lat && request?.driver_lng) {
-            const dLat = parseFloat(request.driver_lat);
-            const dLng = parseFloat(request.driver_lng);
-            setDriverLocation({ latitude: dLat, longitude: dLng });
-            if (customerLocation) {
-              await drawRoute(dLat, dLng, customerLocation.latitude, customerLocation.longitude);
-            }
-          }
+        const data = await res.json();
+        const request = Array.isArray(data) ? data[0] : data;
 
-          if (request?.status === 'completed') {
-            clearInterval(pollingInterval.current);
-            setDriverLocation(null);   // remove the marker
-            drawRoute([]);        // or whatever state holds your polyline — clear it too
+        console.log('POLL RESULT:', request?.request_id, request?.status);
+
+        setLatestRequest(request);
+
+        // ── Terminal state: stop, don't touch the map ──
+        if (isRequestTerminal(request)) {
+          clearInterval(pollingInterval.current);
+          pollingInterval.current = null;
+          return;
+        }
+
+        // ── Live driver update ──
+        if (request?.driver_lat && request?.driver_lng) {
+          const dLat = parseFloat(request.driver_lat);
+          const dLng = parseFloat(request.driver_lng);
+          setDriverLocation({ latitude: dLat, longitude: dLng });
+
+          if (customerLocation) {
+            await drawRoute(
+              dLat,
+              dLng,
+              customerLocation.latitude,
+              customerLocation.longitude
+            );
           }
         }
       } catch (error) {
@@ -455,7 +492,6 @@ useEffect(() => {
       }
     }, 30000);
   };
-
   // ===== RECENT ACTIVITY =====
   const loadRecentActivity = async () => {
     try {
@@ -596,8 +632,12 @@ useEffect(() => {
       setPaymentMessage(error.message || 'Unable to check payment status.');
     }
   };
+  const TERMINAL_STATUSES = ['completed', 'cancelled', 'canceled'];
 
-const isPaid =
+  const isRequestTerminal = (req) =>
+    !!req && TERMINAL_STATUSES.includes(String(req.status || '').toLowerCase());
+
+  const isPaid =
     paymentRecord?.status === 'completed' ||
     paymentRecord?.status === 'refunded';
 
@@ -978,45 +1018,45 @@ const isPaid =
     }
   };
 
-const saveAddress = async () => {
-  if (!editAddress || !editLat || !editLng) {
-    Alert.alert('Error', 'Please select a valid address');
-    return;
-  }
-
-  const token = await AsyncStorage.getItem('token');
-
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/requests/${latestRequest?.request_id}/address`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          address: editAddress,
-          location_lat: parseFloat(editLat),
-          location_lng: parseFloat(editLng),
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (response.ok) {
-      Alert.alert('Success', 'Address updated successfully!');
-      setActiveTab('dashboard');   // 👈 tab switch instead of closing modal
-      loadDashboardData();
-    } else {
-      Alert.alert('Error', data.error || 'Failed to update address');
+  const saveAddress = async () => {
+    if (!editAddress || !editLat || !editLng) {
+      Alert.alert('Error', 'Please select a valid address');
+      return;
     }
-  } catch (error) {
-    console.error('Save address error:', error);
-    Alert.alert('Error', 'Failed to update address');
-  }
-};
+
+    const token = await AsyncStorage.getItem('token');
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/requests/${latestRequest?.request_id}/address`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            address: editAddress,
+            location_lat: parseFloat(editLat),
+            location_lng: parseFloat(editLng),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert('Success', 'Address updated successfully!');
+        setActiveTab('dashboard');   // 👈 tab switch instead of closing modal
+        loadDashboardData();
+      } else {
+        Alert.alert('Error', data.error || 'Failed to update address');
+      }
+    } catch (error) {
+      console.error('Save address error:', error);
+      Alert.alert('Error', 'Failed to update address');
+    }
+  };
 
   // ===== HELPERS =====
   const updateClock = () => {
@@ -1148,62 +1188,62 @@ const saveAddress = async () => {
   );
 
   // ===== RENDER TABS — UNCHANGED =====
-const renderDashboard = () => (
-  <View style={styles.dashboardWrapper}>
-    {/* Map as full-bleed background */}
-    <View style={styles.mapBackground}>
-      <LeafletMap
-        mode="customer"
-        customerLocation={customerLocation}
-        driverLocation={driverLocation}
-        routeCoordinates={routeCoordinates}
-        address={latestRequest?.address}
-        customerName={user?.name}
-        driverName={latestRequest?.driver_name}
-        distanceKm={distance}
-        durationMin={eta}
-      />
-    </View>
+  const renderDashboard = () => (
+    <View style={styles.dashboardWrapper}>
+      {/* Map as full-bleed background */}
+      <View style={styles.mapBackground}>
+        <LeafletMap
+          mode="customer"
+          customerLocation={customerLocation}
+          driverLocation={driverLocation}
+          routeCoordinates={routeCoordinates}
+          address={latestRequest?.address}
+          customerName={user?.name}
+          driverName={latestRequest?.driver_name}
+          distanceKm={distance}
+          durationMin={eta}
+        />
+      </View>
 
-    {/* Floating overlay: request id + status + ETA (right aligned, no bg) */}
-    {latestRequest ? (
-      <View style={styles.overlayTop} pointerEvents="box-none">
-        <View style={styles.requestBadge}>
-          <Text style={styles.trackingNumber}>
-            #{latestRequest?.request_id || 'N/A'}
-          </Text>
-
-          <View
-            style={[
-              styles.statusChip,
-              {
-                backgroundColor:
-                  latestRequest?.status === 'completed' ? '#28a745' : '#ffc107',
-              },
-            ]}
-          >
-            <Text style={styles.statusText}>
-              {latestRequest?.status || 'No Active Request'}
+      {/* Floating overlay: request id + status + ETA (right aligned, no bg) */}
+      {latestRequest ? (
+        <View style={styles.overlayTop} pointerEvents="box-none">
+          <View style={styles.requestBadge}>
+            <Text style={styles.trackingNumber}>
+              #{latestRequest?.request_id || 'N/A'}
             </Text>
-          </View>
 
-          {eta && (
-            <View style={styles.etaBox}>
-              <Text style={styles.etaText}>ETA {eta}</Text>
+            <View
+              style={[
+                styles.statusChip,
+                {
+                  backgroundColor:
+                    latestRequest?.status === 'completed' ? '#28a745' : '#ffc107',
+                },
+              ]}
+            >
+              <Text style={styles.statusText}>
+                {latestRequest?.status || 'No Active Request'}
+              </Text>
             </View>
-          )}
+
+            {eta && (
+              <View style={styles.etaBox}>
+                <Text style={styles.etaText}>ETA {eta}</Text>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-    ) : (
-      <View style={styles.noRequestOverlay}>
-        <Text style={styles.noRequestText}>No active request</Text>
-        <Text style={styles.noRequestSubText}>
-          Tap "Request" to create a new service request
-        </Text>
-      </View>
-    )}
-  </View>
-);
+      ) : (
+        <View style={styles.noRequestOverlay}>
+          <Text style={styles.noRequestText}>No active request</Text>
+          <Text style={styles.noRequestSubText}>
+            Tap "Request" to create a new service request
+          </Text>
+        </View>
+      )}
+    </View>
+  );
   const renderRecentActivity = () => (
     <View style={styles.tabContent}>
       <Text style={styles.tabTitle}>Recent Activity</Text>
@@ -1318,74 +1358,74 @@ const renderDashboard = () => (
       )}
     </View>
   );
-const renderEditAddress = () => {
-  if (!latestRequest) {
+  const renderEditAddress = () => {
+    if (!latestRequest) {
+      return (
+        <View style={styles.tabContent}>
+          <Text style={styles.emptyText}>No active request to edit</Text>
+        </View>
+      );
+    }
+
     return (
-      <View style={styles.tabContent}>
-        <Text style={styles.emptyText}>No active request to edit</Text>
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView
-      style={styles.tabContent}
-      contentContainerStyle={styles.tabContentPadding}
-      showsVerticalScrollIndicator={false}
-      bounces={false}
-    >
-      <Text style={styles.tabTitle}>Edit Address</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Search for an address..."
-        value={editAddress}
-        onChangeText={(text) => {
-          setEditAddress(text);
-          searchAddress(text);
-        }}
-      />
-
-      {showSuggestions && addressSuggestions.length > 0 && (
-        <View style={styles.suggestionsList}>
-          {addressSuggestions.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.suggestionItem}
-              onPress={() => selectAddress(item)}
-            >
-              <Text style={styles.suggestionText}>{item.display_name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      <TouchableOpacity
-        style={[styles.currentLocationButton, locating && { opacity: 0.6 }]}
-        onPress={useCurrentLocation}
-        disabled={locating}
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={styles.tabContentPadding}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <Text style={styles.currentLocationText}>
-          {locating ? '📡 Getting your location...' : '📍 Use My Current Location'}
-        </Text>
-      </TouchableOpacity>
+        <Text style={styles.tabTitle}>Edit Address</Text>
 
-      {editLat && editLng && (
-        <View style={styles.selectedLocation}>
-          <Text style={styles.selectedTitle}>📍 Location selected</Text>
-          <Text style={styles.selectedSubText}>{editAddress}</Text>
-          <Text style={styles.selectedSubText}>
-            Lat: {editLat}  •  Lng: {editLng}
+        <TextInput
+          style={styles.input}
+          placeholder="Search for an address..."
+          value={editAddress}
+          onChangeText={(text) => {
+            setEditAddress(text);
+            searchAddress(text);
+          }}
+        />
+
+        {showSuggestions && addressSuggestions.length > 0 && (
+          <View style={styles.suggestionsList}>
+            {addressSuggestions.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.suggestionItem}
+                onPress={() => selectAddress(item)}
+              >
+                <Text style={styles.suggestionText}>{item.display_name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={[styles.currentLocationButton, locating && { opacity: 0.6 }]}
+          onPress={useCurrentLocation}
+          disabled={locating}
+        >
+          <Text style={styles.currentLocationText}>
+            {locating ? '📡 Getting your location...' : '📍 Use My Current Location'}
           </Text>
-        </View>
-      )}
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.saveButton} onPress={saveAddress}>
-        <Text style={styles.saveButtonText}>Save Changes</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
-};
+        {editLat && editLng && (
+          <View style={styles.selectedLocation}>
+            <Text style={styles.selectedTitle}>📍 Location selected</Text>
+            <Text style={styles.selectedSubText}>{editAddress}</Text>
+            <Text style={styles.selectedSubText}>
+              Lat: {editLat}  •  Lng: {editLng}
+            </Text>
+          </View>
+        )}
+
+        <TouchableOpacity style={styles.saveButton} onPress={saveAddress}>
+          <Text style={styles.saveButtonText}>Save Changes</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  };
 
   {/* ================= PAYMENT TAB CONTENT ================= */ }
   const renderPayment = () => (

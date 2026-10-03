@@ -27,13 +27,13 @@
         </div>
 
 
-        <div class="navbar-right" style="padding: 20px;" >
+        <div class="navbar-right" style="padding: 20px;">
             <span><span class="online-dot"></span> Online</span>
             <span id="currentTime" style="font-weight:400;">--:--</span>
         </div>
 
         <div class="notification-badge">
-            <span>🔔</span>
+            <span><img src="image/notification-bell.png" alt="notification-badge"></span>
             <div class="badge-dot"></div>
         </div>
 
@@ -53,7 +53,7 @@
                     <div class="avatar-edit-icon" id="avatarEditButton"></div>
                     <div class="profile-text">
                         <h3 id="profileName">User Name</h3>
-                        <p id="userType">⭐ Customer</p>
+                        <p id="userType">Customer</p>
                     </div>
                 </div>
             </div>
@@ -98,7 +98,8 @@
                             ----
                         </span>
                     </div>
-                    <button class="btn btn-outline btn-sm" onclick="refreshMap()">⟳ Refresh</button>
+
+
 
                 </div>
 
@@ -223,17 +224,17 @@
                             <h3>Choose Payment Method</h3>
                             <div class="payment-method-grid">
                                 <button type="button" class="payment-method-btn" data-method="gcash">
-                                    <span class="payment-method-icon">💚</span>
+                                    <span class="payment-method-icon"></span>
                                     <span>
                                         <strong>GCash</strong><br>
-                                        <small>Pay online</small>
+                                        <small>Pay using E wallets</small>
                                     </span>
                                 </button>
                                 <button type="button" class="payment-method-btn" data-method="cash">
-                                    <span class="payment-method-icon">💵</span>
+                                    <span class="payment-method-icon"> </span>
                                     <span>
                                         <strong>Cash</strong><br>
-                                        <small>Pay to driver</small>
+                                        <small>Pay on hand cash to the driver</small>
                                     </span>
                                 </button>
                             </div>
@@ -278,19 +279,6 @@
     </div> <!-- dashboard-wrapper -->
 
 
-    <!-- SAVE PIN MODAL -->
-    <div id="savePinModal" class="panel-modal">
-        <div class="panel-container">
-            <div class="panel-header">
-                <span>📌 Save Location</span>
-                <button class="close-panel" data-close="savePinModal">✕</button>
-            </div>
-            <input type="text" id="pinNameInput" placeholder="Name (Home, Office, etc)">
-            <textarea id="pinAddressPreview" rows="2" readonly></textarea>
-            <button class="btn-primary" id="confirmSavePinBtn">Save as reusable</button>
-        </div>
-    </div>
-
 
 
 
@@ -321,7 +309,7 @@
 
 
     </script>
-<script src="js/notifications.js"></script>
+    <script src="js/notifications.js"></script>
 </body>
 
 </html>

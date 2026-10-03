@@ -55,7 +55,7 @@
         }
 
         .brand h1 {
-            font-size: 1.2rem;
+            font-size: 2.0rem;
             font-weight: 700;
             color: #0b1a2e;
             letter-spacing: -0.2px;
@@ -209,23 +209,26 @@
             transition: 0.15s;
         }
 
-        .nav-item:hover:not(.logout-item) {
-            background: #f1f6fd;
-            color: #0b1a2e;
+        .nav-item:hover {
+            background: white;
+            color: #0b3d84 !important;
+            border: 1px solid #0b3d84;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 18px rgba(11, 61, 132, 0.25);
         }
 
         .nav-item.active {
             background: #e7eef9;
-            color: #1a4b6d;
+            color: #0b3d84;
         }
 
-        .nav-item .nav-icon {
+        .nav-icon {
             font-size: 1.1rem;
             width: 24px;
             text-align: center;
         }
 
-        .logout-item {
+        .nav-item.logout-item {
             margin-top: auto;
             border-top: 1px solid #edf2f8;
             padding-top: 18px;
@@ -233,8 +236,14 @@
             color: #b91c1c;
         }
 
-        .logout-item:hover {
-            background: #fef2f2;
+        .nav-item.logout-item:hover {
+            background: white;
+            color: #b91c1c !important;
+            /* blue text */
+            border: 1px solid #b91c1c;
+            /* blue border */
+            transform: translateY(-2px);
+            box-shadow: 0 10px 18px rgba(11, 61, 132, 0.25);
         }
 
         /* ========== MAIN PANEL ========== */
@@ -844,7 +853,7 @@
         }
 
         .btn-delete:hover {
-            background: #fee2e2;
+            background: #3b3a3a;
             /* light red background on hover */
             transform: scale(1.1);
         }
@@ -973,18 +982,36 @@
             border: none;
             border-radius: 999px;
             /* Fully pill-shaped */
-            background: #1e293b;
+            background: #131313;
             /* Dark navy background */
-            color: #ffffff;
+            color: #f2eded;
             cursor: pointer;
             line-height: 1;
             transition: background 0.2s ease, transform 0.15s ease;
             white-space: nowrap;
         }
-
+         .overflow-trigger1 {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 999px;
+            /* Fully pill-shaped */
+            background: #0b3d84;
+            /* Dark navy background */
+            color: #f2eded;
+            cursor: pointer;
+            line-height: 1;
+            transition: background 0.2s ease, transform 0.15s ease;
+            white-space: nowrap;
+        }
+/*
         .overflow-trigger:hover {
             background: #0f172a;
-        }
+        } */
 
         .plus-icon {
             font-size: 18px;
@@ -997,7 +1024,7 @@
             position: absolute;
             right: 0;
             top: calc(100% + 6px);
-            background: #ffffff;
+            background: #f3f0f0;
             min-width: 200px;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
             border-radius: 12px;
@@ -1136,38 +1163,39 @@
             cursor: pointer;
             line-height: 1;
         }
+
         #completionProofModal.modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
 
-#completionProofModal.modal.show {
-    display: flex;
-}
+        #completionProofModal.modal.show {
+            display: flex;
+        }
 
-#completionProofModal .modal-content {
-    background: #fff;
-    border-radius: 8px;
-    padding: 1.5rem;
-    width: 90%;
-}
+        #completionProofModal .modal-content {
+            background: #fff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            width: 90%;
+        }
 
-#completionProofModal .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
+        #completionProofModal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
 
-#completionProofModal .modal-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    line-height: 1;
-}
+        #completionProofModal .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+        }

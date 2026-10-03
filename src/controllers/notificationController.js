@@ -1,3 +1,5 @@
+
+//controllers/notificationController.js
 const Notification = require('../models/notificationModel');
 
 exports.getNotifications = async (req, res) => {

@@ -84,8 +84,8 @@ router.put(
     async (req, res) => {
 
         try {
-            console.log('🔐 APPROVE AUTH USER:', req.user);
-            console.log('🔐 USER ROLE:', req.user?.role);
+            console.log(' APPROVE AUTH USER:', req.user);
+            console.log(' USER ROLE:', req.user?.role);
 
             if (req.user.role !== 'admin') {
                 return res.status(403).json({

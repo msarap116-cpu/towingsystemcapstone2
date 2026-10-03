@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import API_BASE_URL from '../config';
 import styles from '../styles/RegisterScreen.styles';
+const eyeIcon = require('../assets/images/eye.png');
+const eyeCrossedIcon = require('../assets/images/eye-crossed.png');
 
 // ===== VALIDATION HELPERS (mirrors your web registration.js) =====
 
@@ -434,9 +436,10 @@ const RegisterScreen = ({ navigation }) => {
                                 style={styles.eyeButton}
                                 onPress={() => setShowPassword(!showPassword)}
                             >
-                                <Text style={styles.eyeButtonText}>
-                                    {showPassword ? '👁️' : '👁️‍🗨️'}
-                                </Text>
+                                <Image
+                                    source={showPassword ? eyeIcon : eyeCrossedIcon}
+                                    style={styles.eyeIcon}
+                                />
                             </TouchableOpacity>
                         </View>
                         <Text style={styles.helperText}>
@@ -467,9 +470,10 @@ const RegisterScreen = ({ navigation }) => {
                                 style={styles.eyeButton}
                                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                             >
-                                <Text style={styles.eyeButtonText}>
-                                    {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-                                </Text>
+                                <Image
+                                    source={showConfirmPassword ? eyeIcon : eyeCrossedIcon}
+                                    style={styles.eyeIcon}
+                                />
                             </TouchableOpacity>
                         </View>
                         {errors.confirmPassword ? (

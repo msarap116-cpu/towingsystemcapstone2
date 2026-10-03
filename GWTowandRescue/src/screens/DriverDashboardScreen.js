@@ -45,8 +45,8 @@ const DriverDashboardScreen = ({ navigation }) => {
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [totalEarnings, setTotalEarnings] = useState(0);
   // Add these near your other list states
-const [driverPayments, setDriverPayments] = useState([]);
-const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [driverPayments, setDriverPayments] = useState([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
   // Lists
   const [pendingRequests, setPendingRequests] = useState([]);
   const [myTrips, setMyTrips] = useState([]);
@@ -96,6 +96,13 @@ const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [completingRequestId, setCompletingRequestId] = useState(null);
   const [completingTargetStatus, setCompletingTargetStatus] = useState('completed');
+
+  // Additional charge modal state
+  const [chargeModalVisible, setChargeModalVisible] = useState(false);
+  const [chargeRequestId, setChargeRequestId] = useState(null);
+  const [chargeDescription, setChargeDescription] = useState('');
+  const [chargeAmount, setChargeAmount] = useState('');
+  const [submittingCharge, setSubmittingCharge] = useState(false);
 
   useEffect(() => {
     customerLocationRef.current = customerLocation;
@@ -151,23 +158,23 @@ const [paymentsLoading, setPaymentsLoading] = useState(false);
     console.log('GPS tracking stopped');
   };
 
-// Place this OUTSIDE initDriverMap — at the top level of your component or file
-// const diagnoseLocation = async () => {
-//   // 1. Runtime permission check
-//   if (Platform.OS === 'android') {
-//     const granted = await PermissionsAndroid.check(
-//       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-//     );
-//     console.log('FINE_LOCATION granted at runtime:', granted);
-//   }
+  // Place this OUTSIDE initDriverMap — at the top level of your component or file
+  // const diagnoseLocation = async () => {
+  //   // 1. Runtime permission check
+  //   if (Platform.OS === 'android') {
+  //     const granted = await PermissionsAndroid.check(
+  //       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+  //     );
+  //     console.log('FINE_LOCATION granted at runtime:', granted);
+  //   }
 
-//   // 2. Can we get a cached position?
-//   Geolocation.getCurrentPosition(
-//     (pos) => console.log('Cached position OK:', pos.coords),
-//     (err) => console.log('Cached position failed:', err),
-//     { enableHighAccuracy: false, timeout: 5000, maximumAge: Infinity }
-//   );
-// };
+  //   // 2. Can we get a cached position?
+  //   Geolocation.getCurrentPosition(
+  //     (pos) => console.log('Cached position OK:', pos.coords),
+  //     (err) => console.log('Cached position failed:', err),
+  //     { enableHighAccuracy: false, timeout: 5000, maximumAge: Infinity }
+  //   );
+  // };
   // ===== AUTH FUNCTIONS =====
   const checkAuth = async () => {
     const token = await AsyncStorage.getItem('token');
@@ -301,187 +308,187 @@ const [paymentsLoading, setPaymentsLoading] = useState(false);
       return { today: 0, allTime: 0 };
     }
   };
-const confirmCashReceived = (paymentId) => {
-  Alert.alert(
-    'Confirm Cash Payment',
-    'Confirm that you received cash payment from the customer?',
-    [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Confirm',
-        onPress: async () => {
-          const token = await AsyncStorage.getItem('token');
-          if (!token) {
-            Alert.alert('Error', 'Please log in again.');
-            return;
-          }
-
-          try {
-            const response = await fetch(
-              `${API_BASE_URL}/payments/${paymentId}/cash-received`,
-              {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-              Alert.alert('Error', data.message || 'Unable to confirm cash payment.');
+  const confirmCashReceived = (paymentId) => {
+    Alert.alert(
+      'Confirm Cash Payment',
+      'Confirm that you received cash payment from the customer?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+              Alert.alert('Error', 'Please log in again.');
               return;
             }
 
-            Alert.alert(
-              'Payment Confirmed',
-              `Cash payment confirmed.\nReceipt: ${data.receipt_number}`
-            );
+            try {
+              const response = await fetch(
+                `${API_BASE_URL}/payments/${paymentId}/cash-received`,
+                {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+              );
 
-            // Refresh whatever shows this driver's payments
-            await refreshPayments();
-          } catch (error) {
-            console.error('Cash confirmation error:', error);
-            Alert.alert('Error', 'Unable to confirm cash payment.');
-          }
+              const data = await response.json();
+
+              if (!response.ok || !data.success) {
+                Alert.alert('Error', data.message || 'Unable to confirm cash payment.');
+                return;
+              }
+
+              Alert.alert(
+                'Payment Confirmed',
+                `Cash payment confirmed.\nReceipt: ${data.receipt_number}`
+              );
+
+              // Refresh whatever shows this driver's payments
+              await refreshPayments();
+            } catch (error) {
+              console.error('Cash confirmation error:', error);
+              Alert.alert('Error', 'Unable to confirm cash payment.');
+            }
+          },
         },
-      },
-    ]
-  );
-};
+      ]
+    );
+  };
 
-const refreshPayments = async () => {
-  setPaymentsLoading(true);
-  try {
-    const payments = await fetchDriverPayments();
-    setDriverPayments(payments);
-  } finally {
-    setPaymentsLoading(false);
-  }
-};
- const loadDriverDashboardData = async () => {
-  try {
-    console.log('📡 Fetching dashboard data...');
-    const [pending, trips, earnings, payments] = await Promise.all([   // 👈 add payments
-      fetchPendingRequests(),
-      fetchMyTrips(),
-      fetchEarningsSummary(),
-      fetchDriverPayments(),   // 👈 add this call
-    ]);
-    console.log(' Dashboard data received:', { pending, trips, earnings, payments });
-
-    setPendingRequests(pending);
-    const active = trips.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
-    console.log('active trips:', active);
-    const completed = trips.filter(t => t.status === 'completed');
-    setMyTrips(active);
-    setCompletedTripsList(completed);
-    setPaymentHistory(completed.slice(0, 10));
-    setAvailableJobs(pending.length);
-    setActiveTrips(active.length);
-    setCompletedTrips(completed.length);
-    setTodayEarnings(earnings.today || 0);
-    setTotalEarnings(earnings.allTime || 0);
-
-    setDriverPayments(payments);   //now `payments` exists
-
-    // Check for active trip for tracking
-    const activeTrip = active.find(t => t.status === 'assigned' || t.status === 'in progress');
-    console.log('activeTrip:', activeTrip);
-    if (activeTrip) {
-      setActiveRequestId(activeTrip.request_id);
-      setActiveTripData(activeTrip);
-
-      console.log('lat/lng:', activeTrip.location_lat, activeTrip.location_lng);
-      if (activeTrip.location_lat && activeTrip.location_lng) {
-        setCustomerLocation({
-          latitude: parseFloat(activeTrip.location_lat),
-          longitude: parseFloat(activeTrip.location_lng)
-        });
-        setTrackingStatus(`Active job #${activeTrip.request_id} – tracking in progress.`);
-      }
-    } else {
-      setActiveRequestId(null);
-      setActiveTripData(null);
-      setTrackingStatus('No active job – waiting for assignment.');
+  const refreshPayments = async () => {
+    setPaymentsLoading(true);
+    try {
+      const payments = await fetchDriverPayments();
+      setDriverPayments(payments);
+    } finally {
+      setPaymentsLoading(false);
     }
-  } catch (error) {
-    console.error('loadDriverDashboardData error:', error);
-  }
-};
+  };
+  const loadDriverDashboardData = async () => {
+    try {
+      console.log('📡 Fetching dashboard data...');
+      const [pending, trips, earnings, payments] = await Promise.all([   // 👈 add payments
+        fetchPendingRequests(),
+        fetchMyTrips(),
+        fetchEarningsSummary(),
+        fetchDriverPayments(),   // 👈 add this call
+      ]);
+      console.log(' Dashboard data received:', { pending, trips, earnings, payments });
+
+      setPendingRequests(pending);
+      const active = trips.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
+      console.log('active trips:', active);
+      const completed = trips.filter(t => t.status === 'completed');
+      setMyTrips(active);
+      setCompletedTripsList(completed);
+      setPaymentHistory(completed.slice(0, 10));
+      setAvailableJobs(pending.length);
+      setActiveTrips(active.length);
+      setCompletedTrips(completed.length);
+      setTodayEarnings(earnings.today || 0);
+      setTotalEarnings(earnings.allTime || 0);
+
+      setDriverPayments(payments);   //now `payments` exists
+
+      // Check for active trip for tracking
+      const activeTrip = active.find(t => t.status === 'assigned' || t.status === 'in progress');
+      console.log('activeTrip:', activeTrip);
+      if (activeTrip) {
+        setActiveRequestId(activeTrip.request_id);
+        setActiveTripData(activeTrip);
+
+        console.log('lat/lng:', activeTrip.location_lat, activeTrip.location_lng);
+        if (activeTrip.location_lat && activeTrip.location_lng) {
+          setCustomerLocation({
+            latitude: parseFloat(activeTrip.location_lat),
+            longitude: parseFloat(activeTrip.location_lng)
+          });
+          setTrackingStatus(`Active job #${activeTrip.request_id} – tracking in progress.`);
+        }
+      } else {
+        setActiveRequestId(null);
+        setActiveTripData(null);
+        setTrackingStatus('No active job – waiting for assignment.');
+      }
+    } catch (error) {
+      console.error('loadDriverDashboardData error:', error);
+    }
+  };
 
   // ===== MAP FUNCTIONS =====
   const initDriverMap = async () => {
-  try {
-    const hasPermission = await requestLocationPermission();
-    if (!hasPermission) {
-      Alert.alert(
-        'Permission denied',
-        'Please allow location access for live tracking.'
-      );
-      return;
-    }
-
-    // getInitialLocation already retries internally with fused fallback
-    const position = await getInitialLocation();
-
-    if (activeTab !== 'tracking') return;
-    if (!position?.coords) throw new Error('Location returned no coordinates');
-
-    const { latitude, longitude } = position.coords;
-
-    setDriverLocation({ latitude, longitude });
-    setMapRegion({
-      latitude,
-      longitude,
-      latitudeDelta: 0.02,
-      longitudeDelta: 0.02,
-    });
-
-    startGPSTracking();
-  } catch (error) {
-    console.error('Unable to obtain initial location:', error);
-    if (error?.code === 2) {
-      promptEnableLocation();
-    } else if (error?.code === 3) {
-      Alert.alert(
-        'Location timeout',
-        'Could not get your location in time. Please try again.'
-      );
-    } else {
-      Alert.alert('Location error', 'Unable to get your current location.');
-    }
-  }
-};
-const getInitialLocation = () =>
-  new Promise((resolve, reject) => {
-    Geolocation.getCurrentPosition(
-      resolve,
-      (error) => {
-        console.warn('High-accuracy failed, retrying with fused fallback:', error);
-        Geolocation.getCurrentPosition(
-          resolve,
-          reject,
-          {
-            enableHighAccuracy: false,
-            timeout: 15000,
-            maximumAge: 60000,
-            forceRequestLocation: true,   // ⭐
-            showLocationDialog: true,     // ⭐
-          }
+    try {
+      const hasPermission = await requestLocationPermission();
+      if (!hasPermission) {
+        Alert.alert(
+          'Permission denied',
+          'Please allow location access for live tracking.'
         );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 10000,
-        forceRequestLocation: true,       // ⭐ this was missing or wrong
-        showLocationDialog: true,         // ⭐
+        return;
       }
-    );
-  });
+
+      // getInitialLocation already retries internally with fused fallback
+      const position = await getInitialLocation();
+
+      if (activeTab !== 'tracking') return;
+      if (!position?.coords) throw new Error('Location returned no coordinates');
+
+      const { latitude, longitude } = position.coords;
+
+      setDriverLocation({ latitude, longitude });
+      setMapRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      });
+
+      startGPSTracking();
+    } catch (error) {
+      console.error('Unable to obtain initial location:', error);
+      if (error?.code === 2) {
+        promptEnableLocation();
+      } else if (error?.code === 3) {
+        Alert.alert(
+          'Location timeout',
+          'Could not get your location in time. Please try again.'
+        );
+      } else {
+        Alert.alert('Location error', 'Unable to get your current location.');
+      }
+    }
+  };
+  const getInitialLocation = () =>
+    new Promise((resolve, reject) => {
+      Geolocation.getCurrentPosition(
+        resolve,
+        (error) => {
+          console.warn('High-accuracy failed, retrying with fused fallback:', error);
+          Geolocation.getCurrentPosition(
+            resolve,
+            reject,
+            {
+              enableHighAccuracy: false,
+              timeout: 15000,
+              maximumAge: 60000,
+              forceRequestLocation: true,   // ⭐
+              showLocationDialog: true,     // ⭐
+            }
+          );
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 10000,
+          forceRequestLocation: true,       // ⭐ this was missing or wrong
+          showLocationDialog: true,         // ⭐
+        }
+      );
+    });
 
 
   const startGPSTracking = () => {
@@ -544,16 +551,16 @@ const getInitialLocation = () =>
         }
       },
       error => { console.error('GPS watch error:', error); },
-{
-    enableHighAccuracy: true,
-    maximumAge: 5000,
-    timeout: 30000,
-    distanceFilter: 5,
-    interval: 5000,
-    fastestInterval: 3000,
-    forceRequestLocation: true,
-    showLocationDialog: true,
-  }
+      {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 30000,
+        distanceFilter: 5,
+        interval: 5000,
+        fastestInterval: 3000,
+        forceRequestLocation: true,
+        showLocationDialog: true,
+      }
     );
   };
 
@@ -812,6 +819,76 @@ const getInitialLocation = () =>
     }
   };
 
+  // ===== ADDITIONAL CHARGE =====
+  const openAddChargeForm = (requestId) => {
+    setChargeRequestId(requestId);
+    setChargeDescription('');
+    setChargeAmount('');
+    setChargeModalVisible(true);
+  };
+
+  const closeAddChargeForm = () => {
+    setChargeModalVisible(false);
+    setChargeRequestId(null);
+    setChargeDescription('');
+    setChargeAmount('');
+  };
+
+  const submitAdditionalCharge = async () => {
+    const description = chargeDescription.trim();
+    const amount = Number(chargeAmount);
+
+    if (!description) {
+      Alert.alert('Missing info', 'Please enter a description.');
+      return;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      Alert.alert('Invalid amount', 'Enter a valid amount greater than 0.');
+      return;
+    }
+    if (!chargeRequestId) return;
+
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      Alert.alert('Error', 'Please log in again.');
+      return;
+    }
+
+    setSubmittingCharge(true);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/requests/${chargeRequestId}/charges`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ description, amount }),
+        }
+      );
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Failed to add charge.');
+      }
+
+      Alert.alert(
+        'Charge Added',
+        `${description} — ₱${amount.toFixed(2)} added to trip #${chargeRequestId}.`
+      );
+
+      closeAddChargeForm();
+      await loadDriverDashboardData(); // refresh total_amount everywhere
+    } catch (err) {
+      console.error('submitAdditionalCharge error:', err);
+      Alert.alert('Error', err.message || 'Failed to add charge.');
+    } finally {
+      setSubmittingCharge(false);
+    }
+  };
+
 
   const getInitials = (name) => {
     if (!name) return 'AD';
@@ -961,35 +1038,35 @@ const getInitialLocation = () =>
     }
   };
   const fetchDriverPayments = async () => {
-  const token = await AsyncStorage.getItem('token');
-  if (!token) return [];
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return [];
 
-  try {
-    const res = await fetch(`${API_BASE_URL}/payments/driver/mine`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    });
+    try {
+      const res = await fetch(`${API_BASE_URL}/payments/driver/mine`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
 
-    if (res.status === 401) {
-      const body = await res.json().catch(() => ({}));
-      if (body.code === 'SESSION_EXPIRED') {
-        await handleAuthFailure();
+      if (res.status === 401) {
+        const body = await res.json().catch(() => ({}));
+        if (body.code === 'SESSION_EXPIRED') {
+          await handleAuthFailure();
+        }
+        return [];
       }
+
+      if (!res.ok) {
+        console.warn('payments body:', await res.text());
+        return [];
+      }
+
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      console.error('fetchDriverPayments FAILED:', e.message);
       return [];
     }
-
-    if (!res.ok) {
-      console.warn('payments body:', await res.text());
-      return [];
-    }
-
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
-  } catch (e) {
-    console.error('fetchDriverPayments FAILED:', e.message);
-    return [];
-  }
-};
+  };
 
   // ===== RENDER FUNCTIONS — BOTTOM TAB BAR =====
   const renderProfileHeader = () => (
@@ -1107,65 +1184,65 @@ const getInitialLocation = () =>
     );
   };
   // TRACKING
-const renderTracking = () => (
-  <View style={styles.trackingWrapper}>
-    {/* Map — fills the whole tab as background */}
-    <View style={styles.mapBackground}>
-      <LeafletMap
-        driverLocation={driverLocation}
-        customerLocation={customerLocation}
-        routeCoordinates={routeCoordinates}
-        heading={driverHeading}
-        povMode={povMode}
-        customerName={activeTripData?.customer_name}
-        driverName={user?.name}
-        address={activeTripData?.location}
-        distanceKm={routeInfo.distanceKm}
-        durationMin={routeInfo.durationMin}
-      />
-    </View>
+  const renderTracking = () => (
+    <View style={styles.trackingWrapper}>
+      {/* Map — fills the whole tab as background */}
+      <View style={styles.mapBackground}>
+        <LeafletMap
+          driverLocation={driverLocation}
+          customerLocation={customerLocation}
+          routeCoordinates={routeCoordinates}
+          heading={driverHeading}
+          povMode={povMode}
+          customerName={activeTripData?.customer_name}
+          driverName={user?.name}
+          address={activeTripData?.location}
+          distanceKm={routeInfo.distanceKm}
+          durationMin={routeInfo.durationMin}
+        />
+      </View>
 
-    {/* Floating top-left: title + status */}
-    <View style={styles.trackingOverlayTopLeft} pointerEvents="box-none">
-      <View style={styles.trackingInfoCard}>
-        <Text style={styles.trackingTitle}>Route Tracking</Text>
-        <Text style={styles.trackingStatusText}>
-          {trackingStatus || 'No active job – tracking idle.'}
-        </Text>
+      {/* Floating top-left: title + status */}
+      <View style={styles.trackingOverlayTopLeft} pointerEvents="box-none">
+        <View style={styles.trackingInfoCard}>
+          <Text style={styles.trackingTitle}>Route Tracking</Text>
+          <Text style={styles.trackingStatusText}>
+            {trackingStatus || 'No active job – tracking idle.'}
+          </Text>
+        </View>
+      </View>
+
+      {/* Floating top-right: POV toggle */}
+      <View style={styles.trackingOverlayTopRight} pointerEvents="box-none">
+        <TouchableOpacity
+          style={styles.povButton}
+          onPress={() => setPovMode(prev => !prev)}
+        >
+          <Text style={styles.povButtonText}>
+            {povMode ? '🧭 POV' : '⬆️ North'}
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
-
-    {/* Floating top-right: POV toggle */}
-    <View style={styles.trackingOverlayTopRight} pointerEvents="box-none">
-      <TouchableOpacity
-        style={styles.povButton}
-        onPress={() => setPovMode(prev => !prev)}
-      >
-        <Text style={styles.povButtonText}>
-          {povMode ? '🧭 POV' : '⬆️ North'}
-        </Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-);
+  );
   const tripStatusStyle = (status) => {
     switch (status) {
-      case 'assigned': return { backgroundColor: '#dbeafe', color: '#1e40af' };
-      case 'in progress': return { backgroundColor: '#fef3c7', color: '#92400e' };
-      case 'completed': return { backgroundColor: '#dcfce7', color: '#166534' };
-      case 'cancelled': return { backgroundColor: '#fee2e2', color: '#991b1b' };
+      case 'assigned': return { backgroundColor: '#f9f9fa', color: '#16171a' };
+      case 'in progress': return { backgroundColor: '#fdfdfb', color: '#92400e' };
+      case 'completed': return { backgroundColor: '#ffffff', color: '#0d0d0d' };
+      case 'cancelled': return { backgroundColor: '#f7f6f6', color: '#991b1b' };
       default: return { backgroundColor: '#e2e8f0', color: '#334155' };
     }
   };
   const paymentStatusStyle = (status) => {
-  switch (status) {
-    case 'paid':          return { backgroundColor: '#dcfce7', color: '#166534' };
-    case 'awaiting_cash': return { backgroundColor: '#fef3c7', color: '#92400e' };
-    case 'pending':       return { backgroundColor: '#e2e8f0', color: '#334155' };
-    case 'failed':        return { backgroundColor: '#fee2e2', color: '#991b1b' };
-    default:              return { backgroundColor: '#e2e8f0', color: '#334155' };
-  }
-};
+    switch (status) {
+      case 'paid': return { backgroundColor: '#dcfce7', color: '#166534' };
+      case 'awaiting_cash': return { backgroundColor: '#fef3c7', color: '#92400e' };
+      case 'pending': return { backgroundColor: '#e2e8f0', color: '#334155' };
+      case 'failed': return { backgroundColor: '#fee2e2', color: '#991b1b' };
+      default: return { backgroundColor: '#f1f2f4', color: '#1d2229' };
+    }
+  };
   const renderTrips = () => {
 
     const allTrips = [...(myTrips || []), ...(completedTripsList || [])];
@@ -1195,7 +1272,7 @@ const renderTracking = () => (
                       </Text>
                     </View>
                     <Text style={styles.tripLocation}>📍 {item.location || '—'}</Text>
-                    <Text style={styles.tripAmount}>{formatPrice(item.amount)}</Text>
+                    <Text style={styles.tripAmount}>{formatPrice(item.total_amount ?? item.amount)}</Text>
 
                     <View style={styles.tripActions}>
                       {/* {status === 'assigned' && (
@@ -1225,6 +1302,15 @@ const renderTracking = () => (
                           <Text style={styles.tripBtnDangerText}>Cancel</Text>
                         </TouchableOpacity>
                       )}
+                      {(status === 'assigned' || status === 'in progress') && (
+                        <TouchableOpacity
+                          style={[styles.tripBtn, styles.tripBtnSecondary]}  // see step 6 for style
+                          onPress={() => openAddChargeForm(item.request_id)}
+                        >
+                          <Text style={styles.tripBtnSecondaryText}>+ Add Charge</Text>
+                        </TouchableOpacity>
+                      )}
+
                     </View>
                   </View>
                 );
@@ -1235,94 +1321,94 @@ const renderTracking = () => (
       </View>
     );
   };
-const renderEarnings = () => (
-  <View style={{ flex: 1 }}>
-    <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Earnings</Text>
+  const renderEarnings = () => (
+    <View style={{ flex: 1 }}>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Earnings</Text>
 
-    <View style={styles.gridRow}>
-      <View style={styles.statCard}>
-        <Text style={styles.statLabel}>Total Trips</Text>
-        <Text style={styles.statValue}>
-          {(completedTrips || 0) + (activeTrips || 0)}
-        </Text>
+      <View style={styles.gridRow}>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Total Trips</Text>
+          <Text style={styles.statValue}>
+            {(completedTrips || 0) + (activeTrips || 0)}
+          </Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Total Revenue</Text>
+          <Text style={styles.statValue}>{formatPrice(totalEarnings ?? 0)}</Text>
+        </View>
       </View>
-      <View style={styles.statCard}>
-        <Text style={styles.statLabel}>Total Revenue</Text>
-        <Text style={styles.statValue}>{formatPrice(totalEarnings ?? 0)}</Text>
-      </View>
-    </View>
 
-    <View style={[styles.whiteCard, { flex: 1, marginTop: 16 }]}>
-      <Text style={styles.cardTitle}>Payment History</Text>
+      <View style={[styles.whiteCard, { flex: 1, marginTop: 16 }]}>
+        <Text style={styles.cardTitle}>Payment History</Text>
 
-      {paymentsLoading && driverPayments.length === 0 ? (
-        <ActivityIndicator style={{ marginTop: 16 }} />
-      ) : driverPayments?.length ? (
-        <FlatList
-          data={driverPayments}
-          keyExtractor={(item) => String(item.payment_id)}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          renderItem={({ item }) => {
-            const badge = paymentStatusStyle(item.status);
-            return (
-              <View
-                style={{
-                  paddingVertical: 12,
-                  borderBottomWidth: 1,
-                  borderBottomColor: '#f1f5f9',
-                }}
-              >
+        {paymentsLoading && driverPayments.length === 0 ? (
+          <ActivityIndicator style={{ marginTop: 16 }} />
+        ) : driverPayments?.length ? (
+          <FlatList
+            data={driverPayments}
+            keyExtractor={(item) => String(item.payment_id)}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            renderItem={({ item }) => {
+              const badge = paymentStatusStyle(item.status);
+              return (
                 <View
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: 8,
+                    paddingVertical: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#f1f5f9',
                   }}
                 >
-                  <Text style={{ fontWeight: '600' }}>#{item.request_id}</Text>
-                  <Text>{formatPrice(item.amount)}</Text>
-                  <Text
-                    style={[
-                      {
-                        paddingHorizontal: 8,
-                        paddingVertical: 2,
-                        borderRadius: 12,
-                        fontSize: 11,
-                        fontWeight: '600',
-                        overflow: 'hidden',
-                      },
-                      badge,
-                    ]}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                    }}
                   >
-                    {item.status}
-                  </Text>
-                  <Text style={{ color: '#64748b', fontSize: 12 }}>
-                    {item.payment_method}
-                  </Text>
-                </View>
-
-                {item.payment_method === 'cash' &&
-                  item.status === 'awaiting_cash' && (
-                    <TouchableOpacity
-                      style={[styles.acceptBtn, { marginTop: 8, alignSelf: 'flex-start' }]}
-                      onPress={() => confirmCashReceived(item.payment_id)}
+                    <Text style={{ fontWeight: '600' }}>#{item.request_id}</Text>
+                    <Text>{formatPrice(item.amount)}</Text>
+                    <Text
+                      style={[
+                        {
+                          paddingHorizontal: 8,
+                          paddingVertical: 2,
+                          borderRadius: 12,
+                          fontSize: 11,
+                          fontWeight: '600',
+                          overflow: 'hidden',
+                        },
+                        badge,
+                      ]}
                     >
-                      <Text style={styles.acceptBtnText}>Mark Cash Received</Text>
-                    </TouchableOpacity>
-                  )}
-              </View>
-            );
-          }}
-        />
-      ) : (
-        <Text style={styles.emptyMsg}>No payments yet</Text>
-      )}
+                      {item.status}
+                    </Text>
+                    <Text style={{ color: '#050505', fontSize: 12 }}>
+                      {item.payment_method}
+                    </Text>
+                  </View>
+
+                  {item.payment_method === 'cash' &&
+                    item.status === 'awaiting_cash' && (
+                      <TouchableOpacity
+                        style={[styles.acceptBtn, { marginTop: 8, alignSelf: 'flex-start' }]}
+                        onPress={() => confirmCashReceived(item.payment_id)}
+                      >
+                        <Text style={styles.acceptBtnText}>Mark Cash Received</Text>
+                      </TouchableOpacity>
+                    )}
+                </View>
+              );
+            }}
+          />
+        ) : (
+          <Text style={styles.emptyMsg}>No payments yet</Text>
+        )}
+      </View>
     </View>
-  </View>
-);
+  );
   // ===== MAIN RENDER =====
   if (loading) {
     return (
@@ -1347,6 +1433,7 @@ const renderEarnings = () => (
         <View style={styles.headerBar}>
           <Text style={styles.headerTitle}> <Text style={styles.headerGreen}>GoodWrench</Text></Text>
           <View style={styles.headerRight}>
+             <NotificationBell navigation={navigation} />
           </View>
         </View>
 
@@ -1355,7 +1442,7 @@ const renderEarnings = () => (
         {/*  MAIN CONTENT — flex:1 ang naa sa styles */}
         <View style={styles.contentArea}>
           {activeTab === 'dashboard' && renderDashboard()}
-          <View style={{ flex: 1,marginHorizontal: -16, display: activeTab === 'tracking' ? 'flex' : 'none' }}>
+          <View style={{ flex: 1, marginHorizontal: -16, display: activeTab === 'tracking' ? 'flex' : 'none' }}>
             {renderTracking()}
           </View>
           {activeTab === 'trips' && renderTrips()}
@@ -1426,6 +1513,61 @@ const renderEarnings = () => (
                   disabled={uploadingPhoto}
                 >
                   {uploadingPhoto ? <ActivityIndicator /> : <Text style={styles.modalBtnDangerText || {}}>Confirm & Complete</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+        {/* Add Charge Modal */}
+        <Modal
+          visible={chargeModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={closeAddChargeForm}
+        >
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Add Charge</Text>
+              <Text style={styles.modalSubtitle}>
+                Job #{chargeRequestId} — extra item (parts, towing fee, etc.)
+              </Text>
+
+              <TextInput
+                style={styles.modalInput}
+                placeholder="e.g. Replacement battery"
+                value={chargeDescription}
+                onChangeText={setChargeDescription}
+                editable={!submittingCharge}
+              />
+
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Amount (₱)"
+                value={chargeAmount}
+                onChangeText={setChargeAmount}
+                keyboardType="decimal-pad"
+                editable={!submittingCharge}
+              />
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalBtn, styles.modalBtnGhost]}
+                  onPress={closeAddChargeForm}
+                  disabled={submittingCharge}
+                >
+                  <Text style={styles.modalBtnGhostText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalBtn, styles.modalBtnPrimary]}
+                  onPress={submitAdditionalCharge}
+                  disabled={submittingCharge}
+                >
+                  {submittingCharge ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.modalBtnPrimaryText}>Add Charge</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>

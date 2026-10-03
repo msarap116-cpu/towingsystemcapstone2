@@ -169,6 +169,11 @@ registerButtonTextHover: {
     link: {
         color: '#0046a8',
         fontWeight: '600'
-    }
+    },
+    eyeIcon: {
+  width: 22,
+  height: 22,
+  resizeMode: 'contain',
+},
 });
 export default styles;
