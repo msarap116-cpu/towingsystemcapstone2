@@ -431,7 +431,7 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
         const midPoint = getMidpoint(fromLat, fromLng, toLat, toLng);
         const routeSummary = L.popup()
             .setLatLng(midPoint)
-            .setContent(`🚗 ${distanceKm} km · ⏱️ ${durationMin} min`)
+            .setContent(` ${distanceKm} km · ⏱️ ${durationMin} min`)
             .openOn(map);
 
         // Auto-close the summary after 5 seconds
@@ -1849,7 +1849,7 @@ function buildDriverPopup({ distanceKm, durationMin, straightDistance } = {}) {
     }
 
     return `
-        <strong>🚗 ${driverName}</strong><br>
+        <strong>${driverName}</strong><br>
         ${vehicleType}${plate ? ` • ${plate}` : ''}
         ${driverPhone ? `<br>📞 ${driverPhone}` : ''}
         ${extra ? `<hr style="margin:4px 0;border:none;border-top:1px solid #ddd">${extra}` : ''}

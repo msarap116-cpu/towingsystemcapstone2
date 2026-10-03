@@ -557,6 +557,51 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 6,
   },
+  dropdown: {
+  height: 50,
+  borderColor: '#ccc',
+  borderWidth: 1,
+  borderRadius: 8,
+  paddingHorizontal: 12,
+  backgroundColor: '#fff',
+},
+dropdownContainer: {
+  borderRadius: 8,
+  borderColor: '#ccc',
+},
+dropdownPlaceholder: {
+  fontSize: 15,
+  color: '#999',
+},
+dropdownSelectedText: {
+  fontSize: 15,
+  color: '#111',
+},
+dropdownItemText: {
+  fontSize: 15,
+  color: '#111',
+},
+dropdownSearch: {
+  borderRadius: 8,
+  borderColor: '#ccc',
+},
+dropdownIcon: {
+  width: 24,          // ← MUST have width
+  height: 24,         // ← MUST have height
+  marginRight: 10,
+  resizeMode: 'contain',
+},
+dropdownIconPlaceholder: {
+  width: 24,
+  height: 24,
+  marginRight: 10,
+},
+dropdownRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingVertical: 12,
+  paddingHorizontal: 12,
+},
 });
 
 export default styles;

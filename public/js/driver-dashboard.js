@@ -589,7 +589,7 @@ async function initDriverMap() {
                 if (!driverMarker) {
                     driverMarker = L.marker([lat, lng], { icon: driverIcon })
                         .addTo(map)
-                        .bindPopup('🚗 You are here');
+                        .bindPopup('You are here');
                 } else {
                     driverMarker.setLatLng([lat, lng]);
                 }
@@ -601,7 +601,7 @@ async function initDriverMap() {
                 if (!driverMarker) {
                     driverMarker = L.marker([MAP_CONFIG.defaultCenter.lat, MAP_CONFIG.defaultCenter.lng], { icon: driverIcon })
                         .addTo(map)
-                        .bindPopup('🚗 Driver (location unavailable)');
+                        .bindPopup(' Driver (location unavailable)');
                 }
             }
         );
@@ -624,7 +624,7 @@ function startGPSTracking(customerLat, customerLng) {
             if (!driverMarker) {
                 driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon })
                     .addTo(map)
-                    .bindPopup('🚗 You (Driver)');
+                    .bindPopup(' You (Driver)');
             } else {
                 driverMarker.setLatLng([driverLat, driverLng]);
             }
@@ -940,12 +940,8 @@ function setupEventListeners() {
     });
 
     // Clock
-    function updateClock() {
-        const now = new Date();
-        document.getElementById('currentTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    updateClock();
-    setInterval(updateClock, 10000);
+
+
 }
 
 // ---------- INIT ----------

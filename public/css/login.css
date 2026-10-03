@@ -39,7 +39,7 @@ body {
 
 /* ===== NAVBAR (Caltex blue) ===== */
 .navbar {
-    background: #0046a8;
+    background: #0b3d84;
     padding: 14px 24px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
@@ -90,8 +90,8 @@ body {
 }
 
 .nav-item .nav-link:hover {
-    background: rgba(255,255,255,0.1);
-    color: #fff;
+    color: #685758;
+  transform: translateY(-2px);
 }
 
 /* ===== MAIN CONTENT ===== */
@@ -205,10 +205,10 @@ body {
     /* Keep your existing styles */
     width: 200px;
     padding: 14px;
-    background: #e30613;
+    background: #0b3d84;
     color: #fff;
     border: none;
-    border-radius: 40px;
+    border-radius: 10px;
     font-size: 18px;
     font-weight: 700;
     cursor: pointer;
@@ -218,7 +218,7 @@ body {
     align-items: center;    /* Kept this */
     justify-content: center;/* Kept this */
     gap: 10px;
-    box-shadow: 0 4px 12px rgba(227, 6, 19, 0.3);
+    box-shadow: 0 4px 12px rgba(13, 6, 227, 0.3);
 
     /* CHANGE THESE LINES */
     margin: 12px auto 0 auto; /* 12px top, auto left/right, 0 bottom */
@@ -226,9 +226,11 @@ body {
 
 
 .btn-submit:hover {
-    background: #b8000f;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(227,6,19,0.4);
+   background: white;
+  color: #0b3d84 !important;   /* blue text */
+  border: 2px solid #0b3d84;   /* blue border */
+  transform: translateY(-2px);
+  box-shadow: 0 10px 18px rgba(11, 61, 132, 0.25);
 }
 
 .btn-submit:active {
@@ -251,7 +253,7 @@ body {
 
 .form-footer a:hover {
     text-decoration: underline;
-    color: #e30613;
+    color: #7b6567;
 }
 
 /* ===== RESPONSIVE ===== */

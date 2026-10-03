@@ -249,7 +249,7 @@ function maybeFit() {
   useEffect(() => {
     if (!mapReady) return;
     const customerHtml = `📍 ${esc(customerName || 'Customer')}<br>${esc(address || 'Customer location')}`;
-    let driverHtml = `<strong>🚗 ${esc(driverName || 'Driver')}</strong>`;
+    let driverHtml = `<strong>${esc(driverName || 'Driver')}</strong>`;
     if (distanceKm && durationMin) {
       driverHtml += `<br>Distance: <strong>${esc(distanceKm)} km</strong><br>Est. arrival: <strong>${esc(durationMin)} min</strong>`;
     } else if (distanceKm) {

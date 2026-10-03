@@ -9,7 +9,8 @@ import {
   Alert,
   ActivityIndicator,
   Image,
-  StatusBar
+  StatusBar,
+   ScrollView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles/LoginScreen.styles';
@@ -118,34 +119,40 @@ const handleLogin = async () => {
       <StatusBar barStyle="light-content" backgroundColor="#0046a8" />
 
       {/* Navbar - Exactly like your web version */}
-      <View style={styles.navbar}>
-        <View style={styles.navContainer}>
-          <TouchableOpacity
-            style={styles.navbarBrand}
-            onPress={() => navigation.navigate('Home')}
-          >
-            <Text style={styles.brandText}>GoodWrench</Text>
-          </TouchableOpacity>
-          <View style={styles.navLinks}>
-            <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-              <Text style={styles.navLink}>Home</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.navLink}>Register</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('RequestForm')}>
-              <Text style={styles.navLink}>Request</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      {/* Navbar */}
+<View style={styles.navbar}>
+  <View style={styles.navContainer}>
+
+    {/* Brand Logo (Fixed on the left) */}
+    <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+      <Text style={styles.brandText}>GoodWrench</Text>
+    </TouchableOpacity>
+
+    {/* Swipeable Nav Links (Takes up remaining space) */}
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.navLinksContainer}
+    >
+      <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+        <Text style={styles.navLink}>Home</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+        <Text style={styles.navLink}>Login</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.navigate('RequestForm')}>
+        <Text style={styles.navLink}>Request</Text>
+      </TouchableOpacity>
+    </ScrollView>
+
+  </View>
+</View>
 
       {/* Main Content */}
       <View style={styles.mainContent}>
         <View style={styles.loginCard}>
           {/* Header */}
           <View style={styles.loginHeader}>
-            <Text style={styles.loginIcon}>🤸🏾‍♂️</Text>
             <Text style={styles.loginTitle}>Welcome Back</Text>
             <Text style={styles.loginSubtitle}>Sign in to your account</Text>
           </View>

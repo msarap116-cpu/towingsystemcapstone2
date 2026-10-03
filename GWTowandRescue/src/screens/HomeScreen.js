@@ -22,7 +22,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import Geolocation from '@react-native-community/geolocation';
+import { Dropdown } from 'react-native-element-dropdown';
 import styles from '../styles/HomeScreen.styles';
+
 import API_BASE_URL from '../config';
 
 const { width, height } = Dimensions.get('window');
@@ -73,52 +75,48 @@ const HomeScreen = () => {
   const addressSearchController = useRef(null);
 
   // Service types
+  const towIcon = require('../assets/images/tow (1).png');
+  const canisterIcon = require('../assets/images/canister (1).png');
+  const carBatteryIcon = require('../assets/images/car-battery (1).png');
+  const flatTireIcon = require('../assets/images/flat-tire (1).png');
+
   const serviceTypes = [
     { label: 'Select Service', value: '' },
-    { label: 'Towing Service', value: '1' },
-    { label: 'Flat Tire Change', value: '2' },
-    { label: 'Jump Start', value: '3' },
-    { label: 'Fuel Delivery', value: '4' },
+    { label: 'Towing Service', value: '1', icon: towIcon },
+    { label: 'Flat Tire Change', value: '2', icon: flatTireIcon },
+    { label: 'Jump Start', value: '3', icon: carBatteryIcon },
+    { label: 'Fuel Delivery', value: '4', icon: canisterIcon },
     { label: 'Lockout Service', value: '5' }
   ];
-
-  // Services for the showcase cards
   const services = [
     {
       id: '1',
-      emoji: '🚛',
-      title: 'Heavy towing',
-      description: 'Trucks, buses, construction machinery — 24/7 heavy wrecker',
+      icon: towIcon,
+      title: 'Towing',
+      description: 'Towing Vehicle service',
       price: '150'
     },
     {
       id: '3',
-      emoji: '⚡',
+      icon: carBatteryIcon,
       title: 'Jump start',
-      description: 'Battery boost & emergency start, arrive within 30 min',
+      description: 'Replace and jump start battery service',
       price: '150'
     },
     {
       id: '2',
-      emoji: '🛞',
+      icon: flatTireIcon,
       title: 'Flat tire change',
-      description: 'Roadside tire replacement, spare mounting & inflation',
+      description: 'Replace Tire/Alternative tire repair',
       price: '150'
     },
     {
       id: '4',
-      emoji: '⛽',
+      icon: canisterIcon,
       title: 'Fuel delivery',
       description: 'Out of gas? We bring diesel or gasoline directly to you',
       price: '150 + 20'
     }
-  ];
-
-  // Features
-  const features = [
-    { icon: '🚛', title: 'Own truck fleet & storage', description: '100+ modern tractors & tow trucks' },
-    { icon: '🛡️', title: 'Full cargo & vehicle insurance', description: 'Up to $2M liability coverage' },
-    { icon: '💰', title: 'Prices lower than competitors', description: 'Direct fleet → savings for you' }
   ];
 
   // ============ LIFECYCLE ============
@@ -330,28 +328,28 @@ const HomeScreen = () => {
     );
   };
 
-const reverseGeocode = async (latitude, longitude) => {
-  const url =
-    'https://goodwrench-towing-rescue.onrender.com/api/geocode/reverse' +
-    `?lat=${encodeURIComponent(latitude)}` +
-    `&lng=${encodeURIComponent(longitude)}`;
+  const reverseGeocode = async (latitude, longitude) => {
+    const url =
+      'https://goodwrench-towing-rescue.onrender.com/api/geocode/reverse' +
+      `?lat=${encodeURIComponent(latitude)}` +
+      `&lng=${encodeURIComponent(longitude)}`;
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-  });
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
 
-  const responseText = await response.text();
+    const responseText = await response.text();
 
-  if (!response.ok) {
-    throw new Error(
-      `Reverse geocoding failed: ${response.status} ${responseText.substring(0, 200)}`
-    );
-  }
+    if (!response.ok) {
+      throw new Error(
+        `Reverse geocoding failed: ${response.status} ${responseText.substring(0, 200)}`
+      );
+    }
 
-  const data = JSON.parse(responseText);
-  return data.address || null;
-};
+    const data = JSON.parse(responseText);
+    return data.address || null;
+  };
 
   const searchAddressLocations = async (query) => {
     if (!query || query.trim().length < 3) {
@@ -642,46 +640,34 @@ const reverseGeocode = async (latitude, longitude) => {
     </View>
   );
 
-  const renderFeatures = () => (
-    <View style={styles.featuresSection}>
-      {features.map((feature, index) => (
-        <View key={index} style={styles.featureCard}>
-          <Text style={styles.featureIcon}>{feature.icon}</Text>
-          <Text style={styles.featureTitle}>{feature.title}</Text>
-          <Text style={styles.featureDescription}>{feature.description}</Text>
+
+const renderServices = () => (
+  <View style={styles.servicesSection}>
+    <Text style={styles.sectionTitle}>Our towing & roadside services</Text>
+    <Text style={styles.sectionSubtitle}>
+      Instant assistance, transparent pricing, professional equipment
+    </Text>
+
+    <View style={styles.servicesGrid}>
+      {services.map((service) => (
+        <View key={service.id} style={styles.serviceCard}>
+          <Image source={service.icon} style={styles.serviceIcon} />
+          <Text style={styles.serviceTitle}>{service.title}</Text>
+          <Text style={styles.serviceDescription}>{service.description}</Text>
+          <View style={styles.priceTag}>
+            <Text style={styles.priceText}>₱{service.price}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.serviceButton}
+            onPress={() => openEmergencyModal(service.id)}
+          >
+            <Text style={styles.serviceButtonText}>Request now →</Text>
+          </TouchableOpacity>
         </View>
       ))}
     </View>
-  );
-
-  const renderServices = () => (
-    <View style={styles.servicesSection}>
-      <Text style={styles.sectionTitle}>Our towing & roadside services</Text>
-      <Text style={styles.sectionSubtitle}>
-        Instant assistance, transparent pricing, professional equipment
-      </Text>
-
-      <View style={styles.servicesGrid}>
-        {services.map((service) => (
-          <View key={service.id} style={styles.serviceCard}>
-            <Text style={styles.serviceEmoji}>{service.emoji}</Text>
-            <Text style={styles.serviceTitle}>{service.title}</Text>
-            <Text style={styles.serviceDescription}>{service.description}</Text>
-            <View style={styles.priceTag}>
-              <Text style={styles.priceText}>₱{service.price}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.serviceButton}
-              onPress={() => openEmergencyModal(service.id)}
-            >
-              <Text style={styles.serviceButtonText}>Request now →</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-
+  </View>
+);
   // ============ MODALS ============
 
   const renderHowItWorksModal = () => (
@@ -951,22 +937,20 @@ const reverseGeocode = async (latitude, longitude) => {
         }
       >
         {renderHero()}
-        {renderFeatures()}
+
         {renderServices()}
 
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            © 2025 GoodWrench — International Freight & Towing Assistance.
+            2026 Capstone project Design and Development of Web and Android-based Towing and RoadSide assistance.
           </Text>
-          <Text style={styles.footerText}>
-            Fully licensed & insured carrier.
-          </Text>
+
           <Text style={[styles.footerText, styles.footerEmergency]}>
-            📞 24/7 Emergency: +63 9107515937
+            📞Emergency: +63 9107515937 or register
           </Text>
           <Text style={styles.footerText}>
-            ✉️ dispatch@goodwrench.com
+            ✉️ https://goodwrench-towing-rescue.onrender.com
           </Text>
         </View>
       </ScrollView>

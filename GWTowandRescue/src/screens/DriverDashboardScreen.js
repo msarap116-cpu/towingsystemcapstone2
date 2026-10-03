@@ -1341,7 +1341,7 @@ const renderEarnings = () => (
     <SafeAreaProvider>
       {/*  Gamit ang SafeAreaView gikan sa bag-ong library, dili View */}
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <StatusBar barStyle="white-content" backgroundColor="#0046a8" />
 
         {/* Header / Navbar */}
         <View style={styles.headerBar}>

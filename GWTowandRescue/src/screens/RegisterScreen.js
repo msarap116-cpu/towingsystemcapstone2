@@ -14,6 +14,7 @@ import {
     Image
 } from 'react-native';
 import API_BASE_URL from '../config';
+import styles from '../styles/RegisterScreen.styles';
 
 // ===== VALIDATION HELPERS (mirrors your web registration.js) =====
 
@@ -322,15 +323,35 @@ const RegisterScreen = ({ navigation }) => {
                 {/* Navbar */}
                 <View style={styles.navbar}>
                     <View style={styles.navContainer}>
+
+                        {/* Brand Logo (Fixed on the left) */}
                         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-                            <Text style={styles.navbarBrand}>🎉 GoodWrench</Text>
+                            <Text style={styles.brandText}>GoodWrench</Text>
                         </TouchableOpacity>
+
+                        {/* Swipeable Nav Links (Takes up remaining space) */}
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.navLinksContainer}
+                        >
+                            <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+                                <Text style={styles.navLink}>Home</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                                <Text style={styles.navLink}>Login</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => navigation.navigate('RequestForm')}>
+                                <Text style={styles.navLink}>Request</Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+
                     </View>
                 </View>
 
                 <View style={styles.card}>
                     <View style={styles.headerContainer}>
-                        <Text style={styles.headerIcon}>📝</Text>
+
                         <Text style={styles.title}>Create Account</Text>
                     </View>
 
@@ -484,154 +505,6 @@ const RegisterScreen = ({ navigation }) => {
 };
 
 // ===== STYLES (Caltex palette from your web CSS) =====
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#eaeef2'
-    },
-    scrollContainer: {
-        flexGrow: 1,
-        paddingBottom: 40
-    },
-    navbar: {
-        backgroundColor: '#0046a8',
-        paddingVertical: 14,
-        paddingHorizontal: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3
-    },
-    navContainer: {
-        flexDirection: 'row',
-        alignItems: 'center'
-    },
-    navbarBrand: {
-        color: '#fff',
-        fontSize: 20,
-        fontWeight: '700'
-    },
-    card: {
-        backgroundColor: '#fff',
-        margin: 20,
-        borderRadius: 24,
-        padding: 24,
-        borderWidth: 1,
-        borderColor: '#d3d9e0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.06,
-        shadowRadius: 30,
-        elevation: 4
-    },
-    headerContainer: {
-        alignItems: 'center',
-        marginBottom: 24
-    },
-    headerIcon: {
-        fontSize: 40,
-        marginBottom: 4
-    },
-    title: {
-        fontSize: 26,
-        fontWeight: '800',
-        color: '#0f172a',
-        letterSpacing: -0.5
-    },
-    formGroup: {
-        marginBottom: 16
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#0f172a',
-        marginBottom: 6
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#d3d9e0',
-        borderRadius: 16,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        fontSize: 15,
-        backgroundColor: '#fafcff',
-        color: '#0f172a'
-    },
-    inputError: {
-        borderColor: '#dc3545'
-    },
-    passwordContainer: {
-        position: 'relative',
-        justifyContent: 'center'
-    },
-    passwordInput: {
-        paddingRight: 48
-    },
-    eyeButton: {
-        position: 'absolute',
-        right: 12,
-        padding: 6
-    },
-    eyeButtonText: {
-        fontSize: 18
-    },
-    helperText: {
-        fontSize: 12,
-        color: '#5a6c7d',
-        marginTop: 6,
-        lineHeight: 16
-    },
-    errorText: {
-        color: '#dc3545',
-        fontSize: 13,
-        marginTop: 5
-    },
-    statusText: {
-        fontSize: 13,
-        marginTop: 5
-    },
-    emailSuggestion: {
-        color: '#856404',
-        backgroundColor: '#fff3cd',
-        padding: 8,
-        borderRadius: 4,
-        marginTop: 5,
-        fontSize: 13
-    },
-    registerButton: {
-        backgroundColor: '#e30613',
-        borderRadius: 40,
-        paddingVertical: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 12,
-        shadowColor: '#e30613',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 4
-    },
-    registerButtonDisabled: {
-        opacity: 0.6
-    },
-    registerButtonText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: '700'
-    },
-    footer: {
-        marginTop: 24,
-        alignItems: 'center'
-    },
-    footerText: {
-        fontSize: 14,
-        color: '#5a6c7d'
-    },
-    link: {
-        color: '#0046a8',
-        fontWeight: '600'
-    }
-});
+
 
 export default RegisterScreen;

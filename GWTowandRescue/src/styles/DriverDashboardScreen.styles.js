@@ -5,14 +5,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
-  headerBar: {
+   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    // REMOVE paddingTop: 20, and replace it with proper safe area handling
+    paddingTop: Platform.OS === 'ios' ? 50 : 20, // Adjusts for iOS notch, keeps Android clean
     paddingBottom: 16,
-    backgroundColor: '#0046a8',
+    backgroundColor: '#0046a8', // Matches the customer side
+    // If you are using SafeAreaView in your JSX, you can remove paddingTop entirely
   },
   headerTitle: {
     fontSize: 22,
@@ -317,7 +319,7 @@ roleText: { color: '#070707', fontSize: 11, fontWeight: '600' },
     backgroundColor: 'rgba(0,70,168,0.95)',
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 22,
+    borderRadius: 10,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

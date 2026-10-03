@@ -142,12 +142,12 @@ const styles = StyleSheet.create({
   submitButton: {
     width: '100%',
     padding: 14,
-    backgroundColor: '#e30613', // Caltex Red
-    borderRadius: 40,
+    backgroundColor: '#0046a8', // Caltex Red
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
-    shadowColor: '#e30613',
+    shadowColor: '#051730',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
