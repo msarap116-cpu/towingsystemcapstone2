@@ -631,11 +631,7 @@ function renderRecentActivity(activities) {
     if (!container) return;
 
     if (!Array.isArray(activities) || activities.length === 0) {
-        container.innerHTML = `
-            <div class="history-item">
-                No recent activity
-            </div>
-        `;
+        container.innerHTML = `<div class="history-item">No recent activity</div>`;
         return;
     }
 
@@ -645,23 +641,21 @@ function renderRecentActivity(activities) {
         const statusNormalized = (a.status || "").toLowerCase().trim();
         const canCancel = cancellableStatuses.includes(statusNormalized);
 
+        // Notice the removal of '#' for address, amount, and service type
         return `
             <div class="history-item">
-                <span>#${a.request_id || "#"}</span>
-                <span>#${a.address || "--"}</span>
-                <span>#${a.total_amount || "--"}</span>
-                <span>${a.service_type || "Service Request"}</span>
-                <span>${a.status || "Unknown"}</span>
+                <span class="col-id">#${a.request_id || "--"}</span>
+                <span class="col-address">${a.address || "--"}</span>
+                <span class="col-amount">₱${a.total_amount || "0.00"}</span>
+                <span class="col-service">${a.service_type || "Service Request"}</span>
+                <span class="col-status">${a.status || "Unknown"}</span>
                 ${canCancel ? `
-                    <button class="btn btn-danger btn-sm" onclick="cancelRequest(${a.request_id})">
+                    <button class="btn btn-danger btn-sm col-action" onclick="cancelRequest(${a.request_id})">
                         Cancel
                     </button>
-                ` : ""}
-            </div>
-        `;
+                ` : '<span class="col-action"></span>'} `;
     }).join("");
 }
-
 //cancel request
 window.cancelRequest = async function (requestId) {
     const token = sessionStorage.getItem('token');

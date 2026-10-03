@@ -1,9 +1,9 @@
-// components/NotificationBell.js
+// src/components/NotificationBell.js
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons'; // or react-native-vector-icons
-import styles from '../styles/DriverDashboardScreen.styles';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import styles from '../styles/NotificationBell.styles';
 import { fetchUnreadCount } from '../services/notificationService';
 
 export default function NotificationBell({ navigation }) {
@@ -16,8 +16,12 @@ export default function NotificationBell({ navigation }) {
     } catch (e) { /* ignore */ }
   }, []);
 
-  // refresh whenever screen is focused
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
+
+  useEffect(() => {
+    const id = setInterval(refresh, 30000);
+    return () => clearInterval(id);
+  }, [refresh]);
 
   return (
     <TouchableOpacity

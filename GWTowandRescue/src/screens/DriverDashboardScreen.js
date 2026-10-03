@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LeafletMap from '../components/LeafletMap';
+import NotificationBell from '../components/NotificationBell';
 // import Geolocation from '@react-native-community/geolocation';
 import Geolocation from 'react-native-geolocation-service';
 import styles from '../styles/DriverDashboardScreen.styles';
