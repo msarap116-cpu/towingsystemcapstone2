@@ -167,48 +167,6 @@ function renderDashboardUI() {
 
     const tripsList = document.getElementById('myTripsList');
     if (tripsList) {
-        if (myActiveTrips.length === 0) {
-            tripsList.innerHTML = '<div class="empty-state">No active trips</div>';
-        } else {
-            tripsList.innerHTML = myActiveTrips.map(trip => `
-    <div class="request-item">
-        <div class="top-line">
-            <span class="customer">${trip.customer_name || 'Customer'}</span>
-            <span class="service">${trip.service_type || 'Service'}</span>
-        </div>
-        <div class="location">📍 ${trip.location || 'No address'}</div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
-            <span class="status-badge ${trip.status}">${trip.status}</span>
-            <span class="price">₱${trip.total_amount || trip.amount || 0}</span>
-        </div>
-        <div class="actions">
-            <select class="status-select" onchange="updateTripStatus(${trip.request_id}, this.value)">
-                <option value="">Update Status</option>
-                <option value="assigned" ${trip.status === 'assigned' ? 'selected' : ''}>Assigned</option>
-                <option value="in progress" ${trip.status === 'in progress' ? 'selected' : ''}>In Progress</option>
-                <option value="completed" ${trip.status === 'completed' ? 'selected' : ''}>Completed</option>
-            </select>
-
-            ${['assigned', 'in progress'].includes(trip.status)
-                    ? `<button class="btn btn-secondary btn-sm" onclick="openAddChargeForm(${trip.request_id})">+ Add Charge</button>`
-                    : ''}
-
-            <button class="btn btn-danger btn-sm" onclick="cancelTrip(${trip.request_id})">Cancel</button>
-        </div>
-
-        ${['assigned', 'in progress'].includes(trip.status) ? `
-        <div id="addChargeForm-${trip.request_id}" style="display:none; margin-top:8px;">
-            <input type="text" id="chargeDescription-${trip.request_id}" placeholder="e.g. Replacement battery">
-            <input type="number" id="chargeAmount-${trip.request_id}" placeholder="Amount" min="0" step="0.01">
-            <button type="button" onclick="submitAdditionalCharge(${trip.request_id})">Submit</button>
-            <button type="button" onclick="closeAddChargeForm(${trip.request_id})">Cancel</button>
-        </div>
-        ` : ''}
-    </div>
-`).join('');
-        }
-    }
-    if (tripsList) {
         tripsList.innerHTML = myActiveTrips.length === 0
             ? '<div class="empty-state">No active trips</div>'
             : myActiveTrips.map(renderTripCard).join('');
@@ -234,8 +192,6 @@ function renderDashboardUI() {
     if (totalEarningsEl) totalEarningsEl.innerText = `₱${totalEarningsValue.toFixed(2)}`;
 
 
-
-
     // NEW: "All Trips" tab — active + completed
     const allTripsList = document.getElementById('allTripsList');
     if (allTripsList) {
@@ -244,29 +200,39 @@ function renderDashboardUI() {
             ? '<div class="empty-state">No trips yet</div>'
             : allTrips.map(renderTripCard).join('');
     }
+
     renderPendingRequests();
 };
 // existing dashboard "On Going Job" — active trips only
 
 function renderTripCard(trip) {
+    const isActive = ['assigned', 'in progress'].includes(trip.status);
     return `
     <div class="request-item">
         <div class="top-line">
             <span class="customer">${trip.customer_name || 'Customer'}</span>
             <span class="service">${trip.service_type || 'Service'}</span>
         </div>
-        <div class="location">  ${trip.location || 'No address'}</div>
+        <div class="location">📍 ${trip.location || 'No address'}</div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
             <span class="status-badge ${trip.status}">${trip.status}</span>
             <span class="price">₱${trip.total_amount || trip.amount || 0}</span>
         </div>
+        <div class="actions">
+            ${isActive
+            ? `<button class="btn btn-success btn-sm" onclick="confirmCompleteTrip(${trip.request_id})">✓ Complete</button>`
+            : ''}
 
-            ${['assigned', 'in progress'].includes(trip.status)
+            ${isActive
             ? `<button class="btn btn-secondary btn-sm" onclick="openAddChargeForm(${trip.request_id})">+ Add Charge</button>`
             : ''}
 
+            ${isActive
+            ? `<button class="btn btn-danger btn-sm" onclick="confirmCancelTrip(${trip.request_id})">Cancel</button>`
+            : ''}
         </div>
-        ${['assigned', 'in progress'].includes(trip.status) ? `
+
+        ${isActive ? `
         <div id="addChargeForm-${trip.request_id}" style="display:none; margin-top:8px;">
             <input type="text" id="chargeDescription-${trip.request_id}" placeholder="e.g. Replacement battery">
             <input type="number" id="chargeAmount-${trip.request_id}" placeholder="Amount" min="0" step="0.01">
@@ -275,9 +241,17 @@ function renderTripCard(trip) {
         </div>
         ` : ''}
     </div>`;
-};
+}
+function confirmCompleteTrip(requestId) {
+    // single confirm — just call straight through
+    updateTripStatus(requestId, 'completed');
+}
 
-
+function confirmCancelTrip(requestId) {
+    if (confirm('Cancel this trip? This cannot be undone.')) {
+        cancelTrip(requestId);
+    }
+}
 function openAddChargeForm(requestId) {
     const form = document.getElementById(`addChargeForm-${requestId}`);
     if (!form) return;
@@ -383,9 +357,14 @@ window.updateTripStatus = async function (requestId, newStatus) {
     if (!token) return;
     if (!newStatus) return;
 
+
+    await loadDriverDashboardData();
+
+    // 2. Look up in the FRESH array
     const trip = myActiveTrips.find(t => Number(t.request_id) === Number(requestId));
     if (!trip) {
-        alert('Trip not found.');
+        alert('This trip is no longer assigned to you.');
+        renderDashboardUI();
         return;
     }
 
@@ -425,6 +404,17 @@ window.updateTripStatus = async function (requestId, newStatus) {
         const data = await res.json();
 
         if (!res.ok) {
+            if (res.status === 403) {
+                showToast('This trip is no longer assigned to you.', 'error');
+                await loadDriverDashboardData();
+                renderDashboardUI();
+                return;
+            }
+            if (res.status === 404) {
+                showToast('Request not found.', 'error');
+                await loadDriverDashboardData();
+                return;
+            }
             throw new Error(data.error || data.message || 'Status update failed');
         }
 

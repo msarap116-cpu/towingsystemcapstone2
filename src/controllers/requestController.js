@@ -2,7 +2,9 @@
 const Request = require('../models/requestModel');
 const Vehicle = require('../models/vehicleModel');
 const db = require('../database/database');
-const { notifyUser, notifyRole } = require('../utils/notify');
+const { notifyUser, notifyRole } = require('../../utils/notify');
+
+
 exports.createRequest = async (req, res) => {
     try {
         const user_id = req.user.id ?? req.user.user_id;
@@ -274,30 +276,29 @@ exports.updateStatus = async (req, res) => {
     const { status } = req.body;
 
     const allowed = ['assigned', 'in progress', 'completed'];
-
     if (!allowed.includes(status)) {
         return res.status(400).json({ error: 'Invalid status' });
     }
 
-    // Map service_requests.status -> driver_assignments.status (note the underscore mismatch)
     const assignmentStatusMap = {
         'assigned': 'accepted',
         'in progress': 'in_progress',
-        'completed': 'completed'
+        'completed': 'completed',
     };
 
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
 
-        // Lock the row so two requests can't race on the same status change
-        const rows = await conn.query(
+        // --- 1. Lock + fetch the request row ---
+        const raw = await conn.query(
             `SELECT request_id, driver_id, status, amount, base_amount, total_amount
              FROM service_requests
              WHERE request_id = ?
              FOR UPDATE`,
             [id]
         );
+        const rows = Array.isArray(raw[0]) ? raw[0] : raw;
 
         if (!rows || rows.length === 0) {
             await conn.rollback();
@@ -305,6 +306,16 @@ exports.updateStatus = async (req, res) => {
         }
 
         const request = rows[0];
+
+        // debug — remove after verified
+        console.log('[updateStatus]', JSON.stringify({
+            tokenId: driver_id,
+            tokenIdType: typeof driver_id,
+            dbDriverId: request.driver_id,
+            dbDriverIdType: typeof request.driver_id,
+            dbStatus: request.status,
+            equal: Number(request.driver_id) === Number(driver_id),
+        }));
 
         if (Number(request.driver_id) !== Number(driver_id)) {
             await conn.rollback();
@@ -316,7 +327,7 @@ exports.updateStatus = async (req, res) => {
             return res.status(400).json({ error: 'Request is already completed' });
         }
 
-        // --- 1. Update service_requests (unchanged logic) ---
+        // --- 2. Update service_requests ---
         const updateSql = status === 'completed'
             ? `UPDATE service_requests
                SET status = ?, completed_at = NOW(), updated_at = NOW()
@@ -332,66 +343,64 @@ exports.updateStatus = async (req, res) => {
             return res.status(400).json({ error: 'Status was not updated' });
         }
 
-        // --- 2. Mirror the change into driver_assignments ---
+        // --- 3. Mirror into driver_assignments ---
         const assignmentStatus = assignmentStatusMap[status];
         const timestampCol =
             status === 'in progress' ? 'started_at' :
-                status === 'completed' ? 'completed_at' :
-                    null; // 'assigned' -> accepted_at could go here too if you track it
-        // Inside updateStatus, in the transaction, right before the driver_assignments UPDATE:
+            status === 'completed'   ? 'completed_at' :
+            null;
 
         let actualDistanceKm = null;
         let actualTimeMinutes = null;
 
         if (status === 'completed') {
-            // Pull the assignment row to get started_at + estimated_distance_km fallback
-            const assignmentRows = await conn.query(
+            const rawAssignment = await conn.query(
                 `SELECT started_at, estimated_distance_km
-         FROM driver_assignments
-         WHERE request_id = ? AND driver_id = ? AND status NOT IN ('completed','cancelled')
-         LIMIT 1`,
+                 FROM driver_assignments
+                 WHERE request_id = ? AND driver_id = ?
+                   AND status NOT IN ('completed','cancelled')
+                 LIMIT 1`,
                 [id, driver_id]
             );
+            const assignmentRows = Array.isArray(rawAssignment[0]) ? rawAssignment[0] : rawAssignment;
             const assignment = assignmentRows?.[0];
 
-            // actual_time_minutes: computed server-side from real timestamps, never trust the client for this
             if (assignment?.started_at) {
                 const startedMs = new Date(assignment.started_at).getTime();
                 actualTimeMinutes = Math.max(0, Math.round((Date.now() - startedMs) / 60000));
             }
 
-            // actual_distance_km: prefer what the client sends (last drawn route), fallback to the estimate
             const clientDistance = Number(req.body.actualDistanceKm);
             actualDistanceKm = Number.isFinite(clientDistance)
                 ? clientDistance
                 : assignment?.estimated_distance_km ?? null;
         }
+
         const assignmentSql = status === 'completed'
             ? `UPDATE driver_assignments
-       SET status = ?, completed_at = NOW(), actual_distance_km = ?, actual_time_minutes = ?, updated_at = NOW()
-       WHERE request_id = ? AND driver_id = ? AND status NOT IN ('completed','cancelled')`
+               SET status = ?, completed_at = NOW(), actual_distance_km = ?, actual_time_minutes = ?, updated_at = NOW()
+               WHERE request_id = ? AND driver_id = ? AND status NOT IN ('completed','cancelled')`
             : timestampCol
                 ? `UPDATE driver_assignments
-           SET status = ?, ${timestampCol} = NOW(), updated_at = NOW()
-           WHERE request_id = ? AND driver_id = ? AND status NOT IN ('completed','cancelled')`
+                   SET status = ?, ${timestampCol} = NOW(), updated_at = NOW()
+                   WHERE request_id = ? AND driver_id = ? AND status NOT IN ('completed','cancelled')`
                 : `UPDATE driver_assignments
-           SET status = ?, updated_at = NOW()
-           WHERE request_id = ? AND driver_id = ? AND status NOT IN ('completed','cancelled')`;
+                   SET status = ?, updated_at = NOW()
+                   WHERE request_id = ? AND driver_id = ? AND status NOT IN ('completed','cancelled')`;
 
         const assignmentParams = status === 'completed'
             ? [assignmentStatus, actualDistanceKm, actualTimeMinutes, id, driver_id]
             : [assignmentStatus, id, driver_id];
 
         const assignmentResult = await conn.query(assignmentSql, assignmentParams);
-        // Don't hard-fail the whole request if no matching assignment row exists —
-        // log it as a data-integrity signal, but let the service_requests update stand.
+
         if (assignmentResult.affectedRows === 0) {
             console.warn(
                 `No matching driver_assignments row updated for request ${id}, driver ${driver_id}, status ${assignmentStatus}`
             );
         }
 
-        // --- 3. Record earnings on completion (unchanged) ---
+        // --- 4. Earnings on completion ---
         if (status === 'completed') {
             try {
                 const earningAmount = Number(request.total_amount ?? request.amount);
@@ -412,9 +421,8 @@ exports.updateStatus = async (req, res) => {
             request_id: Number(id),
             previous_status: request.status,
             status: status,
-            message: `Status updated to ${status}`
+            message: `Status updated to ${status}`,
         });
-
     } catch (err) {
         await conn.rollback();
         console.error('updateStatus error:', err);

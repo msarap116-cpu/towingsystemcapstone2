@@ -1,5 +1,5 @@
 // utils/notify.js
-const Notification = require('../models/notificationModel');
+const Notification = require('../src/models/notificationModel');
 
 async function safeNotify(promiseFn) {
   try {
