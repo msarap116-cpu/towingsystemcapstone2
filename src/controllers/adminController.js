@@ -4,7 +4,7 @@ const db = require('../database/database');
 const Admin = require('../models/adminModel');
 const Request = require('../models/requestModel');
 const Notification = require('../models/notificationModel');
-
+const { notifyUser, notifyRole } = require('../utils/notify');
 // console.log("RUNNING NEW QUERY");
 
 

@@ -2,8 +2,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, ActivityIndicator,
-  RefreshControl, SafeAreaView,
+  RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/DriverDashboardScreen.styles'; // your existing styles file
 import {
   fetchNotifications, fetchUnreadCount,
@@ -73,7 +75,16 @@ export default function NotificationsScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.headerBar}>
-        <Text style={[styles.headerTitle, styles.headerGreen]}>Notifications</Text>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{ paddingRight: 12 }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+
+        <Text style={styles.headerTitle}>Notifications</Text>
+
         <TouchableOpacity onPress={handleMarkAll}>
           <Text style={{ color: '#fff', fontWeight: '600' }}>Mark all read</Text>
         </TouchableOpacity>

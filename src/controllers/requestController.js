@@ -2,8 +2,7 @@
 const Request = require('../models/requestModel');
 const Vehicle = require('../models/vehicleModel');
 const db = require('../database/database');
-const Notification = require('../models/notificationModel');
-
+const { notifyUser, notifyRole } = require('../utils/notify');
 exports.createRequest = async (req, res) => {
     try {
         const user_id = req.user.id ?? req.user.user_id;
@@ -105,22 +104,18 @@ exports.createRequest = async (req, res) => {
             );
         }
 
-        // 4.5 NOTIFY — new request is waiting, let drivers (and admins) know
-        try {
-            await Notification.createForRole('driver', {
-                requestId: requestId,
-                type: 'order',
-                message: `New service request #${requestId} is available.`
-            });
+        //NOTIFY — new request is waiting, let drivers (and admins) know
+        await notifyRole('driver', {
+            requestId,
+            type: 'order',
+            message: `New service request #${requestId} is available.`,
+        });
 
-            await Notification.createForRole('admin', {
-                requestId: requestId,
-                type: 'order',
-                message: `New service request #${requestId} was submitted.`
-            });
-        } catch (notifErr) {
-            console.error('Notification failed (non-fatal):', notifErr);
-        }
+        await notifyRole('admin', {
+            requestId,
+            type: 'order',
+            message: `New service request #${requestId} was submitted.`,
+        });
 
         // 5. SUCCESS
 
@@ -242,16 +237,11 @@ exports.acceptRequest = async (req, res) => {
         }
 
         // ---- 4. Notify (non-fatal) ----
-        try {
-            await Notification.create({
-                userId: request.user_id,
-                requestId: id,
-                type: 'order',
-                message: `A driver has accepted your service request #${id}.`,
-            });
-        } catch (notifErr) {
-            console.error('Notification failed (non-fatal):', notifErr);
-        }
+        await notifyUser(request.user_id, {
+            requestId: id,
+            type: 'order',
+            message: `A driver has accepted your service request #${id}.`,
+        });
 
         console.log(`Driver ${driverId} successfully accepted request ${id}`);
 
@@ -533,32 +523,52 @@ exports.cancelRequest = async (req, res) => {
 
         if (userRole === 'customer') {
             await Request.customerCancel(id, reason);
-            res.json({ success: true, message: 'Trip cancelled' });
 
+            // notify BEFORE responding
             if (request.driver_id) {
-                await Notification.create({
-                    userId: request.driver_id,
+                const cancelMsg =
+                    `Request #${id} was cancelled by the customer.` +
+                    (reason ? ` Reason: ${reason}` : '');
+
+                await notifyUser(request.driver_id, {
                     requestId: id,
                     type: 'order',
-                    message: `Request #${id} was cancelled by the customer.${reason ? ' Reason: ' + reason : ''}`
+                    message: cancelMsg,
+                });
+
+                await notifyRole('admin', {
+                    requestId: id,
+                    type: 'order',
+                    message: cancelMsg,
                 });
             }
-        } else {
-            await Request.driverReleaseAssignment(id, userId, reason);
-            res.json({ success: true, message: 'Trip released back to the pending pool' });
 
-            await Notification.create({
-                userId: request.user_id,
-                requestId: id,
-                type: 'order',
-                message: `Your driver had to cancel. We're finding you a new driver.${reason ? ' Reason: ' + reason : ''}`
-            });
+            return res.json({ success: true, message: 'Trip cancelled' });
         }
+
+        // driver branch
+        await Request.driverReleaseAssignment(id, userId, reason);
+
+        await notifyUser(request.user_id, {
+            requestId: id,
+            type: 'order',
+            message:
+                `Your driver had to cancel. We're finding you a new driver.` +
+                (reason ? ` Reason: ${reason}` : ''),
+        });
+
+        await notifyRole('driver', {
+            requestId: id,
+            type: 'order',
+            message: `Request #${id} is back in the pending pool.`,
+        });
+
+        return res.json({ success: true, message: 'Trip released back to the pending pool' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('cancelRequest error:', err);
+        return res.status(500).json({ error: err.message });
     }
 };
-
 
 exports.addAdditionalCharge = async (req, res) => {
     try {

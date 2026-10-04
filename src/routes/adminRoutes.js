@@ -188,7 +188,8 @@ router.put(
             await Payment.rejectPayment(
                 paymentId,
                 reason || 'Payment proof was rejected.'
-            ); await Notification.create({
+            );
+            await Notification.create({
                 userId: payment.user_id,
                 requestId: payment.request_id,
                 type: 'payment',

@@ -12,6 +12,7 @@ import DriverDashboardScreen from './src/screens/DriverDashboardScreen';
 import RequestFormScreen from './src/screens/RequestFormScreen';
 import PdfViewerScreen from './src/screens/PdfViewerScreen';
 import NotificationScreen from './src/screens/NotificationScreen';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 
 
@@ -45,15 +46,18 @@ const App = () => {
         checkLoginStatus();
     }, []);
 
-    if (isLoading) {
-        return (
+   if (isLoading) {
+    return (
+        <SafeAreaProvider>
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <ActivityIndicator size="large" />
             </View>
-        );
-    }
+        </SafeAreaProvider>
+    );
+}
 
-    return (
+   return (
+    <SafeAreaProvider>
         <NavigationContainer>
             <Stack.Navigator initialRouteName={initialRoute}>
                 <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
@@ -63,11 +67,11 @@ const App = () => {
                 <Stack.Screen name="DriverDashboard" component={DriverDashboardScreen} options={{ headerShown: false }} />
                 <Stack.Screen name="RequestForm" component={RequestFormScreen} options={{ headerShown: false }} />
                 <Stack.Screen name="PdfViewer" component={PdfViewerScreen} />
-                <Stack.Screen name="Notifications" component={NotificationScreen} options={{ headerShown: false }}/>
-
+                <Stack.Screen name="Notifications" component={NotificationScreen} options={{ headerShown: false }} />
             </Stack.Navigator>
         </NavigationContainer>
-    );
+    </SafeAreaProvider>
+);
 };
 
 export default App;

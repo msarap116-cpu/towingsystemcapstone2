@@ -46,6 +46,7 @@ async function handleRegister(e) {
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Registering...'; // optional, para malinaw sa user
+        console.log('submit button is clicked');
     }
 
     const name = document.getElementById('name').value;

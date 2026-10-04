@@ -1096,71 +1096,73 @@ const DriverDashboardScreen = ({ navigation }) => {
     </View>
   );
   // ===== RENDER TABS =====
-  const renderDashboard = () => (
-    <View style={{ flex: 1 }}>
-      <View style={styles.gridRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Available Jobs</Text>
-          <Text style={styles.statValue}>{availableJobs ?? 0}</Text>
+const renderDashboard = () => (
+  <FlatList
+    data={pendingRequests ?? []}
+    keyExtractor={(item) => String(item.request_id)}
+    refreshControl={
+      <RefreshControl
+        refreshing={refreshing}
+        onRefresh={loadDriverDashboardData}
+      />
+    }
+    ListHeaderComponent={
+      <>
+        <View style={styles.gridRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Available Jobs</Text>
+            <Text style={styles.statValue}>{availableJobs ?? 0}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>My Active Trips</Text>
+            <Text style={styles.statValue}>{activeTrips ?? 0}</Text>
+          </View>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>My Active Trips</Text>
-          <Text style={styles.statValue}>{activeTrips ?? 0}</Text>
-        </View>
-      </View>
 
-      <View style={styles.gridRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Trips Completed</Text>
-          <Text style={styles.statValue}>{completedTrips ?? 0}</Text>
+        <View style={styles.gridRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Trips Completed</Text>
+            <Text style={styles.statValue}>{completedTrips ?? 0}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Today's Earnings</Text>
+            <Text style={styles.statValue}>{formatPrice(todayEarnings ?? 0)}</Text>
+          </View>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Today's Earnings</Text>
-          <Text style={styles.statValue}>{formatPrice(todayEarnings ?? 0)}</Text>
+
+        <View style={styles.whiteCard}>
+          <Text style={styles.cardTitle}>Available Requests</Text>
         </View>
+      </>
+    }
+    ListEmptyComponent={
+      <Text style={styles.emptyMsg}>No pending requests</Text>
+    }
+    renderItem={({ item }) => (
+      <View style={styles.requestItem}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.requestName}>{item.customer_name}</Text>
+          {!!item.location && (
+            <Text style={styles.requestLocation}>📍 {item.location}</Text>
+          )}
+          {!!item.amount && (
+            <Text style={styles.requestAmount}>
+              {formatPrice(item.amount)}
+            </Text>
+          )}
+        </View>
+        <TouchableOpacity
+          style={styles.acceptBtn}
+          onPress={() => acceptJob(item.request_id)}
+        >
+          <Text style={styles.acceptBtnText}>Accept</Text>
+        </TouchableOpacity>
       </View>
-
-      <View style={styles.whiteCard}>
-        <Text style={styles.cardTitle}>Available Requests</Text>
-
-        {pendingRequests?.length ? (
-          <FlatList
-            data={pendingRequests}
-            keyExtractor={(item) => String(item.request_id)}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={loadDriverDashboardData}
-              />
-            }
-            renderItem={({ item }) => (
-              <View style={styles.requestItem}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.requestName}>{item.customer_name}</Text>
-                  {!!item.location && (
-                    <Text style={styles.requestLocation}>📍 {item.location}</Text>
-                  )}
-                  {!!item.amount && (
-                    <Text style={styles.requestAmount}>
-                      {formatPrice(item.amount)}
-                    </Text>
-                  )}
-                </View>
-                <TouchableOpacity
-                  style={styles.acceptBtn}
-                  onPress={() => acceptJob(item.request_id)}
-                >
-                  <Text style={styles.acceptBtnText}>Accept</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          />
-        ) : (
-          <Text style={styles.emptyMsg}>No pending requests</Text>
-        )}
-      </View>
-    </View>
-  );
+    )}
+    contentContainerStyle={{ paddingBottom: 24 }}
+    style={{ flex: 1 }}
+  />
+);
 
   // Helper for bottom bar tabs
   const renderTabItem = (tabKey, icon, label) => {
