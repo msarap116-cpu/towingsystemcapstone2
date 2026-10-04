@@ -429,6 +429,17 @@ notifActionText: {
   color: '#334155',
   fontWeight: '600',
 },
+tripCustomer: {
+  fontSize: 14,
+  color: '#333',
+  marginTop: 6,
+},
+tripPhone: {
+  fontSize: 14,
+  color: '#007AFF',   // iOS blue — tap-to-call affordance
+  marginTop: 2,
+  textDecorationLine: 'underline',
+},
 
 });
 export default styles;

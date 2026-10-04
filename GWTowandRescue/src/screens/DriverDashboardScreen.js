@@ -24,8 +24,11 @@ import NotificationBell from '../components/NotificationBell';
 import Geolocation from 'react-native-geolocation-service';
 import styles from '../styles/DriverDashboardScreen.styles';
 import { launchCamera } from 'react-native-image-picker';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+// or: import Icon from 'react-native-vector-icons/Ionicons';
+// or: import Icon from 'react-native-vector-icons/Feather';
 import API_BASE_URL from '../config';
-import NotificationBell from '../components/NotificationBell';
+
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -275,9 +278,9 @@ const DriverDashboardScreen = ({ navigation }) => {
     if (!token) { console.warn(' trips: no token'); return []; }
     const url = `${API_BASE_URL}/requests/my-trips`;
     try {
-      console.log('➡️ GET', url);
+      console.log(' GET', url);
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      console.log('⬅️ my-trips status:', res.status);
+      console.log('my-trips status:', res.status);
       if (!res.ok) {
         console.warn(' my-trips body:', await res.text());
         return [];
@@ -296,9 +299,9 @@ const DriverDashboardScreen = ({ navigation }) => {
     if (!token) { console.warn(' earnings: no token'); return { today: 0, allTime: 0 }; }
     const url = `${API_BASE_URL}/earnings/summary`;
     try {
-      console.log('➡️ GET', url);
+      console.log(' GET', url);
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      console.log('⬅️ earnings status:', res.status);
+      console.log(' earnings status:', res.status);
       if (!res.ok) {
         console.warn(' earnings body:', await res.text());
         return { today: 0, allTime: 0 };
@@ -374,11 +377,11 @@ const DriverDashboardScreen = ({ navigation }) => {
   const loadDriverDashboardData = async () => {
     try {
       console.log('📡 Fetching dashboard data...');
-      const [pending, trips, earnings, payments] = await Promise.all([   // 👈 add payments
+      const [pending, trips, earnings, payments] = await Promise.all([
         fetchPendingRequests(),
         fetchMyTrips(),
         fetchEarningsSummary(),
-        fetchDriverPayments(),   // 👈 add this call
+        fetchDriverPayments(),
       ]);
       console.log(' Dashboard data received:', { pending, trips, earnings, payments });
 
@@ -1088,106 +1091,112 @@ const DriverDashboardScreen = ({ navigation }) => {
     </View>
   );
 
-  const renderBottomTabBar = () => (
-    <View style={styles.bottomBar}>
-      {renderTabItem('dashboard', '📊', 'Dashboard')}
-      {renderTabItem('tracking', '📍', 'Tracking')}
-      {renderTabItem('trips', '🚗', 'Trips')}
-      {renderTabItem('earnings', '💰', 'Earnings')}
-      {renderTabItem('logout', '🚪', 'Logout')}
-    </View>
-  );
-  // ===== RENDER TABS =====
-const renderDashboard = () => (
-  <FlatList
-    data={pendingRequests ?? []}
-    keyExtractor={(item) => String(item.request_id)}
-    refreshControl={
-      <RefreshControl
-        refreshing={refreshing}
-        onRefresh={loadDriverDashboardData}
-      />
-    }
-    ListHeaderComponent={
-      <>
-        <View style={styles.gridRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Available Jobs</Text>
-            <Text style={styles.statValue}>{availableJobs ?? 0}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>My Active Trips</Text>
-            <Text style={styles.statValue}>{activeTrips ?? 0}</Text>
-          </View>
-        </View>
-
-        <View style={styles.gridRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Trips Completed</Text>
-            <Text style={styles.statValue}>{completedTrips ?? 0}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Today's Earnings</Text>
-            <Text style={styles.statValue}>{formatPrice(todayEarnings ?? 0)}</Text>
-          </View>
-        </View>
-
-        <View style={styles.whiteCard}>
-          <Text style={styles.cardTitle}>Available Requests</Text>
-        </View>
-      </>
-    }
-    ListEmptyComponent={
-      <Text style={styles.emptyMsg}>No pending requests</Text>
-    }
-    renderItem={({ item }) => (
-      <View style={styles.requestItem}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.requestName}>{item.customer_name}</Text>
-          {!!item.location && (
-            <Text style={styles.requestLocation}>📍 {item.location}</Text>
-          )}
-          {!!item.amount && (
-            <Text style={styles.requestAmount}>
-              {formatPrice(item.amount)}
-            </Text>
-          )}
-        </View>
-        <TouchableOpacity
-          style={styles.acceptBtn}
-          onPress={() => acceptJob(item.request_id)}
-        >
-          <Text style={styles.acceptBtnText}>Accept</Text>
-        </TouchableOpacity>
-      </View>
-    )}
-    contentContainerStyle={{ paddingBottom: 24 }}
-    style={{ flex: 1 }}
-  />
+const renderBottomTabBar = () => (
+  <View style={styles.bottomBar}>
+    {renderTabItem('dashboard', 'view-dashboard', 'Dashboard')}
+    {renderTabItem('tracking', 'map-marker', 'Tracking')}
+    {renderTabItem('trips', 'car', 'Trips')}
+    {renderTabItem('earnings', 'cash', 'Earnings')}
+    {renderTabItem('logout', 'logout', 'Logout')}
+  </View>
 );
+  // ===== RENDER TABS =====
+  const renderDashboard = () => (
+    <FlatList
+      data={pendingRequests ?? []}
+      keyExtractor={(item) => String(item.request_id)}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={loadDriverDashboardData}
+        />
+      }
+      ListHeaderComponent={
+        <>
+          <View style={styles.gridRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>Available Jobs</Text>
+              <Text style={styles.statValue}>{availableJobs ?? 0}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>My Active Trips</Text>
+              <Text style={styles.statValue}>{activeTrips ?? 0}</Text>
+            </View>
+          </View>
+
+          <View style={styles.gridRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>Trips Completed</Text>
+              <Text style={styles.statValue}>{completedTrips ?? 0}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>Today's Earnings</Text>
+              <Text style={styles.statValue}>{formatPrice(todayEarnings ?? 0)}</Text>
+            </View>
+          </View>
+
+          <View style={styles.whiteCard}>
+            <Text style={styles.cardTitle}>Available Requests</Text>
+          </View>
+        </>
+      }
+      ListEmptyComponent={
+        <Text style={styles.emptyMsg}>No pending requests</Text>
+      }
+      renderItem={({ item }) => (
+        <View style={styles.requestItem}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.requestName}>{item.customer_name}</Text>
+            {!!item.location && (
+              <Text style={styles.requestLocation}>📍 {item.location}</Text>
+            )}
+            {!!item.amount && (
+              <Text style={styles.requestAmount}>
+                {formatPrice(item.amount)}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity
+            style={styles.acceptBtn}
+            onPress={() => acceptJob(item.request_id)}
+          >
+            <Text style={styles.acceptBtnText}>Accept</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      contentContainerStyle={{ paddingBottom: 24 }}
+      style={{ flex: 1 }}
+    />
+  );
 
   // Helper for bottom bar tabs
-  const renderTabItem = (tabKey, icon, label) => {
-    const isActive = activeTab === tabKey;
-    return (
-      <TouchableOpacity
-        style={[styles.tabItem, isActive && styles.tabItemActive]}
-        onPress={() => {
-          if (tabKey === 'logout') handleLogout();
-          else setActiveTab(tabKey);
-        }}
-      >
-        <Text style={{ fontSize: 20 }}>{icon}</Text>
-        <Text style={[
-          styles.tabText,
-          isActive && styles.tabTextActive,
-          tabKey === 'logout' && styles.logoutText
-        ]}>
-          {label}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
+const renderTabItem = (tabKey, iconName, label) => {
+  const isActive = activeTab === tabKey;
+  const color = tabKey === 'logout'
+    ? '#e53935'
+    : isActive
+    ? '#007AFF'
+    : '#888';
+
+  return (
+    <TouchableOpacity
+      style={[styles.tabItem, isActive && styles.tabItemActive]}
+      onPress={() => {
+        if (tabKey === 'logout') handleLogout();
+        else setActiveTab(tabKey);
+      }}
+    >
+      <Icon name={iconName} size={24} color={color} />
+      <Text style={[
+        styles.tabText,
+        isActive && styles.tabTextActive,
+        tabKey === 'logout' && styles.logoutText
+      ]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+};
   // TRACKING
   const renderTracking = () => (
     <View style={styles.trackingWrapper}>
@@ -1276,6 +1285,17 @@ const renderDashboard = () => (
                         {status}
                       </Text>
                     </View>
+                    {/* NEW: Customer info */}
+                    <Text style={styles.tripCustomer}>
+                      👤 {item.customer_name || 'Customer'}
+                    </Text>
+
+                    {item.customer_phone ? (
+                      <TouchableOpacity onPress={() => Linking.openURL(`tel:${item.customer_phone}`)}>
+                        <Text style={styles.tripPhone}>📞 {item.customer_phone}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+
                     <Text style={styles.tripLocation}>📍 {item.location || '—'}</Text>
                     <Text style={styles.tripAmount}>{formatPrice(item.total_amount ?? item.amount)}</Text>
 
@@ -1418,12 +1438,12 @@ const renderDashboard = () => (
   if (loading) {
     return (
 
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#1a4b6d" />
-            <Text style={styles.loadingText}>Loading Dashboard...</Text>
-          </View>
-        </SafeAreaView>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1a4b6d" />
+          <Text style={styles.loadingText}>Loading Dashboard...</Text>
+        </View>
+      </SafeAreaView>
 
     );
   }
@@ -1438,7 +1458,7 @@ const renderDashboard = () => (
         <View style={styles.headerBar}>
           <Text style={styles.headerTitle}> <Text style={styles.headerGreen}>GoodWrench</Text></Text>
           <View style={styles.headerRight}>
-             <NotificationBell navigation={navigation} />
+            <NotificationBell navigation={navigation} />
           </View>
         </View>
 

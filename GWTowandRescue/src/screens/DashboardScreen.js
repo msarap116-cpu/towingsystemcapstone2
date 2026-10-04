@@ -23,6 +23,7 @@ import styles from '../styles/DashboardScreen.styles';
 import Geolocation from '@react-native-community/geolocation';
 import { launchImageLibrary } from 'react-native-image-picker';
 import ReactNativeBlobUtil from 'react-native-blob-util';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 // import FileViewer from 'react-native-file-viewer';
 import Pdf from 'react-native-pdf';
 import NotificationBell from '../components/NotificationBell';
@@ -1130,23 +1131,39 @@ const DashboardScreen = ({ navigation, route }) => {
         style={[styles.tabItem, activeTab === 'dashboard' && styles.tabItemActive]}
         onPress={() => setActiveTab('dashboard')}
       >
-        <Text style={styles.tabIcon}>📊</Text>
-        <Text style={[styles.tabText, activeTab === 'dashboard' && styles.tabTextActive]}>Dashboard</Text>
+        <Icon
+          name="view-dashboard"
+          size={24}
+          color={activeTab === 'dashboard' ? '#007AFF' : '#888'}
+        />
+        <Text style={[styles.tabText, activeTab === 'dashboard' && styles.tabTextActive]}>
+          Dashboard
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.tabItem, activeTab === 'request' && styles.tabItemActive]}
         onPress={() => navigation.navigate('RequestForm')}
       >
-        <Text style={styles.tabIcon}>🆕</Text>
-        <Text style={[styles.tabText, activeTab === 'request' && styles.tabTextActive]}>Request</Text>
+        <Icon
+          name="plus-circle"
+          size={24}
+          color={activeTab === 'request' ? '#007AFF' : '#888'}
+        />
+        <Text style={[styles.tabText, activeTab === 'request' && styles.tabTextActive]}>
+          Request
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.tabItem, activeTab === 'payment' && styles.tabItemActive]}
         onPress={() => setActiveTab('payment')}
       >
-        <Text style={styles.tabIcon}>💵</Text>
+        <Icon
+          name="cash"
+          size={24}
+          color={activeTab === 'payment' ? '#007AFF' : '#888'}
+        />
         <Text style={[styles.tabText, activeTab === 'payment' && styles.tabTextActive]}>
           Payment
         </Text>
@@ -1156,7 +1173,11 @@ const DashboardScreen = ({ navigation, route }) => {
         style={[styles.tabItem, activeTab === 'editaddress' && styles.tabItemActive]}
         onPress={() => setActiveTab('editaddress')}
       >
-        <Text style={styles.tabIcon}>📍</Text>
+        <Icon
+          name="map-marker"
+          size={24}
+          color={activeTab === 'editaddress' ? '#007AFF' : '#888'}
+        />
         <Text style={[styles.tabText, activeTab === 'editaddress' && styles.tabTextActive]}>
           Address
         </Text>
@@ -1166,23 +1187,35 @@ const DashboardScreen = ({ navigation, route }) => {
         style={[styles.tabItem, activeTab === 'receipts' && styles.tabItemActive]}
         onPress={() => setActiveTab('receipts')}
       >
-        <Text style={styles.tabIcon}>🧾</Text>
-        <Text style={[styles.tabText, activeTab === 'receipts' && styles.tabTextActive]}>Receipts</Text>
+        <Icon
+          name="receipt"
+          size={24}
+          color={activeTab === 'receipts' ? '#007AFF' : '#888'}
+        />
+        <Text style={[styles.tabText, activeTab === 'receipts' && styles.tabTextActive]}>
+          Receipts
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.tabItem, activeTab === 'recent' && styles.tabItemActive]}
         onPress={() => setActiveTab('recent')}
       >
-        <Text style={styles.tabIcon}>📋</Text>
-        <Text style={[styles.tabText, activeTab === 'recent' && styles.tabTextActive]}>Activity</Text>
+        <Icon
+          name="clipboard-text"
+          size={24}
+          color={activeTab === 'recent' ? '#007AFF' : '#888'}
+        />
+        <Text style={[styles.tabText, activeTab === 'recent' && styles.tabTextActive]}>
+          Activity
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.tabItem, styles.tabLogout]}
         onPress={handleLogout}
       >
-        <Text style={styles.tabIcon}>🚪</Text>
+        <Icon name="logout" size={24} color="#e53935" />
         <Text style={styles.logoutTabText}>Logout</Text>
       </TouchableOpacity>
     </View>
@@ -1469,7 +1502,12 @@ const DashboardScreen = ({ navigation, route }) => {
                 style={styles.paymentMethod}
                 onPress={() => processPaymentMethod('gcash')}
               >
-                <Text style={styles.paymentMethodIcon}>💚</Text>
+                {/* 2. Use an Image for the GCash logo */}
+                <Image
+                  source={require('../assets/images/gcash-svgrepo-com')} // Adjust path as needed
+                  style={{ width: 24, height: 24 }} // Match your icon size
+                  resizeMode="contain"
+                />
                 <View style={{ marginLeft: 10 }}>
                   <Text style={styles.paymentMethodName}>GCash</Text>
                   <Text style={styles.paymentMethodSub}>Pay online</Text>
@@ -1480,7 +1518,8 @@ const DashboardScreen = ({ navigation, route }) => {
                 style={styles.paymentMethod}
                 onPress={() => processPaymentMethod('cash')}
               >
-                <Text style={styles.paymentMethodIcon}>💵</Text>
+                {/* 3. Use a vector icon for Cash */}
+                <Icon name="cash" size={24} color="#4CAF50" />
                 <View style={{ marginLeft: 10 }}>
                   <Text style={styles.paymentMethodName}>Cash</Text>
                   <Text style={styles.paymentMethodSub}>Pay to driver</Text>

@@ -31,9 +31,9 @@ const PROD_URL = 'https://goodwrench-towing-rescue.onrender.com/api';
 
 // Debug/Metro builds → LAN_URL automatically
 // Release builds → PROD_URL automatically, no manual switch needed
-// const API_BASE_URL = __DEV__ ? LAN_URL : PROD_URL;
+const API_BASE_URL = __DEV__ ? LAN_URL : PROD_URL;
 
-const API_BASE_URL = PROD_URL;  // ← temporary override
+// const API_BASE_URL = PROD_URL;  // ← temporary override
 
 if (__DEV__) {
   console.log('🔧 Using API URL:', API_BASE_URL);

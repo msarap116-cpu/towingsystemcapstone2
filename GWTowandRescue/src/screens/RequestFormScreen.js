@@ -22,6 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles/RequestFormScreen.style';
 import { useFocusEffect } from '@react-navigation/native';
 import API_BASE_URL from '../config';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 
 
@@ -61,7 +62,7 @@ const RequestFormScreen = ({ navigation, route }) => {
         { label: 'Flat Tire Change', value: '2' },
         { label: 'Jump Start', value: '3' },
         { label: 'Fuel Delivery', value: '4' },
-        { label: 'Lockout Service', value: '5' }
+
     ];
 
     // Load vehicles on mount
@@ -569,7 +570,7 @@ const RequestFormScreen = ({ navigation, route }) => {
                 <View style={styles.navbar}>
                     <View style={styles.navContainer}>
                         <TouchableOpacity onPress={() => navigation.goBack()}>
-                            <Text style={styles.navbarBrand}> &lt;&lt; </Text>
+                            <Icon name="arrow-left" size={26} color="#fff" />
                         </TouchableOpacity>
                         <Text style={styles.navbarTitle}>Request Assistance</Text>
                         <View style={{ width: 50 }} />

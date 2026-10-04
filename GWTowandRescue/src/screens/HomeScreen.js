@@ -86,7 +86,7 @@ const HomeScreen = () => {
     { label: 'Flat Tire Change', value: '2', icon: flatTireIcon },
     { label: 'Jump Start', value: '3', icon: carBatteryIcon },
     { label: 'Fuel Delivery', value: '4', icon: canisterIcon },
-    { label: 'Lockout Service', value: '5' }
+
   ];
   const services = [
     {

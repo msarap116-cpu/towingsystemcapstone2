@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import styles from '../styles/NotificationBell.styles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchUnreadCount } from '../services/notificationService';
 
 export default function NotificationBell({ navigation }) {

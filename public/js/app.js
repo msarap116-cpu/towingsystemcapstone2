@@ -355,8 +355,8 @@ function getServiceName(serviceType) {
         'towing': 'Towing Service',
         'flat_tire': 'Flat Tire Change',
         'jump_start': 'Jump Start',
-        'fuel': 'Fuel Delivery',
-        'lockout': 'Lockout Service'
+        'fuel': 'Fuel Delivery'
+
     };
     return services[serviceType] || serviceType;
 }
