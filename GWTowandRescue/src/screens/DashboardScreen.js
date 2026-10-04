@@ -23,8 +23,9 @@ import styles from '../styles/DashboardScreen.styles';
 import Geolocation from '@react-native-community/geolocation';
 import { launchImageLibrary } from 'react-native-image-picker';
 import ReactNativeBlobUtil from 'react-native-blob-util';
-import FileViewer from 'react-native-file-viewer';
+// import FileViewer from 'react-native-file-viewer';
 import Pdf from 'react-native-pdf';
+import NotificationBell from '../components/NotificationBell';
 import API_BASE_URL from '../config';
 
 // Import icons (you can use react-native-vector-icons or emojis)
@@ -1588,6 +1589,9 @@ const DashboardScreen = ({ navigation, route }) => {
             <Text style={styles.brandText}>
               Good<Text style={styles.brandSpan}>Wrench</Text>
             </Text>
+          </View>
+          <View style={styles.headerRight}>
+            <NotificationBell navigation={navigation} />
           </View>
 
         </View>

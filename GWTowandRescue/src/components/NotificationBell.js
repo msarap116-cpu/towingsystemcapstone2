@@ -9,12 +9,17 @@ import { fetchUnreadCount } from '../services/notificationService';
 export default function NotificationBell({ navigation }) {
   const [count, setCount] = useState(0);
 
-  const refresh = useCallback(async () => {
-    try {
-      const c = await fetchUnreadCount();
-      setCount(c);
-    } catch (e) { /* ignore */ }
-  }, []);
+ const refresh = useCallback(async () => {
+  const token = await AsyncStorage.getItem('token');
+  console.log('[Bell] token:', token ? token.slice(0, 20) + '…' : 'NULL');
+  try {
+    const c = await fetchUnreadCount();
+    console.log('[Bell] unread:', c);
+    setCount(c);
+  } catch (e) {
+    console.warn('[Bell] failed:', e.message);
+  }
+}, []);
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 

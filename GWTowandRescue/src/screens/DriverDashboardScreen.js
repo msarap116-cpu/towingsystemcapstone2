@@ -25,6 +25,7 @@ import Geolocation from 'react-native-geolocation-service';
 import styles from '../styles/DriverDashboardScreen.styles';
 import { launchCamera } from 'react-native-image-picker';
 import API_BASE_URL from '../config';
+import NotificationBell from '../components/NotificationBell';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -38,7 +39,8 @@ const DriverDashboardScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [currentTime, setCurrentTime] = useState('');
+  // const [currentTime, setCurrentTime] = useState('');
+
   // Stats
   const [availableJobs, setAvailableJobs] = useState(0);
   const [activeTrips, setActiveTrips] = useState(0);
@@ -1415,14 +1417,14 @@ const renderDashboard = () => (
   // ===== MAIN RENDER =====
   if (loading) {
     return (
-      <SafeAreaProvider>
+
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#1a4b6d" />
             <Text style={styles.loadingText}>Loading Dashboard...</Text>
           </View>
         </SafeAreaView>
-      </SafeAreaProvider>
+
     );
   }
 
