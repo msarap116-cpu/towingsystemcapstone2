@@ -13,6 +13,9 @@ const upload = require('../middleware/upload');
 
 const Notification = require('../models/notificationModel');
 
+const db = require('../database/database');
+
+
 router.get('/:paymentId/receipt', authenticateToken, paymentController.downloadReceipt);
 //03:21-082726
 router.post(
