@@ -17,8 +17,8 @@
 // const API_BASE_URL = USE_PROD ? PROD_URL : LAN_URL;
 
 // if (__DEV__) {
-//   console.log('🔧 Using API URL:', API_BASE_URL);
-//   console.log('📱 Platform:', Platform.OS);
+//   console.log(' Using API URL:', API_BASE_URL);
+//   console.log(' Platform:', Platform.OS);
 // }
 
 // export default API_BASE_URL;

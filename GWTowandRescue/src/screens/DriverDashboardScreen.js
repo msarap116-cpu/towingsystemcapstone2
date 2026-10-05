@@ -27,6 +27,7 @@ import { launchCamera } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 // or: import Icon from 'react-native-vector-icons/Ionicons';
 // or: import Icon from 'react-native-vector-icons/Feather';
+import { socket, disconnectSocket } from '../socket';
 import API_BASE_URL from '../config';
 
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -164,6 +165,22 @@ const DriverDashboardScreen = ({ navigation }) => {
     console.log('GPS tracking stopped');
   };
 
+  useEffect(() => {
+  const refresh = () => loadDriverDashboardData();
+
+  socket.on('request:created', refresh);      // new pending job appears
+  socket.on('request:updated', refresh);      // job accepted/cancelled elsewhere
+  socket.on('payment:updated', refresh);      // payment status changed
+  socket.on('connect', refresh);              // catch up after reconnect
+
+  return () => {
+    socket.off('request:created', refresh);
+    socket.off('request:updated', refresh);
+    socket.off('payment:updated', refresh);
+    socket.off('connect', refresh);
+  };
+}, []);
+
   // Place this OUTSIDE initDriverMap — at the top level of your component or file
   // const diagnoseLocation = async () => {
   //   // 1. Runtime permission check
@@ -242,6 +259,7 @@ const DriverDashboardScreen = ({ navigation }) => {
             }
             await AsyncStorage.removeItem('token');
             await AsyncStorage.removeItem('user');
+            disconnectSocket();
             navigation.replace('Login');
           }
         }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,19 +15,23 @@ import {
   FlatList,
   Platform,
   PermissionsAndroid,
-  AppState
+  AppState,
+
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LeafletMap from '../components/LeafletMap';
 import styles from '../styles/DashboardScreen.styles';
 import Geolocation from '@react-native-community/geolocation';
-import { launchImageLibrary } from 'react-native-image-picker';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 // import FileViewer from 'react-native-file-viewer';
+import { disconnectSocket } from '../socket';
 import Pdf from 'react-native-pdf';
 import NotificationBell from '../components/NotificationBell';
+import { socket } from '../socket';
+import { useFocusEffect } from '@react-navigation/native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import API_BASE_URL from '../config';
 
 // Import icons (you can use react-native-vector-icons or emojis)
@@ -68,15 +72,26 @@ const DashboardScreen = ({ navigation, route }) => {
   const [gcashProof, setGcashProof] = useState(null);
   // const [showGcashForm, setShowGcashForm] = useState(false);
 
+  const [qrUrl, setQrUrl] = useState(null);
+
   // Replace:
   //   const [showGcashForm, setShowGcashForm] = useState(false);
   // With for the future adding methods:
   const [activePaymentMethod, setActivePaymentMethod] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [gcashProofType, setGcashProofType] = useState('image/jpeg');
-  const [gcashProofName, setGcashProofName] = useState('proof.jpg');
+  // const [gcashProofType, setGcashProofType] = useState('image/jpeg');
+  // const [gcashProofName, setGcashProofName] = useState('proof.jpg');
   const PAYMENT_DRAFT_KEY = 'payment_draft';
   const [paymentRecord, setPaymentRecord] = useState(null);
+  const TERMINAL_STATUSES = ['completed', 'cancelled', 'canceled'];
+
+  const isRequestTerminal = (req) =>
+    !!req && TERMINAL_STATUSES.includes(String(req.status || '').toLowerCase());
+
+  const isPaid =
+    paymentRecord?.status === 'completed' ||
+    paymentRecord?.status === 'refunded';
+
 
   // Edit address state
 
@@ -91,6 +106,10 @@ const DashboardScreen = ({ navigation, route }) => {
   const pollingInterval = useRef(null);
 
   // ===== LIFECYCLE =====
+
+  // Always call the latest version of loadDashboardData
+  const loadRef = useRef(null);
+
   useEffect(() => {
     if (isPaid) {
       setActivePaymentMethod(null);
@@ -113,6 +132,61 @@ const DashboardScreen = ({ navigation, route }) => {
       clearInterval(clockInterval);
     };
   }, []);
+
+  // 1) Real-time: refetch when the server says something changed
+  useEffect(() => {
+    const refresh = () => loadRef.current(true);
+    const events = ['request:updated', 'payment:updated', 'receipt:created'];
+    events.forEach((e) => socket.on(e, refresh));
+    socket.on('connect', refresh);               // catch up after reconnect
+    return () => {
+      events.forEach((e) => socket.off(e, refresh));
+      socket.off('connect', refresh);
+    };
+  }, []);
+
+  // 2) Refetch when returning from another screen (e.g. RequestForm)
+  useFocusEffect(
+    useCallback(() => {
+      loadRef.current(true);
+    }, [])
+  );
+
+  // 3) Refetch when opening tabs that show server data
+  useEffect(() => {
+    if (['payment', 'receipts', 'recent'].includes(activeTab)) {
+      loadRef.current(true);
+    }
+  }, [activeTab]);
+  // Fetch the admin-managed GCash QR whenever the payment tab is opened
+  useEffect(() => {
+    if (activeTab !== 'payment') return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/settings/gcash-qr`);
+        const data = await res.json();
+
+        if (cancelled || !data?.success || !data?.image_path) return;
+
+        const raw = data.image_path;
+
+        // If the server stored a base64 data URI, use it directly.
+        // Otherwise build an absolute URL from the server root (strip /api).
+        const fullUrl = raw.startsWith('data:')
+          ? raw
+          : `${API_BASE_URL.replace(/\/api\/?$/, '')}${raw}?t=${Date.now()}`;
+
+        setQrUrl(fullUrl);
+      } catch (err) {
+        console.warn('QR fetch failed:', err);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [activeTab]);
 
   useEffect(() => {
     if (activeTab === 'editaddress' && latestRequest) {
@@ -158,36 +232,39 @@ const DashboardScreen = ({ navigation, route }) => {
       setActiveTab('payment');
     }
   }, [latestRequest, route?.params?.pay]);
-  useEffect(() => {
-    if (!latestRequest?.request_id) {
-      setPaymentRecord(null);
-      return;
-    }
 
-    let cancelled = false;
 
-    (async () => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) return;
 
-        const res = await fetch(
-          `${API_BASE_URL}/payments/request/${latestRequest.request_id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const data = await res.json();
+  // useEffect(() => {
+  //   if (!latestRequest?.request_id) {
+  //     setPaymentRecord(null);
+  //     return;
+  //   }
 
-        if (!cancelled) {
-          setPaymentRecord(res.ok ? data.payment : null);
-        }
-      } catch (err) {
-        console.warn('Payment record load failed:', err);
-        if (!cancelled) setPaymentRecord(null);
-      }
-    })();
+  //   let cancelled = false;
 
-    return () => { cancelled = true; };
-  }, [latestRequest?.request_id]);
+  //   (async () => {
+  //     try {
+  //       const token = await AsyncStorage.getItem('token');
+  //       if (!token) return;
+
+  //       const res = await fetch(
+  //         `${API_BASE_URL}/payments/request/${latestRequest.request_id}`,
+  //         { headers: { Authorization: `Bearer ${token}` } }
+  //       );
+  //       const data = await res.json();
+
+  //       if (!cancelled) {
+  //         setPaymentRecord(res.ok ? data.payment : null);
+  //       }
+  //     } catch (err) {
+  //       console.warn('Payment record load failed:', err);
+  //       if (!cancelled) setPaymentRecord(null);
+  //     }
+  //   })();
+
+  //   return () => { cancelled = true; };
+  // }, [latestRequest?.request_id]);
 
   useEffect(() => {
     if (activeTab !== 'dashboard' || !latestRequest) {
@@ -203,20 +280,11 @@ const DashboardScreen = ({ navigation, route }) => {
         pollingInterval.current = null;
       }
     };
-  }, [activeTab, latestRequest]);
+  }, [activeTab, latestRequest?.request_id, latestRequest?.status]);
   useEffect(() => {
     if (!requestId) {
       return;
     }
-
-
-
-
-
-
-
-
-
 
 
 
@@ -323,6 +391,7 @@ const DashboardScreen = ({ navigation, route }) => {
           onPress: async () => {
             await AsyncStorage.removeItem('token');
             await AsyncStorage.removeItem('user');
+            disconnectSocket();
             navigation.replace('Login', { logoutMessage: 'Logout successful!' });
           },
         },
@@ -345,7 +414,7 @@ const DashboardScreen = ({ navigation, route }) => {
 
       console.log('Response status:', res.status);
 
-      const data = await res.json();           // ✅ read ONCE, declare `data` here
+      const data = await res.json();           //  read ONCE, declare `data` here
       console.log('Raw data:', JSON.stringify(data));
 
       if (res.ok) {
@@ -354,6 +423,7 @@ const DashboardScreen = ({ navigation, route }) => {
         console.log('RENDERING WITH STATUS:', latestRequest?.status);
 
         setLatestRequest(request);
+        await loadPaymentRecord(request?.request_id);
         if (request) {
           setRequestId(request.request_id);
           setCustomerLocation({
@@ -381,6 +451,8 @@ const DashboardScreen = ({ navigation, route }) => {
       // Load receipts
       await loadMyReceipts();
 
+
+
     } catch (error) {
       console.error('Dashboard load error:', error);
       if (!silent) {
@@ -388,6 +460,21 @@ const DashboardScreen = ({ navigation, route }) => {
       }
     }
   };
+  const loadPaymentRecord = async (reqId) => {
+    if (!reqId) { setPaymentRecord(null); return; }
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+      const res = await fetch(`${API_BASE_URL}/payments/request/${reqId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setPaymentRecord(res.ok ? data.payment : null);
+    } catch (err) {
+      console.warn('Payment record load failed:', err);
+    }
+  };
+  loadRef.current = loadDashboardData;
 
   // ===== MAP FUNCTIONS =====
   const loadUserMap = async () => {
@@ -494,6 +581,7 @@ const DashboardScreen = ({ navigation, route }) => {
         console.error('Polling error:', error);
       }
     }, 30000);
+
   };
   // ===== RECENT ACTIVITY =====
   const loadRecentActivity = async () => {
@@ -635,14 +723,6 @@ const DashboardScreen = ({ navigation, route }) => {
       setPaymentMessage(error.message || 'Unable to check payment status.');
     }
   };
-  const TERMINAL_STATUSES = ['completed', 'cancelled', 'canceled'];
-
-  const isRequestTerminal = (req) =>
-    !!req && TERMINAL_STATUSES.includes(String(req.status || '').toLowerCase());
-
-  const isPaid =
-    paymentRecord?.status === 'completed' ||
-    paymentRecord?.status === 'refunded';
 
   // ---------- GCASH START ----------
   const startGCashPayment = async (requestId, token) => {
@@ -708,6 +788,7 @@ const DashboardScreen = ({ navigation, route }) => {
                 setPaymentMessage(
                   'Cash payment selected. Please pay the driver when service is completed.'
                 );
+                loadDashboardData(true);
                 console.log('Cash payment created:', data.payment);
                 resolve();
               } catch (err) {
@@ -769,6 +850,7 @@ const DashboardScreen = ({ navigation, route }) => {
         setGcashReference('');
         setGcashProof(null);
         setPaymentMessage('');
+        loadDashboardData(true);
         await AsyncStorage.removeItem(PAYMENT_DRAFT_KEY);   //  clear persisted draft
         Alert.alert('Success', 'Payment proof submitted!');
       }
@@ -806,8 +888,8 @@ const DashboardScreen = ({ navigation, route }) => {
           console.log('Picked image:', asset.uri, asset.type, asset.fileName);
 
           setGcashProof(asset.uri);
-          setGcashProofType(asset.type || 'image/jpeg');
-          setGcashProofName(asset.fileName || 'proof.jpg');
+          // setGcashProofType(asset.type || 'image/jpeg');
+          // setGcashProofName(asset.fileName || 'proof.jpg');
         }
       }
     );
@@ -1279,62 +1361,62 @@ const DashboardScreen = ({ navigation, route }) => {
       )}
     </View>
   );
-const renderRecentActivity = () => (
-  <View style={styles.tabContent}>
-    <Text style={styles.tabTitle}>Recent Activity</Text>
-    {recentActivities.length === 0 ? (
-      <Text style={styles.emptyText}>No recent activity</Text>
-    ) : (
-      <FlatList
-        contentContainerStyle={styles.tabContentPadding}
-        data={recentActivities}
-        keyExtractor={(item) => String(item.request_id)}
-        renderItem={({ item }) => (
-  <View style={styles.historyItem}>
-    <Text style={styles.historyId}>#{item.request_id}</Text>
-    <Text style={styles.historyService}>
-      {item.service_type || 'Service'}
-    </Text>
+  const renderRecentActivity = () => (
+    <View style={styles.tabContent}>
+      <Text style={styles.tabTitle}>Recent Activity</Text>
+      {recentActivities.length === 0 ? (
+        <Text style={styles.emptyText}>No recent activity</Text>
+      ) : (
+        <FlatList
+          contentContainerStyle={styles.tabContentPadding}
+          data={recentActivities}
+          keyExtractor={(item) => String(item.request_id)}
+          renderItem={({ item }) => (
+            <View style={styles.historyItem}>
+              <Text style={styles.historyId}>#{item.request_id}</Text>
+              <Text style={styles.historyService}>
+                {item.service_type || 'Service'}
+              </Text>
 
-{!!item.address && (
-  <View style={styles.historyAddressRow}>
-    <Ionicons name="location-outline" size={20} color="#555" style={styles.historyAddressIcon} />
-    <Text style={styles.historyAddress} numberOfLines={2}>
-      {item.address}
-    </Text>
-  </View>
-)}
+              {!!item.address && (
+                <View style={styles.historyAddressRow}>
+                  <Ionicons name="location-outline" size={20} color="#555" style={styles.historyAddressIcon} />
+                  <Text style={styles.historyAddress} numberOfLines={2}>
+                    {item.address}
+                  </Text>
+                </View>
+              )}
 
-    <View style={styles.historyFooter}>
-      <View
-        style={[
-          styles.historyStatus,
-          {
-            backgroundColor:
-              item.status === 'completed' ? '#0046a8' : '#0046a8',
-          },
-        ]}
-      >
-        <Text style={styles.historyStatusText}>
-          {item.status || 'Unknown'}
-        </Text>
-      </View>
+              <View style={styles.historyFooter}>
+                <View
+                  style={[
+                    styles.historyStatus,
+                    {
+                      backgroundColor:
+                        item.status === 'completed' ? '#0046a8' : '#0046a8',
+                    },
+                  ]}
+                >
+                  <Text style={styles.historyStatusText}>
+                    {item.status || 'Unknown'}
+                  </Text>
+                </View>
 
-      {item.status === 'pending' && (
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={() => cancelRequest(item.request_id)}
-        >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
+                {item.status === 'pending' && (
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => cancelRequest(item.request_id)}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
+        />
       )}
     </View>
-  </View>
-)}
-      />
-    )}
-  </View>
-);
+  );
 
   const formatAmount = (val) => {
     const n = typeof val === 'string'
@@ -1431,74 +1513,83 @@ const renderRecentActivity = () => (
         contentContainerStyle={styles.tabContentPadding}
         showsVerticalScrollIndicator={false}
         bounces={false}
+        keyboardShouldPersistTaps="handled"   // 👈 lets taps pass through to suggestions
       >
         <Text style={styles.tabTitle}>Edit Address</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Search for an address..."
-          value={editAddress}
-          onChangeText={(text) => {
-            setEditAddress(text);
-            searchAddress(text);
-          }}
-        />
+        {/* 👇 wrap input + suggestions together so zIndex stacks correctly */}
+        <View style={styles.searchWrapper}>
+          <TextInput
+            style={styles.input}
+            placeholder="Search for an address..."
+            value={editAddress}
+            onChangeText={(text) => {
+              setEditAddress(text);
+              searchAddress(text);
+            }}
+          />
 
-        {showSuggestions && addressSuggestions.length > 0 && (
-          <View style={styles.suggestionsList}>
-            {addressSuggestions.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.suggestionItem}
-                onPress={() => selectAddress(item)}
-              >
-                <Text style={styles.suggestionText}>{item.display_name}</Text>
-              </TouchableOpacity>
-            ))}
+          {showSuggestions && addressSuggestions.length > 0 && (
+            <View style={styles.suggestionsList}>
+              {addressSuggestions.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.suggestionItem,
+                    index === addressSuggestions.length - 1 && styles.suggestionItemLast,
+                  ]}
+                  onPress={() => selectAddress(item)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.suggestionText} numberOfLines={2}>
+                    {item.display_name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={[styles.currentLocationButton, locating && { opacity: 0.6 }]}
+          onPress={useCurrentLocation}
+          disabled={locating}
+        >
+          <Icon
+            name="crosshairs-gps"
+            size={20}
+            color="#007AFF"
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.currentLocationText}>
+            {locating ? 'Getting your location...' : 'Use My Current Location'}
+          </Text>
+        </TouchableOpacity>
+
+        {editLat && editLng && (
+          <View style={styles.selectedLocation}>
+            <View style={styles.waypointContainer}>
+              <View style={styles.waypointRing} />
+              <View style={styles.waypointDot}>
+                <Icon name="map-marker" size={18} color="#fff" />
+              </View>
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Text style={styles.selectedTitle}>Location Selected</Text>
+              <Text style={styles.selectedSubText} numberOfLines={2}>
+                {editAddress}
+              </Text>
+              <View style={styles.coordRow}>
+                <Icon name="latitude" size={12} color="#888" />
+                <Text style={styles.coordText}>{Number(editLat).toFixed(6)}</Text>
+                <View style={styles.coordDivider} />
+                <Icon name="longitude" size={12} color="#888" />
+                <Text style={styles.coordText}>{Number(editLng).toFixed(6)}</Text>
+              </View>
+            </View>
           </View>
         )}
-
-      <TouchableOpacity
-  style={[styles.currentLocationButton, locating && { opacity: 0.6 }]}
-  onPress={useCurrentLocation}
-  disabled={locating}
->
-  <Icon
-    name={locating ? 'crosshairs-gps' : 'crosshairs-gps'}
-    size={20}
-    color="#007AFF"
-    style={{ marginRight: 8 }}
-  />
-  <Text style={styles.currentLocationText}>
-    {locating ? 'Getting your location...' : 'Use My Current Location'}
-  </Text>
-</TouchableOpacity>
-
-{editLat && editLng && (
-  <View style={styles.selectedLocation}>
-    {/* Waypoint pin with pulse ring */}
-    <View style={styles.waypointContainer}>
-      <View style={styles.waypointRing} />
-      <View style={styles.waypointDot}>
-        <Icon name="map-marker" size={18} color="#fff" />
-      </View>
-    </View>
-
-    <View style={{ flex: 1 }}>
-      <Text style={styles.selectedTitle}>Location Selected</Text>
-      <Text style={styles.selectedSubText} numberOfLines={2}>
-        {editAddress}
-      </Text>
-      <View style={styles.coordRow}>
-        <Icon name="latitude" size={12} color="#888" />
-        <Text style={styles.coordText}>{Number(editLat).toFixed(6)}</Text>
-        <View style={styles.coordDivider} />
-        <Icon name="longitude" size={12} color="#888" />
-        <Text style={styles.coordText}>{Number(editLng).toFixed(6)}</Text>
-      </View>
-    </View>
-  </View>
-)}
 
         <TouchableOpacity style={styles.saveButton} onPress={saveAddress}>
           <Text style={styles.saveButtonText}>Save Changes</Text>
@@ -1541,35 +1632,35 @@ const renderRecentActivity = () => (
         ) : (
           <>
 
-           {/* Method grid */}
-<Text style={styles.paymentMethodTitle}>Choose Payment Method</Text>
-<View style={styles.paymentGrid}>
-  <TouchableOpacity
-    style={styles.paymentMethod}
-    onPress={() => processPaymentMethod('gcash')}
-  >
-    <View style={styles.paymentIconCircle}>
-      <Icon name="wallet" size={24} color="#0046a8" />
-    </View>
-    <View style={{ marginLeft: 10 }}>
-      <Text style={styles.paymentMethodName}>GCash</Text>
-      <Text style={styles.paymentMethodSub}>Pay online</Text>
-    </View>
-  </TouchableOpacity>
+            {/* Method grid */}
+            <Text style={styles.paymentMethodTitle}>Choose Payment Method</Text>
+            <View style={styles.paymentGrid}>
+              <TouchableOpacity
+                style={styles.paymentMethod}
+                onPress={() => processPaymentMethod('gcash')}
+              >
+                <View style={styles.paymentIconCircle}>
+                  <Icon name="wallet" size={24} color="#0046a8" />
+                </View>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.paymentMethodName}>GCash</Text>
+                  <Text style={styles.paymentMethodSub}>Pay online</Text>
+                </View>
+              </TouchableOpacity>
 
-  <TouchableOpacity
-    style={styles.paymentMethod}
-    onPress={() => processPaymentMethod('cash')}
-  >
-    <View style={styles.paymentIconCircle}>
-      <Icon name="cash-multiple" size={24} color="#0046a8" />
-    </View>
-    <View style={{ marginLeft: 10 }}>
-      <Text style={styles.paymentMethodName}>Cash</Text>
-      <Text style={styles.paymentMethodSub}>Pay to driver</Text>
-    </View>
-  </TouchableOpacity>
-</View>
+              <TouchableOpacity
+                style={styles.paymentMethod}
+                onPress={() => processPaymentMethod('cash')}
+              >
+                <View style={styles.paymentIconCircle}>
+                  <Icon name="cash-multiple" size={24} color="#0046a8" />
+                </View>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.paymentMethodName}>Cash</Text>
+                  <Text style={styles.paymentMethodSub}>Pay to driver</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
             {/* GCash section */}
             {activePaymentMethod === 'gcash' && (
               <View style={styles.gcashSection}>
@@ -1583,11 +1674,21 @@ const renderRecentActivity = () => (
                   <Text style={styles.gcashDetailValue}>
                     Account Name: <Text style={styles.bold}>Your Business Name</Text>
                   </Text>
-                  <Image
-                    source={require('../assets/images/2321600003.png')}
-                    style={styles.gcashQr}
-                    resizeMode="contain"
-                  />
+                  {qrUrl ? (
+                    <Image
+                      source={{ uri: qrUrl }}
+                      style={styles.gcashQr}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <View style={{
+                      width: 180, height: 180, marginTop: 10,
+                      alignItems: 'center', justifyContent: 'center',
+                      backgroundColor: '#f2f2f2', borderRadius: 8,
+                    }}>
+                      <ActivityIndicator color="#0046a8" />
+                    </View>
+                  )}
                 </View>
 
                 <Text style={styles.inputLabel}>GCash Reference Number</Text>

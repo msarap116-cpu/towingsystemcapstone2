@@ -108,8 +108,8 @@
                         <span>Live Tracking — Driver & Your Location</span>
 
                         <!-- <button class="btn-outline" id="recenterMapBtn">
-                            My Location
-                        </button> -->
+            My Location
+        </button> -->
                     </div>
 
                     <div id="map"></div>
@@ -199,87 +199,88 @@
             </section>
 
             <!-- Payment Section (replaces modal) -->
-<!-- Payment Section (replaces modal) -->
-<section id="paymentSection" class="tab-panel" hidden>
-    <div class="section-container payment-section-container">
-        <div class="section-header">
-            <h2>Payment</h2>
+            <!-- Payment Section (replaces modal) -->
+            <section id="paymentSection" class="tab-panel" hidden>
+                <div class="section-container payment-section-container">
+                    <div class="section-header">
+                        <h2>Payment</h2>
 
-        </div>
-
-        <div class="payment-section-body">
-            <!-- Request Info Box -->
-            <div class="payment-request-info">
-                <h3>Payment for Request</h3>
-                <p>
-                    Request # <strong id="paymentRequestId">--</strong>
-                </p>
-                <p class="payment-amount">
-                    Amount Due:
-                    <strong id="paymentAmount">₱0.00</strong>
-                </p>
-            </div>
-
-            <!-- Payment Method Selection -->
-            <div class="payment-method-section">
-                <h3>Choose Payment Method</h3>
-                <div class="payment-method-grid">
-                    <button type="button" class="payment-method-btn" data-method="gcash">
-                        <span class="payment-method-icon">📱</span>
-                        <span>
-                            <strong>GCash</strong>
-                            <small>Pay using E-wallets</small>
-                        </span>
-                    </button>
-                    <button type="button" class="payment-method-btn" data-method="cash">
-                        <span class="payment-method-icon">💵</span>
-                        <span>
-                            <strong>Cash</strong>
-                            <small>Pay on hand to the driver</small>
-                        </span>
-                    </button>
-                </div>
-
-                <!-- GCash Manual Payment Section -->
-                <div id="gcashPaymentSection" style="display: none;">
-                    <h3>Pay with GCash</h3>
-                    <div>
-                        <p><strong>Send payment to:</strong></p>
-                        <p>GCash Number: <strong>0917-XXX-XXXX</strong></p>
-                        <p>Account Name: <strong>Your Business Name</strong></p>
-                        <img src="/image/2321600003.png" alt="GCash QR Code">
                     </div>
-                    <form id="gcashProofForm">
-                        <input type="hidden" id="gcashRequestId" value="">
-                        <div>
-                            <label for="gcashReferenceNumber">GCash Reference Number</label>
-                            <input type="text" id="gcashReferenceNumber" name="reference_number"
-                                placeholder="e.g. 1234567890123" required>
+
+                    <div class="payment-section-body">
+                        <!-- Request Info Box -->
+                        <div class="payment-request-info">
+                            <h3>Payment for Request</h3>
+                            <p>
+                                Request # <strong id="paymentRequestId">--</strong>
+                            </p>
+                            <p class="payment-amount">
+                                Amount Due:
+                                <strong id="paymentAmount">₱0.00</strong>
+                            </p>
                         </div>
-                        <div>
-                            <label for="gcashProofImage">Upload Receipt / Screenshot</label>
-                            <input type="file" id="gcashProofImage" name="proof_image"
-                                accept="image/png, image/jpeg" required>
+
+                        <!-- Payment Method Selection -->
+                        <div class="payment-method-section">
+                            <h3>Choose Payment Method</h3>
+                            <div class="payment-method-grid">
+                                <button type="button" class="payment-method-btn" data-method="gcash">
+                                    <span class="payment-method-icon">📱</span>
+                                    <span>
+                                        <strong>GCash</strong>
+                                        <small>Pay using E-wallets</small>
+                                    </span>
+                                </button>
+                                <button type="button" class="payment-method-btn" data-method="cash">
+                                    <span class="payment-method-icon">💵</span>
+                                    <span>
+                                        <strong>Cash</strong>
+                                        <small>Pay on hand to the driver</small>
+                                    </span>
+                                </button>
+                            </div>
+
+                            <!-- GCash Manual Payment Section -->
+                            <div id="gcashPaymentSection" style="display: none;">
+                                <h3>Pay with GCash</h3>
+                                <div>
+                                    <p><strong>Send payment to:</strong></p>
+                                    <p>GCash Number: <strong>0917-XXX-XXXX</strong></p>
+                                    <p>Account Name: <strong>Your Business Name</strong></p>
+                                    <img id="gcashQr" src="" alt="GCash QR Code">
+                                </div>
+                                <form id="gcashProofForm">
+                                    <input type="hidden" id="gcashRequestId" value="">
+                                    <div>
+                                        <label for="gcashReferenceNumber">GCash Reference Number</label>
+                                        <input type="text" id="gcashReferenceNumber" name="reference_number"
+                                            placeholder="e.g. 1234567890123" required>
+                                    </div>
+                                    <div>
+                                        <label for="gcashProofImage">Upload Receipt / Screenshot</label>
+                                        <input type="file" id="gcashProofImage" name="proof_image"
+                                            accept="image/png, image/jpeg" required>
+                                    </div>
+                                    <button type="submit" id="gcashSubmitProofBtn">
+                                        Submit Proof of Payment
+                                    </button>
+                                </form>
+                            </div>
+
+
+                            <!-- Message Area -->
+                            <div id="paymentMessage" class="payment-message"></div>
+
+                            <!-- Actions -->
+                            <div class="payment-actions">
+                                <button type="button" class="btn-secondary" id="cancelPaymentBtn">
+                                    Cancel
+                                </button>
+                            </div>
                         </div>
-                        <button type="submit" id="gcashSubmitProofBtn">
-                            Submit Proof of Payment
-                        </button>
-                    </form>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Message Area -->
-            <div id="paymentMessage" class="payment-message"></div>
-
-            <!-- Actions -->
-            <div class="payment-actions">
-                <button type="button" class="btn-secondary" id="cancelPaymentBtn">
-                    Cancel
-                </button>
-            </div>
-        </div>
-    </div>
-</section>
+            </section>
 
         </div> <!--dashboard-panel-->
 
@@ -317,6 +318,20 @@
 
     </script>
     <script src="js/notifications.js"></script>
+
+    <script>
+        (async function () {
+            try {
+                const r = await fetch('/api/settings/gcash-qr');
+                const d = await r.json();
+                if (d.success && d.image_path) {
+                    document.getElementById('gcashQr').src = d.image_path + '?t=' + Date.now();
+                }
+            } catch (e) {
+                console.error('QR load failed:', e);
+            }
+        })();
+    </script>
 </body>
 
 </html>

@@ -352,28 +352,33 @@ historyAddress: {
     color: '#1a1a2e', marginBottom: 12,
   },
 
-  suggestionsList: { marginTop: 4, marginBottom: 12, maxHeight: 180 },
-  suggestionItem: {
-    paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
-  },
-  suggestionText: { fontSize: 13, color: '#444' },
+suggestionsList: {
+  marginTop: 4,
+  marginBottom: 12,
+  maxHeight: 220,
+  backgroundColor: '#fff',        // 👈 hide anything behind it
+  borderRadius: 10,
+  borderWidth: 1,
+  borderColor: '#e5e5e5',
+  overflow: 'hidden',             // 👈 clip children to rounded corners
+  zIndex: 10,                     // 👈 sit above sibling elements
+  elevation: 4,                   // 👈 Android shadow so it "floats"
+},
+suggestionItem: {
+  paddingVertical: 12,
+  paddingHorizontal: 14,
+  borderBottomWidth: 1,
+  borderBottomColor: '#f0f0f0',
+  backgroundColor: '#fff',        // 👈 each row is opaque
+},
+suggestionItemLast: {             // optional: apply to last item to remove divider
+  borderBottomWidth: 0,
+},
+suggestionText: {
+  fontSize: 13,
+  color: '#444',
+},
 
-  currentLocationButton: {
-    backgroundColor: '#f1f5f9',
-    borderWidth: 1, borderColor: '#cbd5e1',
-    paddingVertical: 12, borderRadius: 8, alignItems: 'center',
-    marginTop: 8, marginBottom: 12,
-  },
-  currentLocationText: {
-    color: '#0f172a', fontSize: 14, fontWeight: '600',
-  },
-  selectedLocation: { paddingVertical: 10, marginBottom: 12 },
-  selectedTitle: {
-    fontSize: 14, fontWeight: '600',
-    color: '#0f172a', marginBottom: 4,
-  },
-  selectedSubText: { color: '#64748b', fontSize: 12, marginTop: 2 },
 
   saveButton: {
     backgroundColor: '#0046a8', borderRadius: 8,

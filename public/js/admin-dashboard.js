@@ -1879,3 +1879,57 @@ async function saveServicePrice() {
         );
     }
 };
+
+(function () {
+    const qrImg = document.getElementById('currentQr');
+    const form  = document.getElementById('qrUploadForm');
+    const msg   = document.getElementById('qrMsg');
+
+    if (!qrImg || !form) return;
+
+    // Load current QR
+    async function loadQr() {
+        try {
+            const r = await fetch('/api/settings/gcash-qr');
+            const data = await r.json();
+            if (data.success && data.image_path) {
+                qrImg.src = data.image_path + '?t=' + Date.now();
+            } else {
+                qrImg.alt = 'No QR set';
+            }
+        } catch (e) {
+            console.error('Failed to load QR:', e);
+        }
+    }
+    loadQr();
+
+    // Upload new QR
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.textContent = 'Uploading...';
+        msg.style.color = '#666';
+
+        const formData = new FormData(form);
+
+        try {
+            const r = await fetch('/api/settings/gcash-qr', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await r.json();
+
+            if (data.success) {
+                msg.textContent = 'QR updated!';
+                msg.style.color = 'green';
+                qrImg.src = data.image_path + '?t=' + Date.now();
+                form.reset();
+            } else {
+                msg.textContent = 'Error: ' + data.message;
+                msg.style.color = 'red';
+            }
+        } catch (err) {
+            msg.textContent = 'Upload failed: ' + err.message;
+            msg.style.color = 'red';
+        }
+    });
+})();

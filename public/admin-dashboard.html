@@ -76,6 +76,9 @@
                 <div class="nav-item" data-tab="serviceprices">
                     <span class="nav-icon"></span> Service Prices
                 </div>
+                <div class="nav-item" data-tab="gcashqr">
+                    <span class="nav-icon"></span> GCash QR
+                </div>
                 <div class="nav-item logout-item" id="logoutBtnSidebar">
                     <span class="nav-icon"></span> Logout
                 </div>
@@ -259,6 +262,33 @@
                     </table>
                 </div>
 
+            </div>
+            <!-- GCASH QR TAB -->
+            <div id="gcashqrPanel" class="tab-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>GCash QR Code</h2>
+                        <p>Upload the QR image customers will scan to pay.</p>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; margin-top:16px;">
+                    <div>
+                        <p style="margin-bottom:8px; font-weight:600;">Current QR</p>
+                        <img id="currentQr" src="" alt="Current GCash QR"
+                            style="max-width:260px; border:1px solid #ddd; border-radius:8px; padding:6px; background:#fff;">
+                    </div>
+
+                    <div style="min-width:280px;">
+                        <p style="margin-bottom:8px; font-weight:600;">Replace QR</p>
+                        <form id="qrUploadForm" enctype="multipart/form-data">
+                            <input type="file" name="gcash_qr" id="gcash_qr" accept="image/png, image/jpeg" required
+                                style="display:block; margin-bottom:10px;">
+                            <button type="submit" class="btn btn-primary">Update QR Code</button>
+                        </form>
+                        <p id="qrMsg" style="margin-top:10px; font-size:0.9rem;"></p>
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -524,19 +554,19 @@
         </div>
     </div>
 
-<div id="completionProofModal" class="modal">
-    <div class="modal-content" style="max-width: 600px;">
-        <div class="modal-header">
-            <h3>Completion Photo</h3>
-            <button class="modal-close" onclick="closeCompletionProofModal()">&times;</button>
-        </div>
-        <div class="modal-body" style="text-align: center;">
-            <img id="completionProofImage" src="" alt="Completion proof"
-                style="max-width: 100%; max-height: 70vh; border-radius: 6px;" />
-            <p id="completionProofMeta" style="margin-top: 0.75rem; color: #666; font-size: 0.9rem;"></p>
+    <div id="completionProofModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>Completion Photo</h3>
+                <button class="modal-close" onclick="closeCompletionProofModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <img id="completionProofImage" src="" alt="Completion proof"
+                    style="max-width: 100%; max-height: 70vh; border-radius: 6px;" />
+                <p id="completionProofMeta" style="margin-top: 0.75rem; color: #666; font-size: 0.9rem;"></p>
+            </div>
         </div>
     </div>
-</div>
 
 
     <!-- Load your JS files LAST -->
