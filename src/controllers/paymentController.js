@@ -1,11 +1,13 @@
 // src/controllers/paymentController.js
 
 const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
 const Payment = require('../models/paymentModel');
 
 async function downloadReceipt(req, res) {
     try {
-       const paymentId = req.params.paymentId;
+        const paymentId = req.params.paymentId;
 
         console.log('🧾 Generating receipt for payment:', paymentId);
         console.log('👤 Requested by user:', req.user);
@@ -13,229 +15,276 @@ async function downloadReceipt(req, res) {
         const payment = await Payment.getReceiptDetails(paymentId);
 
         if (!payment) {
-            return res.status(404).json({
-                message: 'Payment not found.'
-            });
+            return res.status(404).json({ message: 'Payment not found.' });
         }
 
-        // Make sure the customer owns this payment
-        const isOwner =
-            Number(payment.user_id) === Number(req.user.id);
-
-        // Admins are allowed to view any receipt
+        const isOwner = Number(payment.user_id) === Number(req.user.id);
         const isAdmin = req.user.role === 'admin';
 
         if (!isOwner && !isAdmin) {
-            return res.status(403).json({
-                message: 'Not authorized to view this receipt.'
-            });
+            return res.status(403).json({ message: 'Not authorized to view this receipt.' });
         }
 
-        // Only COMPLETED payments can have receipts
         if (payment.status !== 'completed') {
             return res.status(400).json({
                 message: 'Receipt is only available for completed payments.'
             });
         }
 
-        // Make sure the payment has a receipt number
         if (!payment.receipt_number) {
             return res.status(400).json({
                 message: 'Receipt number has not been generated yet.'
             });
         }
 
-        // PDF response headers
         res.setHeader('Content-Type', 'application/pdf');
-
         res.setHeader(
             'Content-Disposition',
             `attachment; filename="receipt_${payment.receipt_number}.pdf"`
         );
 
-        const doc = new PDFDocument({
-            margin: 50
-        });
-
+        const doc = new PDFDocument({ margin: 50, size: 'A4' });
         doc.pipe(res);
 
-        // RECEIPT HEADER
 
-        doc
-            .fontSize(22)
-            .font('Helvetica-Bold')
-            .text('PAYMENT RECEIPT', {
-                align: 'center'
-            });
+        // LAYOUT CONSTANTS
 
-        doc.moveDown();
+        const pageWidth = doc.page.width;
+        const margin = 50;
+        const contentWidth = pageWidth - margin * 2;
+        const labelWidth = 170;
+        const valueWidth = contentWidth - labelWidth;
 
-        doc
-            .fontSize(11)
-            .font('Helvetica')
-            .text('GoodWrench', {
-                align: 'center'
-            });
+        // Helper: draw a row (label | value) inside a table
+        function drawRow(label, value, options = {}) {
+            const {
+                labelBold = false,
+                valueBold = false,
+                shade = false,
+                rowHeight = 22,
+                fontSize = 11
+            } = options;
 
-        doc
-            .text('Thank your for choosing us', {
-                align: 'center'
-            });
+            const startY = doc.y;
+            const startX = margin;
 
-        doc.moveDown(2);
+            // Optional row shading
+            if (shade) {
+                doc.save()
+                    .rect(startX, startY, contentWidth, rowHeight)
+                    .fill('#F5F5F5')
+                    .restore();
+            }
+
+            // Row bottom border
+            doc.save()
+                .moveTo(startX, startY + rowHeight)
+                .lineTo(startX + contentWidth, startY + rowHeight)
+                .strokeColor('#DDDDDD')
+                .lineWidth(0.5)
+                .stroke()
+                .restore();
+
+            // Label cell
+            doc.font(labelBold ? 'Helvetica-Bold' : 'Helvetica')
+                .fontSize(fontSize)
+                .fillColor('#000000')
+                .text(label, startX + 8, startY + 6, {
+                    width: labelWidth - 16,
+                    align: 'left'
+                });
+
+            // Value cell
+            doc.font(valueBold ? 'Helvetica-Bold' : 'Helvetica')
+                .fontSize(fontSize)
+                .fillColor('#000000')
+                .text(String(value ?? '—'), startX + labelWidth + 8, startY + 6, {
+                    width: valueWidth - 16,
+                    align: 'left'
+                });
+
+            // Advance cursor
+            doc.y = startY + rowHeight;
+        }
+
+        // Helper: draw a full-width single-cell row (section title)
+        function drawSectionHeader(title) {
+            const startY = doc.y;
+            const startX = margin;
+
+            doc.save()
+                .rect(startX, startY, contentWidth, 24)
+                .fill('#1F2937')
+                .restore();
+
+            doc.font('Helvetica-Bold')
+                .fontSize(11)
+                .fillColor('#FFFFFF')
+                .text(title, startX + 8, startY + 7, {
+                    width: contentWidth - 16
+                });
+
+            doc.fillColor('#000000');
+            doc.y = startY + 24;
+        }
 
 
-        // RECEIPT INFORMATION
+        // HEADER + LOGO
+
+        const logoPath = path.join(__dirname, '..', 'public', 'image', 'ic_launcher_round.png');
+
+        if (fs.existsSync(logoPath)) {
+            // Logo on the left, sized to 60x60
+            doc.image(logoPath, margin, 45, { width: 60, height: 60 });
+
+            // Title next to logo
+            doc.font('Helvetica-Bold')
+                .fontSize(22)
+                .fillColor('#111827')
+                .text('PAYMENT RECEIPT', margin + 75, 55, {
+                    width: contentWidth - 75
+                });
+
+            doc.font('Helvetica')
+                .fontSize(11)
+                .fillColor('#6B7280')
+                .text('GoodWrench — Thank you for choosing us', margin + 75, 85);
+        } else {
+            // Fallback: centered text if no logo
+            doc.font('Helvetica-Bold')
+                .fontSize(22)
+                .fillColor('#111827')
+                .text('PAYMENT RECEIPT', { align: 'center' });
+
+            doc.moveDown(0.3);
+
+            doc.font('Helvetica')
+                .fontSize(11)
+                .fillColor('#6B7280')
+                .text('GoodWrench — Thank you for choosing us', { align: 'center' });
+        }
+
+        doc.fillColor('#000000');
+        doc.moveDown(3);
 
 
-        doc
-            .fontSize(12)
-            .font('Helvetica-Bold')
-            .text('Receipt Information');
+        // RECEIPT INFORMATION TABLE
 
-        doc.moveDown(0.5);
-
-        doc
-            .font('Helvetica')
-            .text(`Receipt No: ${payment.receipt_number}`);
-
-        doc.text(`Request No: #${payment.request_id}`);
-
-        doc.text(
-            `Date: ${
-                payment.payment_date
-                    ? new Date(payment.payment_date).toLocaleString()
-                    : '—'
-            }`
+        drawSectionHeader('Receipt Information');
+        drawRow('Receipt No:', payment.receipt_number, { valueBold: true });
+        drawRow('Request No:', `#${payment.request_id}`, { shade: true });
+        drawRow(
+            'Date:',
+            payment.payment_date
+                ? new Date(payment.payment_date).toLocaleString()
+                : '—'
         );
 
-        doc.moveDown();
+        doc.moveDown(1);
 
 
-        // CUSTOMER INFORMATION
+        // CUSTOMER INFORMATION TABLE
+
+        drawSectionHeader('Customer Information');
+        drawRow('Customer:', payment.customer_name || '—');
+
+        doc.moveDown(1);
 
 
-        doc
-            .fontSize(12)
-            .font('Helvetica-Bold')
-            .text('Customer Information');
+        // PAYMENT INFORMATION TABLE
 
-        doc.moveDown(0.5);
+        drawSectionHeader('Payment Information');
+        drawRow(
+            'Payment Method:',
+            payment.payment_method
+                ? payment.payment_method.toUpperCase()
+                : '—'
+        );
+        drawRow('Reference Number:', payment.reference_number || '—', { shade: true });
+        drawRow('Transaction ID:', payment.transaction_id || '—');
 
-        doc
-            .font('Helvetica')
-            .text(`Customer: ${payment.customer_name || '—'}`);
-
-        doc.moveDown();
-
-
-        // PAYMENT INFORMATION
+        doc.moveDown(1);
 
 
-        doc
-            .fontSize(12)
-            .font('Helvetica-Bold')
-            .text('Payment Information');
+        // CHARGES TABLE
 
-        doc.moveDown(0.5);
+        drawSectionHeader('Charges');
+        drawRow(
+            'Service Fee:',
+            `₱${Number(payment.base_amount || 0).toFixed(2)}`
+        );
 
-        doc
-            .font('Helvetica')
+        if (payment.additional_charges && payment.additional_charges.length > 0) {
+            payment.additional_charges.forEach((charge, idx) => {
+                drawRow(
+                    `  • ${charge.description}`,
+                    `₱${Number(charge.amount).toFixed(2)}`,
+                    { shade: idx % 2 === 0 }
+                );
+            });
+        }
+
+        doc.moveDown(1);
+
+
+        // TOTAL (highlighted)
+
+        const totalY = doc.y;
+        doc.save()
+            .rect(margin, totalY, contentWidth, 32)
+            .fill('#1F2937')
+            .restore();
+
+        doc.font('Helvetica-Bold')
+            .fontSize(15)
+            .fillColor('#FFFFFF')
+            .text('TOTAL PAID', margin + 10, totalY + 8, {
+                width: contentWidth / 2
+            });
+
+        doc.font('Helvetica-Bold')
+            .fontSize(15)
+            .fillColor('#FFFFFF')
             .text(
-                `Payment Method: ${
-                    payment.payment_method
-                        ? payment.payment_method.toUpperCase()
-                        : '—'
-                }`
+                `₱${Number(payment.total_amount || payment.payment_amount || 0).toFixed(2)}`,
+                margin,
+                totalY + 8,
+                { width: contentWidth - 10, align: 'right' }
             );
 
-        doc.text(
-            `Reference Number: ${payment.reference_number || '—'}`
-        );
-
-        doc.text(
-            `Transaction ID: ${payment.transaction_id || '—'}`
-        );
-
-        doc.moveDown();
+        doc.fillColor('#000000');
+        doc.y = totalY + 42;
 
 
-        // AMOUNT
-// AMOUNT BREAKDOWN
+        // STATUS
 
-doc
-    .fontSize(12)
-    .font('Helvetica-Bold')
-    .text('Charges');
-
-doc.moveDown(0.5);
-
-doc
-    .font('Helvetica')
-    .text(`Service Fee: ₱${Number(payment.base_amount || 0).toFixed(2)}`);
-
-if (payment.additional_charges && payment.additional_charges.length > 0) {
-    doc.moveDown(0.3);
-    doc.font('Helvetica-Bold').text('Additional Charges:');
-    doc.font('Helvetica');
-
-    payment.additional_charges.forEach(charge => {
-        doc.text(`  - ${charge.description}: ₱${charge.amount.toFixed(2)}`);
-    });
-}
-
-doc.moveDown();
-
-doc
-    .fontSize(16)
-    .font('Helvetica-Bold')
-    .text(
-        `TOTAL PAID: ₱${Number(payment.total_amount || payment.payment_amount || 0).toFixed(2)}`
-    );
-
-doc.moveDown();
-
-        doc
+        doc.font('Helvetica-Bold')
             .fontSize(12)
-            .font('Helvetica-Bold')
-            .text('Payment Status: COMPLETED');
+            .fillColor('#16A34A')
+            .text('Payment Status: COMPLETED', { align: 'center' });
 
+        doc.fillColor('#000000');
         doc.moveDown(2);
 
 
         // FOOTER
 
-
-        doc
-            .fontSize(10)
+        doc.fontSize(10)
             .font('Helvetica')
-            .text(
-                'Thank you for choosing GoodWrench',
-                {
-                    align: 'center'
-                }
-            );
+            .fillColor('#6B7280')
+            .text('Thank you for choosing GoodWrench', { align: 'center' });
 
-        doc.text(
-            'This document serves as your official payment receipt.',
-            {
-                align: 'center'
-            }
-        );
+        doc.text('This document serves as your official payment receipt.', {
+            align: 'center'
+        });
 
         doc.end();
-
     } catch (error) {
+        console.error('Download receipt error:', error);
 
-        console.error(' Download receipt error:', error);
-
-        // Avoid trying to send JSON after PDF streaming has started
         if (!res.headersSent) {
-            return res.status(500).json({
-                message: 'Server error generating PDF.'
-            });
+            return res.status(500).json({ message: 'Server error generating PDF.' });
         }
-
         res.end();
     }
 }
