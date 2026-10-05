@@ -34,7 +34,6 @@ router.post(
             }
 
             const request = await Payment.getRequestPaymentInfo(request_id, userId);
-
             if (!request) {
                 return res.status(404).json({
                     success: false,
@@ -42,21 +41,72 @@ router.post(
                 });
             }
 
-            // Trust the request total, not the payment row's stored amount.
             const amount = Number(request.total_amount ?? request.amount ?? 0);
+
+            if (!amount || amount <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'The service fee has not been assigned yet.'
+                });
+            }
 
             const existingPayment = await Payment.findActivePayment(request_id, userId);
 
             if (existingPayment) {
+                // ✅ Already paid
                 if (existingPayment.status === 'completed') {
                     return res.json({
                         success: true,
                         payment: existingPayment,
-                        existing: true
+                        existing: true,
+                        message: 'This request has already been paid.'
                     });
                 }
 
-                // Self-heal: force amount + method + status back to "ready for GCash"
+                // ✅ Admin is verifying — don't let them re-submit
+                if (existingPayment.status === 'pending') {
+                    return res.status(409).json({
+                        success: false,
+                        message: 'Proof has already been submitted and is awaiting verification.'
+                    });
+                }
+
+                // ✅ REJECTED/FAILED — reset this SAME record for a fresh attempt
+                if (
+                    existingPayment.status === 'failed' ||
+                    existingPayment.status === 'rejected' ||
+                    existingPayment.status === 'refunded'
+                ) {
+                    await db.query(
+                        `UPDATE payments
+                         SET status = 'awaiting_payment',
+                             payment_method = 'gcash',
+                             amount = ?,
+                             reference_number = NULL,
+                             proof_image_path = NULL,
+                             updated_at = NOW()
+                         WHERE payment_id = ?`,
+                        [amount, existingPayment.payment_id]
+                    );
+
+                    const payment = {
+                        ...existingPayment,
+                        amount,
+                        payment_method: 'gcash',
+                        status: 'awaiting_payment',
+                        reference_number: null,
+                        proof_image_path: null
+                    };
+
+                    return res.json({
+                        success: true,
+                        payment,
+                        existing: true,
+                        message: 'You may now submit a new proof of payment.'
+                    });
+                }
+
+                // ✅ awaiting_payment or awaiting_cash — self-heal and reuse
                 await db.query(
                     `UPDATE payments
                      SET amount = ?,
@@ -79,6 +129,7 @@ router.post(
                 });
             }
 
+            // ✅ No existing payment — create a fresh one
             const paymentId = await Payment.createPaymentIntent({
                 requestId: request.request_id,
                 userId,
@@ -95,13 +146,14 @@ router.post(
             };
 
             return res.json({ success: true, payment, existing: false });
+
         } catch (error) {
             console.error('Start GCash payment error:', error);
             return res.status(500).json({
                 success: false,
                 message: 'Unable to start GCash payment.',
-                debug_error: error.message,   // <-- ADD THIS
-                debug_stack: error.stack      // <-- ADD THIS (first 5 lines only if too long)
+                debug_error: error.message,
+                debug_stack: error.stack
             });
         }
     }
@@ -359,18 +411,15 @@ router.post(
                     'Proof of payment submitted. Awaiting verification.'
             });
 
-        } catch (error) {
-            console.error(
-                'Proof submission error:',
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                message:
-                    'Failed to submit proof of payment.'
-            });
-        }
+       } catch (error) {
+    console.error('Proof submission error:', error);
+    return res.status(500).json({
+        success: false,
+        message: 'Failed to submit proof of payment.',
+        debug_error: error.message,   // <-- ADD THIS
+        debug_stack: error.stack      // <-- ADD THIS
+    });
+}
     }
 );
 

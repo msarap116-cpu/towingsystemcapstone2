@@ -199,29 +199,43 @@ const Payment = {
         return rows;
     },
 
+    // async findActivePayment(requestId, userId) {
+    //     const sql = `
+    //     SELECT *
+    //     FROM payments
+    //     WHERE request_id = ?
+    //       AND user_id = ?
+    //       AND status IN (
+    //           'awaiting_payment',
+    //           'awaiting_cash',
+    //           'pending',
+    //           'completed'
+    //       )
+    //     ORDER BY payment_id DESC
+    //     LIMIT 1
+    // `;
+
+    //     const rows = await db.query(
+    //         sql,
+    //         [requestId, userId]
+    //     );
+
+    //     return rows[0] || null;
+    // },
+
     async findActivePayment(requestId, userId) {
-        const sql = `
+    const sql = `
         SELECT *
         FROM payments
         WHERE request_id = ?
           AND user_id = ?
-          AND status IN (
-              'awaiting_payment',
-              'awaiting_cash',
-              'pending',
-              'completed'
-          )
         ORDER BY payment_id DESC
         LIMIT 1
     `;
 
-        const rows = await db.query(
-            sql,
-            [requestId, userId]
-        );
-
-        return rows[0] || null;
-    },
+    const rows = await db.query(sql, [requestId, userId]);
+    return rows[0] || null;
+},
 
     async createPaymentIntent({ requestId, userId, amount }) {
         const sql = `
@@ -259,35 +273,35 @@ const Payment = {
 
         return result.insertId;
     },
-    async submitProof({
-        requestId,
-        userId,
+ async submitProof({
+    requestId,
+    userId,
+    referenceNumber,
+    proofImagePath
+}) {
+    const sql = `
+    UPDATE payments
+    SET
+        reference_number = ?,
+        transaction_id = ?,
+        proof_image_path = ?,
+        status = 'pending',
+        payment_date = NOW()
+    WHERE request_id = ?
+      AND user_id = ?
+      AND status = 'awaiting_payment'   -- ✅ This is correct
+`;
+
+    const result = await db.query(sql, [
         referenceNumber,
-        proofImagePath
-    }) {
-        const sql = `
-        UPDATE payments
-        SET
-            reference_number = ?,
-            transaction_id = ?,
-            proof_image_path = ?,
-            status = 'pending',
-            payment_date = NOW()
-        WHERE request_id = ?
-          AND user_id = ?
-          AND status = 'awaiting_payment'
-    `;
+        referenceNumber,
+        proofImagePath,
+        requestId,
+        userId
+    ]);
 
-        const result = await db.query(sql, [
-            referenceNumber,
-            referenceNumber,
-            proofImagePath,
-            requestId,
-            userId
-        ]);
-
-        return result;
-    },
+    return result;
+},
     async switchToCash(paymentId, requestId) {
         const sql = `
         UPDATE payments p
