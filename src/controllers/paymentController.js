@@ -5,6 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const Payment = require('../models/paymentModel');
 
+const FONT_REGULAR = path.join(__dirname, '..', 'public', 'fonts', 'NotoSans-Italic-VariableFont_wdth,wght.ttf');
+const FONT_BOLD = path.join(__dirname, '..', 'public', 'fonts', 'NotoSans-Bold.ttf');
+
 async function downloadReceipt(req, res) {
     try {
         const paymentId = req.params.paymentId;
@@ -44,6 +47,13 @@ async function downloadReceipt(req, res) {
         );
 
         const doc = new PDFDocument({ margin: 50, size: 'A4' });
+
+        // Register custom fonts
+        doc.registerFont('Body', FONT_REGULAR);
+        doc.registerFont('Body-Bold', FONT_BOLD);
+
+        // Make Body the default
+        doc.font('Body');
         doc.pipe(res);
 
 
