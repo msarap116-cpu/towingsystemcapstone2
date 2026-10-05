@@ -27,7 +27,6 @@ const MyVehiclesScreen = ({ navigation }) => {
     const [submitting, setSubmitting] = useState(false);
     const [showForm, setShowForm] = useState(false);
 
-    // Form state (matches web payload keys)
     const [formData, setFormData] = useState({
         vehicle_type: '',
         make: '',
@@ -40,15 +39,14 @@ const MyVehiclesScreen = ({ navigation }) => {
 
     const vehicleTypes = [
         { label: 'Select Type', value: '' },
-        { label: 'Car', value: 'car' },
-        { label: 'Motorcycle', value: 'motorcycle' },
+        { label: 'Pick up', value: 'pick up' },
+        { label: 'Mini Van', value: 'mini van' },
         { label: 'Van', value: 'van' },
         { label: 'Truck', value: 'truck' },
         { label: 'SUV', value: 'suv' },
         { label: 'Other', value: 'other' },
     ];
 
-    // Reload vehicles every time screen comes into focus
     useFocusEffect(
         useCallback(() => {
             loadVehicles();
@@ -280,7 +278,7 @@ const MyVehiclesScreen = ({ navigation }) => {
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-            <StatusBar barStyle="light-content" backgroundColor="#dc3545" />
+            <StatusBar barStyle="light-content" backgroundColor="#0d6efd" />
 
             {/* Navbar */}
             <View style={styles.navbar}>
@@ -300,7 +298,7 @@ const MyVehiclesScreen = ({ navigation }) => {
                 <Text style={styles.title}>Your Saved Vehicles</Text>
 
                 {loading ? (
-                    <ActivityIndicator size="large" color="#dc3545" style={{ marginTop: 40 }} />
+                    <ActivityIndicator size="large" color="#0d6efd" style={{ marginTop: 40 }} />
                 ) : vehicles.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Icon name="car-off" size={60} color="#adb5bd" />
@@ -338,7 +336,10 @@ const MyVehiclesScreen = ({ navigation }) => {
 
                         <ScrollView
                             style={styles.modalScroll}
+                            contentContainerStyle={styles.modalScrollContent}
                             keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={true}
+                            nestedScrollEnabled={true}
                         >
                             {/* Vehicle Type */}
                             <View style={styles.formGroup}>
@@ -425,8 +426,8 @@ const MyVehiclesScreen = ({ navigation }) => {
                                 <Switch
                                     value={formData.is_default}
                                     onValueChange={(v) => updateField('is_default', v)}
-                                    trackColor={{ false: '#ccc', true: '#f5a3a3' }}
-                                    thumbColor={formData.is_default ? '#dc3545' : '#f4f3f4'}
+                                    trackColor={{ false: '#ccc', true: '#8fbcff' }}
+                                    thumbColor={formData.is_default ? '#0d6efd' : '#f4f3f4'}
                                 />
                             </View>
 
@@ -461,7 +462,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#eaeef2',
     },
     navbar: {
-        backgroundColor: '#dc3545',
+        backgroundColor: '#0d6efd',
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 50,
         paddingBottom: 15,
         paddingHorizontal: 16,
@@ -496,7 +497,7 @@ const styles = StyleSheet.create({
         elevation: 1,
     },
     vehicleCardDefault: {
-        borderColor: '#dc3545',
+        borderColor: '#0d6efd',
         borderWidth: 2,
     },
     vehicleInfo: {
@@ -515,7 +516,7 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     defaultBadge: {
-        backgroundColor: '#dc3545',
+        backgroundColor: '#0d6efd',
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 10,
@@ -576,7 +577,7 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     addFirstBtn: {
-        backgroundColor: '#dc3545',
+        backgroundColor: '#0d6efd',
         paddingVertical: 12,
         paddingHorizontal: 28,
         borderRadius: 8,
@@ -598,7 +599,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         maxHeight: '90%',
-        paddingBottom: 20,
+        flexShrink: 1,
     },
     modalHeader: {
         flexDirection: 'row',
@@ -614,7 +615,12 @@ const styles = StyleSheet.create({
         color: '#212529',
     },
     modalScroll: {
+        flexGrow: 0,
+        flexShrink: 1,
+    },
+    modalScrollContent: {
         padding: 16,
+        paddingBottom: 40,
     },
 
     /* Form */
@@ -654,14 +660,14 @@ const styles = StyleSheet.create({
         marginVertical: 8,
     },
     submitBtn: {
-        backgroundColor: '#dc3545',
+        backgroundColor: '#0d6efd',
         paddingVertical: 14,
         borderRadius: 8,
         alignItems: 'center',
         marginTop: 16,
     },
     submitBtnDisabled: {
-        backgroundColor: '#f5a3a3',
+        backgroundColor: '#8fbcff',
     },
     submitBtnText: {
         color: '#fff',

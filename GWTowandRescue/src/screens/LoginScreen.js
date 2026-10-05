@@ -10,11 +10,12 @@ import {
   ActivityIndicator,
   Image,
   StatusBar,
-   ScrollView
+  ScrollView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles/LoginScreen.styles';
 import API_BASE_URL from '../config.js';
+import { connectSocket } from '../socket';
 // Import your PNG icons
 const eyeIcon = require('../assets/images/eye.png');
 const eyeCrossedIcon = require('../assets/images/eye-crossed.png');
@@ -28,88 +29,89 @@ const LoginScreen = ({ navigation, route }) => {
   const [returnTo, setReturnTo] = useState(null);
 
   //ONE SINGLE COMBINED useEffect — NO duplicates, NO conflicts
-useEffect(() => {
-  // 1.Read returnTo from navigation params
-  if (route.params?.returnTo) {
-    setReturnTo(route.params.returnTo);
-  }
-
-  // 2.Check auth status — auto-redirect if already logged in
-  checkAuthStatus();
-
-  // 3.Show logout message (passed from Dashboard on logout)
-  const message = route.params?.logoutMessage;
-  if (message) {
-    setTimeout(() => {
-      Alert.alert('Logged Out', message);
-      //Clear message so it doesn't re-appear
-      if (navigation?.setParams) {
-        navigation.setParams({ logoutMessage: null });
-      }
-    }, 0);
-  }
-}, [route.params]); //ONE dependency list — clean & correct
-
-//Auth check — unchanged
-const checkAuthStatus = async () => {
-  const token = await AsyncStorage.getItem('token');
-  const userStr = await AsyncStorage.getItem('user');
-  if (token && userStr) {
-    const user = JSON.parse(userStr);
-    if (user.role === 'driver') {
-      navigation.replace('DriverDashboard');
-    } else {
-      navigation.replace('Dashboard');
+  useEffect(() => {
+    // Read returnTo from navigation params
+    if (route.params?.returnTo) {
+      setReturnTo(route.params.returnTo);
     }
-  }
-};
 
-//Login — timing fixed, no orphaned Alert
-const handleLogin = async () => {
-  if (!email || !password) {
-    Alert.alert('Error', 'Please enter both email and password');
-    return;
-  }
-  setLoading(true);
-  try {
-    const response = await fetch(`${API_BASE_URL}/users/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await response.json();
-    if (response.ok) {
-      await AsyncStorage.setItem('token', data.token);
-      await AsyncStorage.setItem('user', JSON.stringify(data.user));
+    // Check auth status — auto-redirect if already logged in
+    checkAuthStatus();
 
-      //Alert shows FIRST → navigate AFTER user taps OK
-      Alert.alert(' Success', 'Login successful!', [
-        {
-          text: 'OK',
-          onPress: () => {
-            let redirectScreen = 'Dashboard';
-            if (data.user.role === 'driver') {
-              redirectScreen = 'DriverDashboard';
-            } else if (returnTo) {
-              redirectScreen = returnTo;
-            }
-            //Wait for Alert to CLOSE COMPLETELY before navigating
-            setTimeout(() => {
-              navigation.replace(redirectScreen);
-            }, 100);
-          }
+    // Show logout message (passed from Dashboard on logout)
+    const message = route.params?.logoutMessage;
+    if (message) {
+      setTimeout(() => {
+        Alert.alert('Logged Out', message);
+        //Clear message so it doesn't re-appear
+        if (navigation?.setParams) {
+          navigation.setParams({ logoutMessage: null });
         }
-      ]);
-    } else {
-      Alert.alert('Error', data.error || 'Login failed');
+      }, 0);
     }
-  } catch (error) {
-    console.error('Login error:', error);
-    Alert.alert('Error', 'Network error. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
+  }, [route.params]); //ONE dependency list — clean & correct
+
+  //Auth check — unchanged
+  const checkAuthStatus = async () => {
+    const token = await AsyncStorage.getItem('token');
+    const userStr = await AsyncStorage.getItem('user');
+     connectSocket(token);
+    if (token && userStr) {
+      const user = JSON.parse(userStr);
+      if (user.role === 'driver') {
+        navigation.replace('DriverDashboard');
+      } else {
+        navigation.replace('Dashboard');
+      }
+    }
+  };
+
+  //Login — timing fixed, no orphaned Alert
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        await AsyncStorage.setItem('token', data.token);
+        await AsyncStorage.setItem('user', JSON.stringify(data.user));
+
+        //Alert shows FIRST → navigate AFTER user taps OK
+        Alert.alert(' Success', 'Login successful!', [
+          {
+            text: 'OK',
+            onPress: () => {
+              let redirectScreen = 'Dashboard';
+              if (data.user.role === 'driver') {
+                redirectScreen = 'DriverDashboard';
+              } else if (returnTo) {
+                redirectScreen = returnTo;
+              }
+              //Wait for Alert to CLOSE COMPLETELY before navigating
+              setTimeout(() => {
+                navigation.replace(redirectScreen);
+              }, 100);
+            }
+          }
+        ]);
+      } else {
+        Alert.alert('Error', data.error || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      Alert.alert('Error', 'Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -120,33 +122,33 @@ const handleLogin = async () => {
 
       {/* Navbar - Exactly like your web version */}
       {/* Navbar */}
-<View style={styles.navbar}>
-  <View style={styles.navContainer}>
+      <View style={styles.navbar}>
+        <View style={styles.navContainer}>
 
-    {/* Brand Logo (Fixed on the left) */}
-    <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-      <Text style={styles.brandText}>GoodWrench</Text>
-    </TouchableOpacity>
+          {/* Brand Logo (Fixed on the left) */}
+          <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+            <Text style={styles.brandText}>GoodWrench</Text>
+          </TouchableOpacity>
 
-    {/* Swipeable Nav Links (Takes up remaining space) */}
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.navLinksContainer}
-    >
-      <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-        <Text style={styles.navLink}>Home</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={styles.navLink}>Login</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate('RequestForm')}>
-        <Text style={styles.navLink}>Request</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          {/* Swipeable Nav Links (Takes up remaining space) */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.navLinksContainer}
+          >
+            <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+              <Text style={styles.navLink}>Home</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.navLink}>Login</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('RequestForm')}>
+              <Text style={styles.navLink}>Request</Text>
+            </TouchableOpacity>
+          </ScrollView>
 
-  </View>
-</View>
+        </View>
+      </View>
 
       {/* Main Content */}
       <View style={styles.mainContent}>
