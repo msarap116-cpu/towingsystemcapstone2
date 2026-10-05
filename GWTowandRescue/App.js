@@ -14,12 +14,25 @@ import MyVehiclesScreen from './src/screens/MyVehiclesScreen';
 import { socket, connectSocket } from './src/socket';
 import { AppState, ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import notifee, { AndroidImportance } from '@notifee/react-native';
 
 
 
 const Stack = createNativeStackNavigator();
 
+async function setupNotifications() {
+  // 1. Request permission (Android 13+)
+  await notifee.requestPermission();
 
+  // 2. Create a channel for your notifications
+  const channelId = await notifee.createChannel({
+    id: 'gwtow-notifications', // Unique ID for the channel
+    name: 'GoodWrench Notifications', // Name shown in Android settings
+    importance: AndroidImportance.HIGH, // HIGH makes it pop up
+  });
+
+  return channelId; // We'll use this ID later
+}
 const App = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [initialRoute, setInitialRoute] = useState('Home');

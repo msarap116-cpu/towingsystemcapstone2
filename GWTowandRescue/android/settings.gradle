@@ -42,8 +42,11 @@ dependencyResolutionManagement {
             url "https://repo1.maven.org/maven2"
             allowInsecureProtocol = true
         }
-        maven{
+        maven {
             url "https://jitpack.io"
+        }
+        maven {
+            url "$rootDir/../node_modules/@notifee/react-native/android/libs"
         }
         google()
     }
