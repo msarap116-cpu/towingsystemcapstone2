@@ -267,7 +267,7 @@ true;
     const customerHtml = `⌖ ${esc(customerName || 'Customer')}<br>${esc(address || 'Customer location')}`;
     let driverHtml = `<strong>${esc(driverName || 'Driver')}</strong>`;
     if (distanceKm && durationMin) {
-      driverHtml += `<br>Distance: <strong>${esc(distanceKm)} km</strong><br>Est. arrival: <strong>${esc(durationMin)} min</strong>`;
+      driverHtml += `<br>Distance: <strong>${esc(distanceKm)} </strong><br>Est. arrival: <strong>${esc(durationMin)}</strong>`;
     } else if (distanceKm) {
       driverHtml += `<br>~${esc(distanceKm)} km away`;
     } else {

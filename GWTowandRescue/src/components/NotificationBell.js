@@ -1,72 +1,85 @@
 // src/components/NotificationBell.js
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import styles from '../styles/NotificationBell.styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import notifee from '@notifee/react-native';
-import { fetchNotifications, fetchUnreadCount } from '../services/notificationService';
+import notifee, { AndroidImportance } from '@notifee/react-native';
+import styles from '../styles/NotificationBell.styles';
+import { fetchUnreadCount, fetchNotifications } from '../services/notificationService';
 
+// ─── Helper: outside the component ─────────────────────────────
+async function setupNotifications() {
+  try {
+    await notifee.requestPermission();
+    const id = await notifee.createChannel({
+      id: 'gwtow-notifications',
+      name: 'GoodWrench Notifications',
+      importance: AndroidImportance.HIGH,
+    });
+    return id;
+  } catch (e) {
+    console.warn('[Bell] notifee setup failed:', e.message);
+    return null;
+  }
+}
+
+// ─── Component ─────────────────────────────────────────────────
 export default function NotificationBell({ navigation }) {
   const [count, setCount] = useState(0);
 
-  // Store the previous count to detect changes
-  const previousCountRef = React.useRef(null);
-  const channelIdRef = React.useRef(null);
+  // ─── Refs: INSIDE the component, before refresh ─────────────
+  const previousCountRef = useRef(null);
+  const channelIdRef = useRef(null);
 
+  const refresh = useCallback(async () => {
+    const token = await AsyncStorage.getItem('token');
+    console.log('[Bell] token:', token ? token.slice(0, 20) + '…' : 'NULL');
+    if (!token) return;
 
-const refresh = useCallback(async () => {
-  const token = await AsyncStorage.getItem('token');
-  console.log('[Bell] token:', token ? token.slice(0, 20) + '…' : 'NULL');
-  if (!token) return;
+    try {
+      const newCount = await fetchUnreadCount();
 
-  try {
-    const newCount = await fetchUnreadCount();   // ← renamed c → newCount
-
-    // First load — seed the counter, don't fire a tray notification
-    if (previousCountRef.current === null) {
-      previousCountRef.current = newCount;
-      setCount(newCount);
-      if (!channelIdRef.current) {
-        channelIdRef.current = await setupNotifications();
+      if (previousCountRef.current === null) {
+        previousCountRef.current = newCount;
+        setCount(newCount);
+        if (!channelIdRef.current) {
+          channelIdRef.current = await setupNotifications();
+        }
+        return;
       }
-      return;
-    }
 
-    // A new notification arrived → show in tray
-    if (newCount > previousCountRef.current) {
-      const recentNotifications = await fetchNotifications(1, 0);
-      const latest = recentNotifications[0];
-
-      if (latest && channelIdRef.current) {
+      if (newCount > previousCountRef.current && channelIdRef.current) {
         try {
-          await notifee.displayNotification({
-            title: `New ${latest.type === 'order' ? 'Service Request' : 'Update'}!`,
-            body: latest.message,
-            android: {
-              channelId: channelIdRef.current,
-              smallIcon: 'ic_launcher',
-              pressAction: { id: 'default' },
-            },
-          });
+          const recent = await fetchNotifications(1, 0);
+          const latest = Array.isArray(recent) && recent[0];
+          if (latest) {
+            await notifee.displayNotification({
+              title: `New ${latest.type === 'order' ? 'Service Request' : 'Update'}!`,
+              body: latest.message,
+              android: {
+                channelId: channelIdRef.current,
+                smallIcon: 'ic_launcher',
+                pressAction: { id: 'default' },
+              },
+            });
+          }
         } catch (notifErr) {
           console.warn('[Bell] tray notify failed:', notifErr.message);
         }
       }
-    }
 
-    previousCountRef.current = newCount;
-    setCount(newCount);
-  } catch (e) {
-    console.warn('[Bell] failed:', e.message);
-  }
-}, []);
+      previousCountRef.current = newCount;
+      setCount(newCount);
+    } catch (e) {
+      console.warn('[Bell] failed:', e.message);
+    }
+  }, []);
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
   useEffect(() => {
-    const id = setInterval(refresh, 30000);
+    const id = setInterval(refresh, 20000);
     return () => clearInterval(id);
   }, [refresh]);
 
