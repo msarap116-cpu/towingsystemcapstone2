@@ -96,7 +96,9 @@ router.post(
             console.error('Start GCash payment error:', error);
             return res.status(500).json({
                 success: false,
-                message: 'Unable to start GCash payment.'
+                message: 'Unable to start GCash payment.',
+                debug_error: error.message,   // <-- ADD THIS
+                debug_stack: error.stack      // <-- ADD THIS (first 5 lines only if too long)
             });
         }
     }
