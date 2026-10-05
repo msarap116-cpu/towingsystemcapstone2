@@ -182,18 +182,58 @@ const styles = StyleSheet.create({
   },
   historyId: { fontSize: 13, fontWeight: '700', color: '#1a1a2e' },
   historyService: { fontSize: 13, color: '#666', marginTop: 2 },
-  historyStatus: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 8, marginTop: 6,
-  },
-  historyStatusText: { color: '#fff', fontSize: 11, fontWeight: '600' },
-  cancelButton: {
-    backgroundColor: '#dc3545',
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 6, alignSelf: 'flex-start', marginTop: 8,
-  },
-  cancelButtonText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+
+  historyFooter: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginTop: 8,
+  gap: 8, // space between status and cancel button
+},
+
+historyStatus: {
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 6,
+  alignSelf: 'flex-start',
+},
+
+historyStatusText: {
+  color: '#fff',
+  fontSize: 11,
+  fontWeight: '600',
+},
+
+cancelButton: {
+  backgroundColor: '#dc3545',
+  paddingHorizontal: 12,
+  paddingVertical: 5,
+  borderRadius: 6,
+
+},
+
+cancelButtonText: {
+  color: '#fff',
+  fontSize: 12,
+  fontWeight: '600',
+},
+historyAddressRow: {
+  flexDirection: 'row',
+  alignItems: 'flex-start',
+  marginTop: 4,
+  marginBottom: 4,
+  width: '100%',
+},
+historyAddressIcon: {
+  marginRight: 4,
+  marginTop: 1, // nudge to align with text baseline
+},
+historyAddress: {
+    flex: 1,              // 👈 allows wrapping, not overflow
+  flexShrink: 1,
+  flex: 1, // so long addresses wrap instead of overflowing
+  fontSize: 13,
+  color: '#555',
+},
 
   receiptItem: {
     backgroundColor: '#fff',
@@ -290,6 +330,7 @@ const styles = StyleSheet.create({
   },
   cancelPaymentText: { color: '#333', fontSize: 15, fontWeight: '600' },
 
+
   // ===== MODALS =====
   modalOverlay: {
     flex: 1,
@@ -380,6 +421,100 @@ overlayTop: {
   left: 12,
   alignItems: 'flex-end',
 },
+// The button itself
+currentLocationButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#EAF2FF',
+  borderWidth: 1,
+  borderColor: '#B9D4FF',
+  paddingVertical: 12,
+  paddingHorizontal: 16,
+  borderRadius: 10,
+  marginVertical: 10,
+},
+currentLocationText: {
+  color: '#007AFF',
+  fontWeight: '600',
+  fontSize: 14,
+},
+
+// The waypoint container (the "selected location" card)
+selectedLocation: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#fff',
+  borderWidth: 1,
+  borderColor: '#E5E5E5',
+  borderRadius: 12,
+  padding: 14,
+  marginTop: 10,
+  // subtle shadow
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.05,
+  shadowRadius: 6,
+  elevation: 2,
+},
+
+// Waypoint pin visuals
+waypointContainer: {
+  width: 40,
+  height: 40,
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginRight: 12,
+},
+waypointRing: {
+  position: 'absolute',
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  backgroundColor: '#FF3B30',
+  opacity: 0.15,
+},
+waypointDot: {
+  width: 28,
+  height: 28,
+  borderRadius: 14,
+  backgroundColor: '#FF3B30',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+// Text
+selectedTitle: {
+  fontSize: 14,
+  fontWeight: '700',
+  color: '#222',
+  marginBottom: 2,
+},
+selectedSubText: {
+  fontSize: 12,
+  color: '#666',
+  marginTop: 2,
+},
+
+// Coordinate row
+coordRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginTop: 6,
+},
+coordText: {
+  fontSize: 11,
+  color: '#888',
+  marginLeft: 3,
+  fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+},
+coordDivider: {
+  width: 1,
+  height: 10,
+  backgroundColor: '#DDD',
+  marginHorizontal: 8,
+},
+
 });
 
 export default styles;

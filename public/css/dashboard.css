@@ -1292,3 +1292,206 @@ label {
 .close-btn:hover {
   color: #374151;
 }
+/* --- EDIT ADDRESS ENHANCEMENTS --- */
+
+/* The main panel container */
+#editAddressSection.tab-panel {
+    background: #ffffff;
+    padding: 40px 24px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100%;
+    overflow-y: auto;
+}
+
+/* The inner content card */
+#editAddressSection .section-content {
+    background: #ffffff;
+    width: 100%;
+    max-width: 560px;
+    padding: 32px;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    position: relative;
+}
+
+/* Header styling */
+#editAddressSection h3 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 24px;
+    margin-top: 0;
+    letter-spacing: -0.02em;
+}
+
+/* Close button */
+#closeEditAddressSection {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    font-size: 28px;
+    color: #94a3b8;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s, transform 0.2s;
+    padding: 4px;
+}
+#closeEditAddressSection:hover {
+    color: #ef4444;
+    transform: scale(1.1);
+}
+
+/* Labels */
+#editAddressSection label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 6px;
+    margin-top: 0;
+}
+
+/* Search Input Wrapper */
+#editAddressSection .location-search-wrapper {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+/* Search Input */
+#editAddressSection #editAddressInput {
+    width: 100%;
+    padding: 14px 16px 14px 44px; /* Left padding for icon */
+    font-size: 0.95rem;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 12px;
+    background-color: #f8fafc;
+    color: #0f172a;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    outline: none;
+}
+#editAddressSection #editAddressInput:focus {
+    border-color: #0b3d84;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(11, 61, 132, 0.1);
+}
+#editAddressSection #editAddressInput::placeholder {
+    color: #94a3b8;
+}
+
+/* Search Icon inside input */
+#editAddressSection .location-search-wrapper::before {
+    content: "🔍";
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.1rem;
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Address Suggestions Dropdown */
+#editAddressSection .address-suggestions {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 100000;
+    display: none;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    padding: 6px;
+}
+#editAddressSection .address-suggestions.show {
+    display: block;
+}
+#editAddressSection .address-suggestion {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #334155;
+    transition: background 0.15s;
+}
+#editAddressSection .address-suggestion:hover {
+    background: #f1f5f9;
+    color: #0b3d84;
+}
+
+/* "Use My Current Location" Button */
+#editAddressSection .use-location-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 12px;
+    border: 1.5px dashed #94a3b8;
+    background: #ffffff;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 0 0 20px 0;
+}
+#editAddressSection .use-location-btn:hover {
+    border-color: #0b3d84;
+    color: #0b3d84;
+    background: #f0f7ff;
+    border-style: solid;
+}
+#editAddressSection .use-location-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #cbd5e1;
+}
+
+/* Selected Location Info Box */
+#editAddressSection .selected-location-info {
+    margin-top: 0;
+    margin-bottom: 24px;
+    padding: 18px 20px;
+    background: #f0f7ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #1e3a8a;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Save Button */
+#editAddressSection .save-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    background: #0b3d84;
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px -1px rgba(11, 61, 132, 0.2);
+}
+#editAddressSection .save-btn:hover {
+    background: #0a326e;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 8px -1px rgba(11, 61, 132, 0.3);
+}
+#editAddressSection .save-btn:active {
+    transform: translateY(0);
+}

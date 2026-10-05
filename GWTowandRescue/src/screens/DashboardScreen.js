@@ -24,6 +24,7 @@ import Geolocation from '@react-native-community/geolocation';
 import { launchImageLibrary } from 'react-native-image-picker';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 // import FileViewer from 'react-native-file-viewer';
 import Pdf from 'react-native-pdf';
 import NotificationBell from '../components/NotificationBell';
@@ -404,7 +405,7 @@ const DashboardScreen = ({ navigation, route }) => {
 
     setCustomerLocation({ latitude: lat, longitude: lng });
 
-    // ⛔ Do not draw driver/route for terminal requests
+    //Do not draw driver/route for terminal requests
     if (isRequestTerminal(latestRequest)) {
       setDriverLocation(null);
       setRouteCoordinates([]);
@@ -1119,7 +1120,7 @@ const DashboardScreen = ({ navigation, route }) => {
         <Text numberOfLines={1} style={styles.profileName}>
           {user?.name || 'User'}
         </Text>
-        <Text style={styles.userType}>⭐ Customer</Text>
+        <Text style={styles.userType}> Customer</Text>
       </View>
     </View>
   );
@@ -1244,7 +1245,7 @@ const DashboardScreen = ({ navigation, route }) => {
         <View style={styles.overlayTop} pointerEvents="box-none">
           <View style={styles.requestBadge}>
             <Text style={styles.trackingNumber}>
-              #{latestRequest?.request_id || 'N/A'}
+              REQUEST ID: {latestRequest?.request_id || 'N/A'}
             </Text>
 
             <View
@@ -1252,7 +1253,7 @@ const DashboardScreen = ({ navigation, route }) => {
                 styles.statusChip,
                 {
                   backgroundColor:
-                    latestRequest?.status === 'completed' ? '#28a745' : '#ffc107',
+                    latestRequest?.status === 'completed' ? '#0046a8' : '#0046a8',
                 },
               ]}
             >
@@ -1278,39 +1279,62 @@ const DashboardScreen = ({ navigation, route }) => {
       )}
     </View>
   );
-  const renderRecentActivity = () => (
-    <View style={styles.tabContent}>
-      <Text style={styles.tabTitle}>Recent Activity</Text>
-      {recentActivities.length === 0 ? (
-        <Text style={styles.emptyText}>No recent activity</Text>
-      ) : (
-        <FlatList
-          contentContainerStyle={styles.tabContentPadding}
-          data={recentActivities}
-          keyExtractor={(item) => String(item.request_id)}
-          renderItem={({ item }) => (
-            <View style={styles.historyItem}>
-              <Text style={styles.historyId}>#{item.request_id}</Text>
-              <Text style={styles.historyService}>{item.service_type || 'Service'}</Text>
-              <View style={[styles.historyStatus,
-              { backgroundColor: item.status === 'completed' ? '#28a745' : '#ffc107' }
-              ]}>
-                <Text style={styles.historyStatusText}>{item.status || 'Unknown'}</Text>
-              </View>
-              {item.status === 'pending' && (
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => cancelRequest(item.request_id)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-        />
+const renderRecentActivity = () => (
+  <View style={styles.tabContent}>
+    <Text style={styles.tabTitle}>Recent Activity</Text>
+    {recentActivities.length === 0 ? (
+      <Text style={styles.emptyText}>No recent activity</Text>
+    ) : (
+      <FlatList
+        contentContainerStyle={styles.tabContentPadding}
+        data={recentActivities}
+        keyExtractor={(item) => String(item.request_id)}
+        renderItem={({ item }) => (
+  <View style={styles.historyItem}>
+    <Text style={styles.historyId}>#{item.request_id}</Text>
+    <Text style={styles.historyService}>
+      {item.service_type || 'Service'}
+    </Text>
+
+{!!item.address && (
+  <View style={styles.historyAddressRow}>
+    <Ionicons name="location-outline" size={20} color="#555" style={styles.historyAddressIcon} />
+    <Text style={styles.historyAddress} numberOfLines={2}>
+      {item.address}
+    </Text>
+  </View>
+)}
+
+    <View style={styles.historyFooter}>
+      <View
+        style={[
+          styles.historyStatus,
+          {
+            backgroundColor:
+              item.status === 'completed' ? '#0046a8' : '#0046a8',
+          },
+        ]}
+      >
+        <Text style={styles.historyStatusText}>
+          {item.status || 'Unknown'}
+        </Text>
+      </View>
+
+      {item.status === 'pending' && (
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={() => cancelRequest(item.request_id)}
+        >
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
       )}
     </View>
-  );
+  </View>
+)}
+      />
+    )}
+  </View>
+);
 
   const formatAmount = (val) => {
     const n = typeof val === 'string'
@@ -1366,7 +1390,7 @@ const DashboardScreen = ({ navigation, route }) => {
                     styles.receiptStatus,
                     {
                       backgroundColor:
-                        item.status === 'completed' ? '#28a745' : '#ffc107',
+                        item.status === 'completed' ? '#0046a8' : '#0046a8',
                     },
                   ]}
                 >
@@ -1434,25 +1458,47 @@ const DashboardScreen = ({ navigation, route }) => {
           </View>
         )}
 
-        <TouchableOpacity
-          style={[styles.currentLocationButton, locating && { opacity: 0.6 }]}
-          onPress={useCurrentLocation}
-          disabled={locating}
-        >
-          <Text style={styles.currentLocationText}>
-            {locating ? '📡 Getting your location...' : '📍 Use My Current Location'}
-          </Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+  style={[styles.currentLocationButton, locating && { opacity: 0.6 }]}
+  onPress={useCurrentLocation}
+  disabled={locating}
+>
+  <Icon
+    name={locating ? 'crosshairs-gps' : 'crosshairs-gps'}
+    size={20}
+    color="#007AFF"
+    style={{ marginRight: 8 }}
+  />
+  <Text style={styles.currentLocationText}>
+    {locating ? 'Getting your location...' : 'Use My Current Location'}
+  </Text>
+</TouchableOpacity>
 
-        {editLat && editLng && (
-          <View style={styles.selectedLocation}>
-            <Text style={styles.selectedTitle}>📍 Location selected</Text>
-            <Text style={styles.selectedSubText}>{editAddress}</Text>
-            <Text style={styles.selectedSubText}>
-              Lat: {editLat}  •  Lng: {editLng}
-            </Text>
-          </View>
-        )}
+{editLat && editLng && (
+  <View style={styles.selectedLocation}>
+    {/* Waypoint pin with pulse ring */}
+    <View style={styles.waypointContainer}>
+      <View style={styles.waypointRing} />
+      <View style={styles.waypointDot}>
+        <Icon name="map-marker" size={18} color="#fff" />
+      </View>
+    </View>
+
+    <View style={{ flex: 1 }}>
+      <Text style={styles.selectedTitle}>Location Selected</Text>
+      <Text style={styles.selectedSubText} numberOfLines={2}>
+        {editAddress}
+      </Text>
+      <View style={styles.coordRow}>
+        <Icon name="latitude" size={12} color="#888" />
+        <Text style={styles.coordText}>{Number(editLat).toFixed(6)}</Text>
+        <View style={styles.coordDivider} />
+        <Icon name="longitude" size={12} color="#888" />
+        <Text style={styles.coordText}>{Number(editLng).toFixed(6)}</Text>
+      </View>
+    </View>
+  </View>
+)}
 
         <TouchableOpacity style={styles.saveButton} onPress={saveAddress}>
           <Text style={styles.saveButtonText}>Save Changes</Text>
@@ -1495,38 +1541,35 @@ const DashboardScreen = ({ navigation, route }) => {
         ) : (
           <>
 
-            {/* Method grid */}
-            <Text style={styles.paymentMethodTitle}>Choose Payment Method</Text>
-            <View style={styles.paymentGrid}>
-              <TouchableOpacity
-                style={styles.paymentMethod}
-                onPress={() => processPaymentMethod('gcash')}
-              >
-                {/* 2. Use an Image for the GCash logo */}
-                <Image
-                  source={require('../assets/images/gcash-svgrepo-com')} // Adjust path as needed
-                  style={{ width: 24, height: 24 }} // Match your icon size
-                  resizeMode="contain"
-                />
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.paymentMethodName}>GCash</Text>
-                  <Text style={styles.paymentMethodSub}>Pay online</Text>
-                </View>
-              </TouchableOpacity>
+           {/* Method grid */}
+<Text style={styles.paymentMethodTitle}>Choose Payment Method</Text>
+<View style={styles.paymentGrid}>
+  <TouchableOpacity
+    style={styles.paymentMethod}
+    onPress={() => processPaymentMethod('gcash')}
+  >
+    <View style={styles.paymentIconCircle}>
+      <Icon name="wallet" size={24} color="#0046a8" />
+    </View>
+    <View style={{ marginLeft: 10 }}>
+      <Text style={styles.paymentMethodName}>GCash</Text>
+      <Text style={styles.paymentMethodSub}>Pay online</Text>
+    </View>
+  </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.paymentMethod}
-                onPress={() => processPaymentMethod('cash')}
-              >
-                {/* 3. Use a vector icon for Cash */}
-                <Icon name="cash" size={24} color="#4CAF50" />
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.paymentMethodName}>Cash</Text>
-                  <Text style={styles.paymentMethodSub}>Pay to driver</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-
+  <TouchableOpacity
+    style={styles.paymentMethod}
+    onPress={() => processPaymentMethod('cash')}
+  >
+    <View style={styles.paymentIconCircle}>
+      <Icon name="cash-multiple" size={24} color="#0046a8" />
+    </View>
+    <View style={{ marginLeft: 10 }}>
+      <Text style={styles.paymentMethodName}>Cash</Text>
+      <Text style={styles.paymentMethodSub}>Pay to driver</Text>
+    </View>
+  </TouchableOpacity>
+</View>
             {/* GCash section */}
             {activePaymentMethod === 'gcash' && (
               <View style={styles.gcashSection}>
@@ -1624,7 +1667,7 @@ const DashboardScreen = ({ navigation, route }) => {
       <View style={styles.navbar}>
         <View style={styles.navbarContent}>
           <View style={styles.brand}>
-            <Text style={styles.brandIcon}>😭</Text>
+            <Text style={styles.brandIcon}></Text>
             <Text style={styles.brandText}>
               Good<Text style={styles.brandSpan}>Wrench</Text>
             </Text>

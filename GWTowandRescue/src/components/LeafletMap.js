@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { WebView } from 'react-native-webview';
 
 const esc = (s) =>
@@ -263,7 +264,7 @@ true;
 
   useEffect(() => {
     if (!mapReady) return;
-    const customerHtml = `📍 ${esc(customerName || 'Customer')}<br>${esc(address || 'Customer location')}`;
+    const customerHtml = `⌖ ${esc(customerName || 'Customer')}<br>${esc(address || 'Customer location')}`;
     let driverHtml = `<strong>${esc(driverName || 'Driver')}</strong>`;
     if (distanceKm && durationMin) {
       driverHtml += `<br>Distance: <strong>${esc(distanceKm)} km</strong><br>Est. arrival: <strong>${esc(durationMin)} min</strong>`;
@@ -307,7 +308,7 @@ true;
   return (
     <View style={styles.container}>
       <WebView
-        key={webViewKey}                                 // ⭐ forces remount after crash
+        key={webViewKey}
         ref={webviewRef}
         source={{ html, baseUrl: 'https://localhost' }}
         style={styles.map}
@@ -315,11 +316,11 @@ true;
         domStorageEnabled
         originWhitelist={['*']}
         cacheEnabled
-        androidLayerType="hardware"                      // ⭐ stability
+        androidLayerType="hardware"
         onLoadEnd={() => setMapReady(true)}
         onMessage={handleMessage}
         onError={(e) => console.error('WebView error:', e)}
-        onRenderProcessGone={() => {                     // ⭐ catches the crash
+        onRenderProcessGone={() => {
           console.log('WebView process killed by Android, remounting...');
           setMapReady(false);
           setWebViewKey(prev => prev + 1);
@@ -327,10 +328,18 @@ true;
         }}
       />
       {!following && (
-        <TouchableOpacity style={styles.recenterBtn} onPress={handleRecenter}>
-          <Text style={styles.recenterText}>{mode === 'driver' ? '📍 Recenter' : '🗺️ Show both'}</Text>
-        </TouchableOpacity>
-      )}
+  <TouchableOpacity style={styles.recenterBtn} onPress={handleRecenter}>
+    <Icon
+      name={mode === 'driver' ? 'crosshairs-gps' : 'map-marker-radius'}
+      size={18}
+      color="#fff"
+      style={{ marginRight: 6 }}
+    />
+    <Text style={styles.recenterText}>
+      {mode === 'driver' ? 'Recenter' : 'Show Both'}
+    </Text>
+  </TouchableOpacity>
+)}
     </View>
   );
 };

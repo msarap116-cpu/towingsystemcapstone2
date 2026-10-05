@@ -12,6 +12,7 @@ import DriverDashboardScreen from './src/screens/DriverDashboardScreen';
 import RequestFormScreen from './src/screens/RequestFormScreen';
 import PdfViewerScreen from './src/screens/PdfViewerScreen';
 import NotificationScreen from './src/screens/NotificationScreen';
+import MyVehiclesScreen from './screens/MyVehiclesScreen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 
@@ -68,6 +69,8 @@ const App = () => {
                 <Stack.Screen name="RequestForm" component={RequestFormScreen} options={{ headerShown: false }} />
                 <Stack.Screen name="PdfViewer" component={PdfViewerScreen} />
                 <Stack.Screen name="Notifications" component={NotificationScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="MyVehicles"component={MyVehiclesScreen} options={{ headerShown: false }} />
+
             </Stack.Navigator>
         </NavigationContainer>
     </SafeAreaProvider>
