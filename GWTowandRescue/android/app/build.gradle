@@ -92,27 +92,33 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
+                storeFile file(MYAPP_UPLOAD_STORE_FILE)
+                storePassword MYAPP_UPLOAD_STORE_PASSWORD
+                keyAlias MYAPP_UPLOAD_KEY_ALIAS
+                keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+            }
+        }
     }
-buildTypes {
-    debug {
+     buildTypes {
+        debug {
         signingConfig signingConfigs.debug
-        debuggable true //true na ngayon
-
     }
-    release {
-        signingConfig signingConfigs.debug
-        minifyEnabled enableProguardInReleaseBuilds
-        proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
-    }
-}
-}
-dependencies {
-    // The version of react-native is set by the React Native Gradle Plugin talaga ba
-    implementation("com.facebook.react:react-android")
-    implementation 'com.google.android.gms:play-services-location:21.0.1'
-    if (hermesEnabled.toBoolean()) {
-        implementation("com.facebook.react:hermes-android")
-    } else {
-        implementation jscFlavor
+             release {
+            signingConfig signingConfigs.release
+            minifyEnabled enableProguardInReleaseBuilds
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
     }
 }
+    dependencies {
+        // The version of react-native is set by the React Native Gradle Plugin talaga ba
+        implementation("com.facebook.react:react-android")
+        implementation 'com.google.android.gms:play-services-location:21.0.1'
+        if (hermesEnabled.toBoolean()) {
+            implementation("com.facebook.react:hermes-android")
+        } else {
+            implementation jscFlavor
+        }
+    }
