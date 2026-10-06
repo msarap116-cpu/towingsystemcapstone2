@@ -213,6 +213,9 @@ const LeafletMap = ({
     } else {
       customerMarker.setLatLng([lat, lng]);
     }
+        if (customerMarker.isPopupOpen()) {
+    customerMarker.getPopup().setContent(customerPopupHtml);
+  }
     if (isNew && mode === 'customer' && !initialized) {
       applyCustomerCamera(false);
       fitted = true;
@@ -317,7 +320,7 @@ true;
         originWhitelist={['*']}
         cacheEnabled
         androidLayerType="hardware"
-        onLoadEnd={() => setMapReady(true)}
+    //  {/*   onLoadEnd={() => setMapReady(true)} */}
         onMessage={handleMessage}
         onError={(e) => console.error('WebView error:', e)}
         onRenderProcessGone={() => {

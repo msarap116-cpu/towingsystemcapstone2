@@ -556,21 +556,7 @@ const HomeScreen = () => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.navLinks}
       >
-        <TouchableOpacity onPress={() => navigation.navigate('About')}>
-          <Text style={styles.navLink}>About</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Services')}>
-          <Text style={styles.navLink}>Services</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Fleet')}>
-          <Text style={styles.navLink}>Fleet</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Reviews')}>
-          <Text style={styles.navLink}>Reviews</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Contacts')}>
-          <Text style={styles.navLink}>Contacts</Text>
-        </TouchableOpacity>
+
         <TouchableOpacity onPress={() => setShowHowModal(true)}>
           <Text style={styles.navLink}>How it works</Text>
         </TouchableOpacity>

@@ -27,7 +27,7 @@ import { launchCamera } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 // or: import Icon from 'react-native-vector-icons/Ionicons';
 // or: import Icon from 'react-native-vector-icons/Feather';
-import { socket, disconnectSocket } from '../socket';
+import { socket, connectSocket, disconnectSocket } from '../socket';
 import API_BASE_URL from '../config';
 
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -111,6 +111,9 @@ const DriverDashboardScreen = ({ navigation }) => {
   const [chargeAmount, setChargeAmount] = useState('');
   const [submittingCharge, setSubmittingCharge] = useState(false);
 
+  const loadDriverDashboardDataRef = useRef(null);
+  loadDriverDashboardDataRef.current = loadDriverDashboardData;
+
   useEffect(() => {
     customerLocationRef.current = customerLocation;
   }, [customerLocation]);
@@ -166,20 +169,84 @@ const DriverDashboardScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-  const refresh = () => loadDriverDashboardData();
+    if (!driverLocation || !customerLocation) return;
+    lastRouteCalcRef.current = 0;   // reset throttle
+    drawRoute(
+      driverLocation.latitude,
+      driverLocation.longitude,
+      customerLocation.latitude,
+      customerLocation.longitude
+    );
+  }, [customerLocation?.latitude, customerLocation?.longitude]);
 
-  socket.on('request:created', refresh);      // new pending job appears
-  socket.on('request:updated', refresh);      // job accepted/cancelled elsewhere
-  socket.on('payment:updated', refresh);      // payment status changed
-  socket.on('connect', refresh);              // catch up after reconnect
+  useEffect(() => {
+    const refresh = () => {
+      console.log('socket event → refreshing dashboard');
+      loadDriverDashboardDataRef.current?.();
+    };
 
+    // Log every event for debugging
+    const onAny = (event, ...args) => {
+      console.log(' socket event:', event, args);
+    };
+    socket.onAny(onAny);
+
+    socket.on('request:created', refresh);
+    socket.on('request:updated', refresh);
+    socket.on('request:address_updated', refresh);
+    socket.on('request:location_changed', refresh);
+    socket.on('trip:updated', refresh);
+    socket.on('payment:updated', refresh);
+    socket.on('connect', () => {
+      console.log('🔌 socket connected, id =', socket.id);
+      refresh();
+    });
+
+    return () => {
+      socket.off('request:created', refresh);
+      socket.off('request:updated', refresh);
+      socket.off('request:address_updated', refresh);
+      socket.off('request:location_changed', refresh);
+      socket.off('trip:updated', refresh);
+      socket.off('payment:updated', refresh);
+      socket.offAny(onAny);
+    };
+  }, []);
+
+useEffect(() => {
+  const onConnect = () => console.log('✅ connected', socket.id);
+  const onDisconnect = (r) => console.log('❌ disconnected', r);
+  const onError = (e) => console.log('❌ connect_error', e.message);
+  socket.on('connect', onConnect);
+  socket.on('disconnect', onDisconnect);
+  socket.on('connect_error', onError);
   return () => {
-    socket.off('request:created', refresh);
-    socket.off('request:updated', refresh);
-    socket.off('payment:updated', refresh);
-    socket.off('connect', refresh);
+    socket.off('connect', onConnect);
+    socket.off('disconnect', onDisconnect);
+    socket.off('connect_error', onError);
   };
 }, []);
+
+  useEffect(() => {
+  if (!activeRequestId) return;
+
+  console.log(' polling started for trip', activeRequestId);
+  const id = setInterval(() => {
+    console.log(' poll tick');
+    loadDriverDashboardDataRef.current?.();
+  }, 8000);
+
+  return () => {
+    console.log(' polling stopped');
+    clearInterval(id);
+  };
+}, [activeRequestId]);
+
+useEffect(() => {
+  if (activeTab === 'tracking') {
+    loadDriverDashboardDataRef.current?.();
+  }
+}, [activeTab]);
 
   // Place this OUTSIDE initDriverMap — at the top level of your component or file
   // const diagnoseLocation = async () => {
@@ -198,23 +265,30 @@ const DriverDashboardScreen = ({ navigation }) => {
   //     { enableHighAccuracy: false, timeout: 5000, maximumAge: Infinity }
   //   );
   // };
+
+
+  onsole.log(' API_BASE_URL =', API_BASE_URL);
+
   // ===== AUTH FUNCTIONS =====
   const checkAuth = async () => {
-    const token = await AsyncStorage.getItem('token');
-    console.log('🔑 token length:', token?.length);
-    console.log('🔑 token starts:', token?.slice(0, 30) + '...');
-    console.log('🔑 token ends:   ...' + token?.slice(-30));
-    console.log('🌐 API_BASE_URL =', API_BASE_URL);
-    if (!token) {
-      navigation.replace('Login');
-      return;
-    }
 
-    try {
-      const userData = await AsyncStorage.getItem('user');
-      if (userData) setUser(JSON.parse(userData));
-      await loadDriverDashboardData();
-    } catch (err) {
+     // const token = await AsyncStorage.getItem('token');
+    // console.log('token length:', token?.length);
+    // console.log(' token starts:', token?.slice(0, 30) + '...');
+    // console.log(' token ends:   ...' + token?.slice(-30));
+
+
+  const token = await AsyncStorage.getItem('token');
+  if (!token) {
+    navigation.replace('Login');
+    return;
+  }
+  connectSocket(token);
+  try {
+    const userData = await AsyncStorage.getItem('user');
+    if (userData) setUser(JSON.parse(userData));
+    await loadDriverDashboardData();
+  } catch (err) {
       console.error('Auth error:', err);
 
       //  KUNG SESSION EXPIRED → TANGTANGON ANG TOKEN DAYON PADTO SA LOGIN
@@ -1109,15 +1183,15 @@ const DriverDashboardScreen = ({ navigation }) => {
     </View>
   );
 
-const renderBottomTabBar = () => (
-  <View style={styles.bottomBar}>
-    {renderTabItem('dashboard', 'view-dashboard', 'Dashboard')}
-    {renderTabItem('tracking', 'map-marker', 'Tracking')}
-    {renderTabItem('trips', 'car', 'Trips')}
-    {renderTabItem('earnings', 'cash', 'Earnings')}
-    {renderTabItem('logout', 'logout', 'Logout')}
-  </View>
-);
+  const renderBottomTabBar = () => (
+    <View style={styles.bottomBar}>
+      {renderTabItem('dashboard', 'view-dashboard', 'Dashboard')}
+      {renderTabItem('tracking', 'map-marker', 'Tracking')}
+      {renderTabItem('trips', 'car', 'Trips')}
+      {renderTabItem('earnings', 'cash', 'Earnings')}
+      {renderTabItem('logout', 'logout', 'Logout')}
+    </View>
+  );
   // ===== RENDER TABS =====
   const renderDashboard = () => (
     <FlatList
@@ -1188,33 +1262,33 @@ const renderBottomTabBar = () => (
   );
 
   // Helper for bottom bar tabs
-const renderTabItem = (tabKey, iconName, label) => {
-  const isActive = activeTab === tabKey;
-  const color = tabKey === 'logout'
-    ? '#e53935'
-    : isActive
-    ? '#007AFF'
-    : '#888';
+  const renderTabItem = (tabKey, iconName, label) => {
+    const isActive = activeTab === tabKey;
+    const color = tabKey === 'logout'
+      ? '#e53935'
+      : isActive
+        ? '#007AFF'
+        : '#888';
 
-  return (
-    <TouchableOpacity
-      style={[styles.tabItem, isActive && styles.tabItemActive]}
-      onPress={() => {
-        if (tabKey === 'logout') handleLogout();
-        else setActiveTab(tabKey);
-      }}
-    >
-      <Icon name={iconName} size={24} color={color} />
-      <Text style={[
-        styles.tabText,
-        isActive && styles.tabTextActive,
-        tabKey === 'logout' && styles.logoutText
-      ]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-};
+    return (
+      <TouchableOpacity
+        style={[styles.tabItem, isActive && styles.tabItemActive]}
+        onPress={() => {
+          if (tabKey === 'logout') handleLogout();
+          else setActiveTab(tabKey);
+        }}
+      >
+        <Icon name={iconName} size={24} color={color} />
+        <Text style={[
+          styles.tabText,
+          isActive && styles.tabTextActive,
+          tabKey === 'logout' && styles.logoutText
+        ]}>
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
   // TRACKING
   const renderTracking = () => (
     <View style={styles.trackingWrapper}>
