@@ -88,9 +88,8 @@ const DashboardScreen = ({ navigation, route }) => {
   const isRequestTerminal = (req) =>
     !!req && TERMINAL_STATUSES.includes(String(req.status || '').toLowerCase());
 
-  const isPaid =
-    paymentRecord?.status === 'completed' ||
-    paymentRecord?.status === 'refunded';
+  const isPaid = paymentRecord?.status === 'completed';
+  const isRefunded = paymentRecord?.status === 'refunded';
 
 
   // Edit address state
@@ -115,6 +114,7 @@ const DashboardScreen = ({ navigation, route }) => {
       setActivePaymentMethod(null);
       setGcashReference('');
       setGcashProof(null);
+      setPaymentMessage('');
     }
   }, [isPaid]);
 
@@ -304,7 +304,6 @@ const DashboardScreen = ({ navigation, route }) => {
           setActivePaymentMethod(draft.activePaymentMethod || null);
           setGcashReference(draft.gcashReference || '');
           setGcashProof(draft.gcashProof || null);
-          setPaymentMessage(draft.paymentMessage || '');
         } else {
           await AsyncStorage.removeItem(PAYMENT_DRAFT_KEY);
         }
@@ -323,8 +322,7 @@ const DashboardScreen = ({ navigation, route }) => {
     const hasDraft =
       activePaymentMethod ||
       gcashReference ||
-      gcashProof ||
-      paymentMessage;
+      gcashProof;
 
     if (!hasDraft || !requestId) {
       return;
@@ -347,7 +345,6 @@ const DashboardScreen = ({ navigation, route }) => {
     activePaymentMethod,
     gcashReference,
     gcashProof,
-    paymentMessage,
     requestId,
   ]);
 
@@ -460,20 +457,32 @@ const DashboardScreen = ({ navigation, route }) => {
       }
     }
   };
-  const loadPaymentRecord = async (reqId) => {
-    if (!reqId) { setPaymentRecord(null); return; }
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
-      const res = await fetch(`${API_BASE_URL}/payments/request/${reqId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setPaymentRecord(res.ok ? data.payment : null);
-    } catch (err) {
-      console.warn('Payment record load failed:', err);
-    }
-  };
+const loadPaymentRecord = async (reqId) => {
+  if (!reqId) {
+    setPaymentRecord(null);
+    setPaymentMessage('');
+    return;
+  }
+  try {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return;
+    const res = await fetch(`${API_BASE_URL}/payments/request/${reqId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    const next = res.ok ? data.payment : null;
+
+    setPaymentRecord(prev => {
+      // If status changed, clear transient message
+      if (prev?.status !== next?.status) {
+        setPaymentMessage('');
+      }
+      return next;
+    });
+  } catch (err) {
+    console.warn('Payment record load failed:', err);
+  }
+};
   loadRef.current = loadDashboardData;
 
   // ===== MAP FUNCTIONS =====
@@ -805,6 +814,7 @@ const DashboardScreen = ({ navigation, route }) => {
 
   // ---------- SUBMIT GCASH PROOF ----------
   const submitGcashProof = async () => {
+
     if (!gcashReference.trim() || !gcashProof) {
       Alert.alert('Missing info', 'Please enter a reference number and upload a receipt.');
       return;
@@ -816,51 +826,61 @@ const DashboardScreen = ({ navigation, route }) => {
       return;
     }
 
-    setSubmitting(true);
-    setPaymentMessage('');
+setSubmitting(true);
+  setPaymentMessage('');
 
-    try {
-      const formData = new FormData();
-      formData.append('request_id', String(latestRequest.request_id));
-      formData.append('reference_number', gcashReference.trim());
+  try {
+    const formData = new FormData();
+    formData.append('request_id', String(latestRequest.request_id));
+    formData.append('reference_number', gcashReference.trim());
+    formData.append('proof_image', {
+      uri: gcashProof,
+      type: 'image/jpeg',
+      name: 'proof.jpg',
+    });
 
-      // Normalize URI for Android
-      const uri =
-        gcashProof.startsWith('file://') || gcashProof.startsWith('content://')
-          ? gcashProof
-          : `file://${gcashProof}`;
+    const res = await fetch(`${API_BASE_URL}/payments/gcash/submit-proof`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
 
-      formData.append('proof_image', {
-        uri,
-        type: 'image/jpeg',
-        name: 'proof.jpg',
-      });
+    let data = {};
+    try { data = await res.json(); } catch { /* non-JSON */ }
 
-      const res = await fetch(`${API_BASE_URL}/payments/gcash/submit-proof`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },  // ⚠️ don't set Content-Type
-        body: formData,
-      });
-
-      const data = await res.json();
-      setPaymentMessage(data.message || 'Proof submitted.');
-
-      if (data.success) {
-        setActivePaymentMethod(null);
-        setGcashReference('');
-        setGcashProof(null);
-        setPaymentMessage('');
-        loadDashboardData(true);
-        await AsyncStorage.removeItem(PAYMENT_DRAFT_KEY);   //  clear persisted draft
-        Alert.alert('Success', 'Payment proof submitted!');
-      }
-    } catch (err) {
-      console.error('Proof submission error:', err);
-      setPaymentMessage('Unable to submit proof of payment.');
-    } finally {
-      setSubmitting(false);
+    //  409 = already submitted or paid → refresh, don't show stale error
+    if (res.status === 409) {
+      setActivePaymentMethod(null);
+      setGcashReference('');
+      setGcashProof(null);
+      setPaymentMessage('');
+      await AsyncStorage.removeItem(PAYMENT_DRAFT_KEY);
+      await loadDashboardData(true);
+      Alert.alert('Already submitted', data.message || 'This request already has a payment in progress.');
+      return;
     }
-  };
+
+    if (!res.ok || !data.success) {
+      setPaymentMessage(data.message || 'Unable to submit proof of payment.');
+      return;
+    }
+
+    //  Success
+    setActivePaymentMethod(null);
+    setGcashReference('');
+    setGcashProof(null);
+    setPaymentMessage('');
+    await AsyncStorage.removeItem(PAYMENT_DRAFT_KEY);
+    await loadDashboardData(true);
+    Alert.alert('Success', 'Payment proof submitted!');
+  } catch (err) {
+    console.error('Proof submission error:', err);
+    console.error('API_BASE_URL was:', API_BASE_URL);
+    setPaymentMessage('Unable to submit proof of payment.');
+  } finally {
+    setSubmitting(false);
+  }
+};
   const pickProofImage = () => {
     launchImageLibrary(
       {
@@ -1621,6 +1641,7 @@ const DashboardScreen = ({ navigation, route }) => {
             Amount Due: <Text style={styles.bold}>{paymentAmount}</Text>
           </Text>
         </View>
+
         {/*   If already paid, show a lock card and stop here */}
         {isPaid ? (
           <View style={styles.gcashSection}>
@@ -1736,20 +1757,26 @@ const DashboardScreen = ({ navigation, route }) => {
             )}
           </>
         )}
-        {/* Status message */}
-        {!!paymentMessage && (
+
+           {/* Status message — never show when the payment is already settled */}
+        {!isPaid && !!paymentMessage && (
           <Text style={styles.paymentMessage}>{paymentMessage}</Text>
         )}
       </ScrollView>
     </View>
   );
   //cancel payment method
-  const cancelPayment = () => {
-    setActivePaymentMethod(null);
-    setGcashReference('');
-    setGcashProof(null);
-    setPaymentMessage('');
-  };
+  const cancelPayment = async () => {
+  setActivePaymentMethod(null);
+  setGcashReference('');
+  setGcashProof(null);
+  setPaymentMessage('');
+  try {
+    await AsyncStorage.removeItem(PAYMENT_DRAFT_KEY);
+  } catch (err) {
+    console.warn('Failed to clear payment draft:', err);
+  }
+};
 
   // ===== MAIN RENDER — UPDATED =====
   if (loading) {
