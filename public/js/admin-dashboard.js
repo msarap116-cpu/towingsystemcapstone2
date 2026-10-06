@@ -653,13 +653,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </tr>
 `).join("");
- }
+    }
 
-        document.addEventListener('click', (e) => {
-            const btn = e.target.closest('.view-completion-btn');
-            if (!btn) return;
-            viewCompletionProof(btn.dataset.url, btn.dataset.requestId);
-        });
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.view-completion-btn');
+        if (!btn) return;
+        viewCompletionProof(btn.dataset.url, btn.dataset.requestId);
+    });
 
 
 
@@ -1158,6 +1158,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     switchPanel('paymentsPanel', 'Payments & Receipts');
                 } else if (tab === 'serviceprices') {
                     switchPanel('servicePricesPanel', 'Service Prices');
+                } else if (tab === 'gcashqr') {
+                    switchPanel('gcashqrPanel', 'GCash QR');
                 }
             });
         });
@@ -1363,6 +1365,9 @@ document.addEventListener('DOMContentLoaded', function () {
         await loadPayments();
         setupNavigation();
         setupLogout();
+        setupQrUpload();
+        setupLogout();
+
 
         console.log('Admin dashboard initialized successfully!');
     }
@@ -1370,7 +1375,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Start everything
     init();
 
-});
+});//dom wrapper
 window.viewPaymentProof = async function (paymentId) {
 
     console.log('View payment proof:', paymentId);
@@ -1887,31 +1892,47 @@ async function saveServicePrice() {
         );
     }
 };
-
-(function () {
+async function loadGcashQr() {
     const qrImg = document.getElementById('currentQr');
-    const form = document.getElementById('qrUploadForm');
     const msg = document.getElementById('qrMsg');
+    if (!qrImg) return;
 
-    if (!qrImg || !form) return;
+    try {
+        const r = await fetch('/api/settings/gcash-qr');
+        const data = await r.json();
 
-    // Load current QR
-    async function loadQr() {
-        try {
-            const r = await fetch('/api/settings/gcash-qr');
-            const data = await r.json();
-            if (data.success && data.image_path) {
-                qrImg.src = data.image_path + '?t=' + Date.now();
-            } else {
-                qrImg.alt = 'No QR set';
+        if (data.success && data.image_path) {
+            const raw = data.image_path;
+            qrImg.src = raw.startsWith('http') || raw.startsWith('data:')
+                ? raw
+                : raw + '?t=' + Date.now();
+            qrImg.alt = 'Current GCash QR';
+            if (msg) msg.textContent = '';
+        } else {
+            qrImg.removeAttribute('src');
+            qrImg.alt = 'No QR set';
+            if (msg) {
+                msg.textContent = 'No QR set yet — upload one below.';
+                msg.style.color = '#666';
             }
-        } catch (e) {
-            console.error('Failed to load QR:', e);
+        }
+    } catch (e) {
+        console.error('Failed to load QR:', e);
+        if (msg) {
+            msg.textContent = 'Failed to load current QR.';
+            msg.style.color = 'red';
         }
     }
-    loadQr();
+}
 
-    // Upload new QR
+function setupQrUpload() {
+    const form = document.getElementById('qrUploadForm');
+    const qrImg = document.getElementById('currentQr');
+    const msg = document.getElementById('qrMsg');
+
+    if (!form || form.dataset.bound === '1') return;
+    form.dataset.bound = '1';
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         msg.textContent = 'Uploading...';
@@ -1929,7 +1950,12 @@ async function saveServicePrice() {
             if (data.success) {
                 msg.textContent = 'QR updated!';
                 msg.style.color = 'green';
-                qrImg.src = data.image_path + '?t=' + Date.now();
+
+                const raw = data.image_path;
+                qrImg.src = raw.startsWith('http') || raw.startsWith('data:')
+                    ? raw
+                    : raw + '?t=' + Date.now();
+
                 form.reset();
             } else {
                 msg.textContent = 'Error: ' + data.message;
@@ -1940,4 +1966,4 @@ async function saveServicePrice() {
             msg.style.color = 'red';
         }
     });
-})();
+}

@@ -936,6 +936,7 @@ paymentMethodButtons.forEach(button => {
 
 //selecting and displaying the payment method dal a imo ankol
 async function processPaymentMethod(method, requestId) {
+    paymentMessage.textContent = '';
     console.log('processPaymentMethod() called:', method);
     console.log('Payment request ID:', requestId);
 

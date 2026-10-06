@@ -159,34 +159,29 @@ const DashboardScreen = ({ navigation, route }) => {
     }
   }, [activeTab]);
   // Fetch the admin-managed GCash QR whenever the payment tab is opened
-  useEffect(() => {
-    if (activeTab !== 'payment') return;
+ useEffect(() => {
+  if (activeTab !== 'payment') return;
+  let cancelled = false;
 
-    let cancelled = false;
+  (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/settings/gcash-qr`);
+      const data = await res.json();
+      if (cancelled || !data?.success || !data?.image_path) return;
 
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/settings/gcash-qr`);
-        const data = await res.json();
+      const raw = data.image_path;
+      const fullUrl = raw.startsWith('http') || raw.startsWith('data:')
+        ? raw
+        : `${API_BASE_URL.replace(/\/api\/?$/, '')}${raw}?t=${Date.now()}`;
 
-        if (cancelled || !data?.success || !data?.image_path) return;
+      setQrUrl(fullUrl);
+    } catch (err) {
+      console.warn('QR fetch failed:', err);
+    }
+  })();
 
-        const raw = data.image_path;
-
-        // If the server stored a base64 data URI, use it directly.
-        // Otherwise build an absolute URL from the server root (strip /api).
-        const fullUrl = raw.startsWith('data:')
-          ? raw
-          : `${API_BASE_URL.replace(/\/api\/?$/, '')}${raw}?t=${Date.now()}`;
-
-        setQrUrl(fullUrl);
-      } catch (err) {
-        console.warn('QR fetch failed:', err);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [activeTab]);
+  return () => { cancelled = true; };
+}, [activeTab]);
 
   useEffect(() => {
     if (activeTab === 'editaddress' && latestRequest) {

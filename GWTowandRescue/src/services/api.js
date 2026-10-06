@@ -77,7 +77,7 @@ export const apiFetch = async (endpoint, options = {}) => {
 // Add a health check function
 export const checkApiHealth = async () => {
   try {
-    console.log('🔍 Checking API health at:', API_BASE_URL);
+    // console.log('🔍 Checking API health at:', API_BASE_URL);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
