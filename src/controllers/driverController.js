@@ -51,7 +51,9 @@ exports.completeJobWithPhoto = async (req, res) => {
 
     const validStatuses = ['pending', 'assigned', 'in progress', 'completed', 'cancelled'];
     const finalStatus = validStatuses.includes(status) ? status : 'completed';
-    const photoUrl = `/uploads/completion_photos/${req.file.filename}`;
+
+    //   Cloudinary returns the URL on req.file.path (and secure_url)
+    const photoUrl = req.file.path || req.file.secure_url;
 
     await driverModel.completeRequestWithPhoto(requestId, finalStatus, photoUrl);
 

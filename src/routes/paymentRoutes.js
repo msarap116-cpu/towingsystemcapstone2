@@ -9,7 +9,7 @@ const authenticateToken = require('../middleware/authMiddleware');
 
 const Payment = require('../models/paymentModel');
 
-const upload = require('../middleware/upload');
+const { uploadProof } = require('../config/cloudinary');  // ✅
 
 const Notification = require('../models/notificationModel');
 
@@ -53,7 +53,7 @@ router.post(
             const existingPayment = await Payment.findActivePayment(request_id, userId);
 
             if (existingPayment) {
-                // ✅ Already paid
+                //  Already paid
                 if (existingPayment.status === 'completed') {
                     return res.json({
                         success: true,
@@ -63,7 +63,7 @@ router.post(
                     });
                 }
 
-                // ✅ Admin is verifying — don't let them re-submit
+                //  Admin is verifying — don't let them re-submit
                 if (existingPayment.status === 'pending') {
                     return res.status(409).json({
                         success: false,
@@ -71,7 +71,7 @@ router.post(
                     });
                 }
 
-                // ✅ REJECTED/FAILED — reset this SAME record for a fresh attempt
+                //  REJECTED/FAILED — reset this SAME record for a fresh attempt
                 if (
                     existingPayment.status === 'failed' ||
                     existingPayment.status === 'rejected' ||
@@ -106,7 +106,7 @@ router.post(
                     });
                 }
 
-                // ✅ awaiting_payment or awaiting_cash — self-heal and reuse
+                //  awaiting_payment or awaiting_cash — self-heal and reuse
                 await db.query(
                     `UPDATE payments
                      SET amount = ?,
@@ -129,7 +129,7 @@ router.post(
                 });
             }
 
-            // ✅ No existing payment — create a fresh one
+            //  No existing payment — create a fresh one
             const paymentId = await Payment.createPaymentIntent({
                 requestId: request.request_id,
                 userId,
@@ -152,8 +152,8 @@ router.post(
             return res.status(500).json({
                 success: false,
                 message: 'Unable to start GCash payment.',
-                debug_error: error.message,
-                debug_stack: error.stack
+
+
             });
         }
     }
@@ -310,7 +310,7 @@ router.post(
 router.post(
     '/gcash/submit-proof',
     authenticateToken,
-    upload.single('proof_image'),
+    uploadProof.single('proof_image'),
     async (req, res) => {
         try {
             const {
@@ -383,13 +383,19 @@ router.post(
             }
 
             // Update the existing payment record
-            const result =
-                await Payment.submitProof({
-                    requestId: request_id,
-                    userId,
-                    referenceNumber: reference_number,
-                    proofImagePath: req.file.path
+            const result = await Payment.submitProof({
+                requestId: request_id,
+                userId,
+                referenceNumber: reference_number,
+                proofImagePath: req.file.path
+            });
+
+            if (result.affectedRows === 0) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'Payment was already submitted or is no longer available.'
                 });
+            }
 
             await Notification.createForRole('admin', {
                 requestId: request_id,
@@ -397,29 +403,18 @@ router.post(
                 message: `New GCash payment proof submitted for request #${request_id}, awaiting verification.`
             });
 
-            if (result.affectedRows === 0) {
-                return res.status(409).json({
-                    success: false,
-                    message:
-                        'Payment was already submitted or is no longer available.'
-                });
-            }
-
             return res.json({
                 success: true,
-                message:
-                    'Proof of payment submitted. Awaiting verification.'
+                message: 'Proof of payment submitted. Awaiting verification.'
             });
+        } catch (error) {
+            console.error('Proof submission error:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to submit proof of payment.',
 
-       } catch (error) {
-    console.error('Proof submission error:', error);
-    return res.status(500).json({
-        success: false,
-        message: 'Failed to submit proof of payment.',
-        debug_error: error.message,   // <-- ADD THIS
-        debug_stack: error.stack      // <-- ADD THIS
-    });
-}
+            });
+        }
     }
 );
 

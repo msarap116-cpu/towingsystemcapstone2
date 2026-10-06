@@ -273,34 +273,24 @@ const Payment = {
 
         return result.insertId;
     },
- async submitProof({
-    requestId,
-    userId,
-    referenceNumber,
-    proofImagePath
-}) {
+async submitProof({ requestId, userId, referenceNumber, proofImagePath }) {
     const sql = `
-    UPDATE payments
-    SET
-        reference_number = ?,
-        transaction_id = ?,
-        proof_image_path = ?,
-        status = 'pending',
-        payment_date = NOW()
-    WHERE request_id = ?
-      AND user_id = ?
-      AND status = 'awaiting_payment'   -- ✅ This is correct
-`;
-
-    const result = await db.query(sql, [
+        UPDATE payments
+        SET proof_image_path = ?,
+            reference_number = ?,
+            status = 'pending',
+            updated_at = NOW()
+        WHERE request_id = ?
+          AND user_id = ?
+          AND status = 'awaiting_payment'
+    `;
+    const [result] = await db.query(sql, [
+        proofImagePath,           // ✅ store the URL as-is from req.file.path
         referenceNumber,
-        referenceNumber,
-        proofImagePath,
         requestId,
         userId
     ]);
-
-    return result;
+    return result;                // has .affectedRows
 },
     async switchToCash(paymentId, requestId) {
         const sql = `

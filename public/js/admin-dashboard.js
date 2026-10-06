@@ -565,18 +565,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
     const PAYMENT_LABELS = {
-    completed:        { cls: 'paid',     text: 'Paid' },
-    pending:          { cls: 'pending',  text: 'Pending' },
-    awaiting_payment: { cls: 'pending',  text: 'Awaiting Payment' },
-    awaiting_cash:    { cls: 'pending',  text: 'Awaiting Cash' },
-    failed:           { cls: 'failed',   text: 'Failed' },
-    refunded:         { cls: 'refunded', text: 'Refunded' },
-};
+        completed: { cls: 'paid', text: 'Paid' },
+        pending: { cls: 'pending', text: 'Pending' },
+        awaiting_payment: { cls: 'pending', text: 'Awaiting Payment' },
+        awaiting_cash: { cls: 'pending', text: 'Awaiting Cash' },
+        failed: { cls: 'failed', text: 'Failed' },
+        refunded: { cls: 'refunded', text: 'Refunded' },
+    };
 
-function paymentBadge(status) {
-    const p = PAYMENT_LABELS[status] || { cls: 'unpaid', text: 'No Payment' };
-    return `<span class="payment-status ${p.cls}">${p.text}</span>`;
-}
+    function paymentBadge(status) {
+        const p = PAYMENT_LABELS[status] || { cls: 'unpaid', text: 'No Payment' };
+        return `<span class="payment-status ${p.cls}">${p.text}</span>`;
+    }
 
     function renderRequests(dataToRender) { // <--- Accept data as a parameter
         const tbody = document.getElementById("requestsTable");
@@ -607,22 +607,23 @@ function paymentBadge(status) {
     <div class="overflow-dropdown">
 
         ${!r.driver_id && r.status === 'pending'
-            ? `<button
+                ? `<button
                     class="dropdown-item"
                     onclick="openAssignDriverModal(${r.request_id})">
                      Assign Driver
                 </button>`
-            : ''
-        }
+                : ''
+            }
 
         ${r.completion_photo_url
-            ? `<button
-                    class="dropdown-item"
-                    onclick="viewCompletionProof('${r.completion_photo_url}', ${r.request_id})">
-                    Completion Photo
-                </button>`
-            : ''
-        }
+                ? `<button
+    class="dropdown-item view-completion-btn"
+    data-url="${escapeHtml(r.completion_photo_url)}"
+    data-request-id="${r.request_id}">
+    Completion Photo
+</button>`
+                : ''
+            }
 
         <button
             class="dropdown-item"
@@ -652,7 +653,16 @@ function paymentBadge(status) {
 
 </tr>
 `).join("");
-    }
+ }
+
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.view-completion-btn');
+            if (!btn) return;
+            viewCompletionProof(btn.dataset.url, btn.dataset.requestId);
+        });
+
+
+
 
     document.addEventListener('click', function (e) {
         const menu = e.target.closest('.overflow-menu');
@@ -1399,17 +1409,11 @@ window.viewPaymentProof = async function (paymentId) {
             alert('This payment has no uploaded proof.');
             return;
         }
+        const proof = payment.proof_image_path || '';
 
-        let proofPath =
-            payment.proof_image_path.replace(/\\/g, '/');
-
-        proofPath = proofPath.replace(/^\/+/, '');
-
-        const backendBase =
-            API_BASE_URL.replace(/\/api\/?$/, '');
-
-        const imageUrl =
-            `${backendBase}/${proofPath}`;
+        const imageUrl = /^https?:\/\//i.test(proof)
+            ? proof                                            // Cloudinary / any CDN
+            : `${API_BASE_URL.replace(/\/api\/?$/, '')}/${proof.replace(/^\/+/, '')}`; // legacy local path
 
         console.log('Proof image:', imageUrl);
 
@@ -1438,7 +1442,11 @@ window.viewCompletionProof = function (photoUrl, requestId) {
         return;
     }
 
-    document.getElementById('completionProofImage').src = photoUrl;
+    const resolved = /^https?:\/\//i.test(photoUrl)
+        ? photoUrl
+        : `${API_BASE_URL.replace(/\/api\/?$/, '')}/${photoUrl.replace(/^\/+/, '')}`;
+
+    document.getElementById('completionProofImage').src = resolved;
     document.getElementById('completionProofMeta').textContent = `Request #${requestId}`;
     document.getElementById('completionProofModal').classList.add('show');
 };
@@ -1448,7 +1456,7 @@ window.closeCompletionProofModal = function () {
 };
 
 window.closeCompletionProofModal = function () {
-  document.getElementById('completionProofModal').classList.remove('show');
+    document.getElementById('completionProofModal').classList.remove('show');
 };
 
 function closeProofModal() {
@@ -1714,13 +1722,13 @@ window.confirmAssignDriver = async function () {
     }
 };
 function escapeHtml(value) {
-
     const div = document.createElement('div');
-
     div.textContent = value ?? '';
-
-    return div.innerHTML;
+    return div.innerHTML
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
+
 async function loadServicePrices() {
 
     const tbody = document.getElementById('servicePricesTableBody');
@@ -1882,8 +1890,8 @@ async function saveServicePrice() {
 
 (function () {
     const qrImg = document.getElementById('currentQr');
-    const form  = document.getElementById('qrUploadForm');
-    const msg   = document.getElementById('qrMsg');
+    const form = document.getElementById('qrUploadForm');
+    const msg = document.getElementById('qrMsg');
 
     if (!qrImg || !form) return;
 
