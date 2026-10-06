@@ -16,7 +16,6 @@ exports.createRequest = async (req, res) => {
         }
 
 
-
         const activeRequest = await Request.getActiveByUser(user_id);
 
         if (activeRequest) {
@@ -106,7 +105,7 @@ exports.createRequest = async (req, res) => {
             );
         }
 
-        //NOTIFY — new request is waiting, let drivers (and admins) know
+        //NOTIFY new request is waiting, let drivers (and admins) know
         await notifyRole('driver', {
             requestId,
             type: 'order',
@@ -119,7 +118,11 @@ exports.createRequest = async (req, res) => {
             message: `New service request #${requestId} was submitted.`,
         });
 
-        // 5. SUCCESS
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('request:updated', { request_id: Number(id) });
+            console.log('📡 emitted request:updated (address)', id);
+        }
 
         res.status(201).json({
             message: "Request created successfully",
@@ -189,14 +192,8 @@ exports.acceptRequest = async (req, res) => {
     const driverId = req.user.id;
     const { id } = req.params;
 
-    console.log('=================================');
-    console.log('DRIVER ACCEPT JOB');
-    console.log('Request ID:', id);
-    console.log('Driver ID:', driverId);
-    console.log('=================================');
-
     try {
-        // ---- 1. Look up the request ----
+
         const result = await Request.findSerVice(id);
 
         console.log('Accept request query result:', result);
@@ -212,7 +209,7 @@ exports.acceptRequest = async (req, res) => {
         const request = rows[0];
         console.log('Request found:', request);
 
-        // ---- 2. Business rules ----
+
         if (request.status !== 'pending') {
             return res.status(400).json({
                 error: `Request is not pending. Current status: ${request.status}`,
@@ -225,8 +222,13 @@ exports.acceptRequest = async (req, res) => {
             });
         }
 
-        // ---- 3. Atomic claim ----
         const updateResult = await Request.assignDriver(id, driverId);
+
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('request:updated', { request_id: Number(id) });
+            console.log('📡 emitted request:updated (address)', id);
+        }
 
         console.log('Accept update result:', updateResult);
 
@@ -347,8 +349,8 @@ exports.updateStatus = async (req, res) => {
         const assignmentStatus = assignmentStatusMap[status];
         const timestampCol =
             status === 'in progress' ? 'started_at' :
-            status === 'completed'   ? 'completed_at' :
-            null;
+                status === 'completed' ? 'completed_at' :
+                    null;
 
         let actualDistanceKm = null;
         let actualTimeMinutes = null;
@@ -444,6 +446,12 @@ exports.updateAddress = async (req, res) => {
             location_lng
         );
 
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('request:updated', { request_id: Number(id) });
+            console.log('📡 emitted request:updated (address)', id);
+        }
+
         res.json({
             message: "Address updated successfully"
         });
@@ -486,20 +494,23 @@ exports.updateRequest = async (req, res) => {
     const { customer_name, customer_phone, service_type, location, status } = req.body;
 
     try {
-        // ---- 1. Verify the request exists ----
+
         const rows = await Request.findRequestAndUser(id);
 
         if (!rows || !rows[0]) {
             return res.status(404).json({ message: 'Request not found' });
         }
 
-        // ---- 2. Update customer info ----
         await Request.updateCustomerInfo(id, customer_name, customer_phone);
 
-        // ---- 3. Update request details ----
+
         await Request.updateRequestDetails(id, service_type, location, status);
 
-        // ---- 4. Respond ----
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('request:updated', { request_id: Number(id) });
+            console.log('📡 emitted request:updated (address)', id);
+        }
         res.json({ success: true, message: `Request #${id} updated` });
 
     } catch (err) {
@@ -551,6 +562,12 @@ exports.cancelRequest = async (req, res) => {
                 });
             }
 
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('request:updated', { request_id: Number(id) });
+                console.log('📡 emitted request:updated (address)', id);
+            }
+
             return res.json({ success: true, message: 'Trip cancelled' });
         }
 
@@ -591,6 +608,11 @@ exports.addAdditionalCharge = async (req, res) => {
             added_by
         });
 
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('request:updated', { request_id: Number(id) });
+            console.log('📡 emitted request:updated (address)', id);
+        }
         res.json({ success: true, message: 'Additional charge added' });
 
     } catch (error) {
@@ -605,6 +627,11 @@ exports.getReceipt = async (req, res) => {
 
         const receipt = await Request.getReceiptData(id);
 
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('request:updated', { request_id: Number(id) });
+            console.log('📡 emitted request:updated (address)', id);
+        }
         res.json({ success: true, receipt });
 
     } catch (error) {

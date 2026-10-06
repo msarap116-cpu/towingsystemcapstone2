@@ -72,20 +72,60 @@ router.post('/driver-location', authenticateToken, async (req, res) => {
 });
 
 // router.post('/', authenticateToken, requestController.createRequest);
-router.post('/', authenticateToken, (req, res, next) => {
-    res.setHeader('Cache-Control', 'no-store');
-    next();
-}, requestController.createRequest);
-
+router.post(
+  '/',
+  authenticateToken,
+  (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); },
+  async (req, res, next) => {
+    try {
+      await requestController.createRequest(req, res, next);
+      const io = req.app.get('io');
+      if (io && res.statusCode < 400) {
+        // createRequest probably puts the new id on res.locals or in the body
+        // simplest: broadcast a generic "list changed" event
+        io.emit('request:created', {});
+        console.log('📡 emitted request:created');
+      }
+    } catch (e) { next(e); }
+  }
+);
 router.get('/my-requests', authenticateToken,shortPrivateCache(10),
 requestController.getMyRequests
 );
 
 router.get('/', authenticateToken, requestController.getAllRequests);
 
-router.put('/:id/status', authenticateToken, (req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, requestController.updateStatus);
+router.put(
+  '/:id/status',
+  authenticateToken,
+  (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); },
+  async (req, res, next) => {
+    try {
+      await requestController.updateStatus(req, res, next);
+      const io = req.app.get('io');
+      if (io && res.statusCode < 400) {
+        io.emit('request:updated', { request_id: Number(req.params.id) });
+        console.log('📡 emitted request:updated (status)', req.params.id);
+      }
+    } catch (e) { next(e); }
+  }
+);
 
-router.put('/:id/address', authenticateToken, (req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, requestController.updateAddress);
+router.put(
+  '/:id/address',
+  authenticateToken,
+  (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); },
+  async (req, res, next) => {
+    try {
+      await requestController.updateAddress(req, res, next);
+      const io = req.app.get('io');
+      if (io && res.statusCode < 400) {
+        io.emit('request:updated', { request_id: Number(req.params.id) });
+        console.log('📡 emitted request:updated (address)', req.params.id);
+      }
+    } catch (e) { next(e); }
+  }
+);
 
 // Accept a request (assign driver, set status = 'assigned')
 
@@ -120,19 +160,52 @@ router.put('/:id/address', authenticateToken, (req,res,next)=>{res.setHeader('Ca
 //     }
 // });
 router.put(
-    "/:id/accept", authenticateToken,requireRole("driver"),(req,res,next)=>{res.setHeader('Cache-Control','no-store');next();},
-    requestController.acceptRequest
+  '/:id/accept',
+  authenticateToken,
+  requireRole('driver'),
+  (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); },
+  async (req, res, next) => {
+    try {
+      await requestController.acceptRequest(req, res, next);
+      const io = req.app.get('io');
+      if (io && res.statusCode < 400) {
+        io.emit('request:updated', { request_id: Number(req.params.id) });
+        console.log('📡 emitted request:updated (accept)', req.params.id);
+      }
+    } catch (e) { next(e); }
+  }
 );
 
 router.put(
-    "/:id/cancel", authenticateToken,(req,res,next)=>{res.setHeader('Cache-Control','no-store');next();},
-    requestController.cancelRequest
+  '/:id/cancel',
+  authenticateToken,
+  (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); },
+  async (req, res, next) => {
+    try {
+      await requestController.cancelRequest(req, res, next);
+      const io = req.app.get('io');
+      if (io && res.statusCode < 400) {
+        io.emit('request:updated', { request_id: Number(req.params.id) });
+        console.log('📡 emitted request:updated (cancel)', req.params.id);
+      }
+    } catch (e) { next(e); }
+  }
 );
 
 router.put(
-    "/:id",
-    authenticateToken,(req,res,next)=>{res.setHeader('Cache-Control','no-store');next();},
-    requestController.updateRequest
+  '/:id',
+  authenticateToken,
+  (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); },
+  async (req, res, next) => {
+    try {
+      await requestController.updateRequest(req, res, next);
+      const io = req.app.get('io');
+      if (io && res.statusCode < 400) {
+        io.emit('request:updated', { request_id: Number(req.params.id) });
+        console.log('📡 emitted request:updated (generic)', req.params.id);
+      }
+    } catch (e) { next(e); }
+  }
 );
 // GET single request by ID
 router.get(

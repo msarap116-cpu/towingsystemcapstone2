@@ -1,5 +1,7 @@
 // D:\towing_system1\server.js
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const path = require('path');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -29,6 +31,43 @@ const settingsRoutes = require('./src/routes/settingsRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+
+const server = http.createServer(app);                 // ⭐ add
+const io = new Server(server, {                        // ⭐ add
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+  transports: ['websocket', 'polling'],
+});
+
+// Make io reachable from any route: req.app.get('io')
+app.set('io', io);
+
+// Connection handler
+io.on('connection', (socket) => {
+  console.log('🔌 socket connected:', socket.id);
+
+  // Auth (optional): read token from handshake
+  const token = socket.handshake.auth?.token;
+  if (token) {
+    try {
+      // If you have a verifyToken helper, use it:
+      // const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // socket.userId = decoded.id;
+      // socket.join(`driver:${decoded.id}`);
+      console.log('   auth token present');
+    } catch (e) {
+      console.log('   invalid token:', e.message);
+    }
+  }
+
+  socket.on('disconnect', (reason) => {
+    console.log('❌ socket disconnected:', socket.id, reason);
+  });
+});
+
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -56,7 +95,7 @@ app.use('/api/settings', settingsRoutes);
 
 // Global error handler — keep JSON errors JSON, always
 app.use((err, req, res, next) => {
-  console.error('🔥 Unhandled error:', err.message);
+  console.error('Unhandled error:', err.message);
   if (res.headersSent) return next(err);
   res.status(500).json({ success: false, message: err.message || 'Server error' });
 });
@@ -96,63 +135,6 @@ app.get('/myvehicles', (req, res) => {
 
 app.use('/uploads',express.static(path.join(__dirname, 'uploads')));
 
-
-// app.post('/users/login', async (req, res) => {
-//     try {
-//         const { email, password } = req.body;
-
-//         console.log('Login attempt for:', email);
-
-//         if (!email || !password) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: 'Email and password are required'
-//             });
-//         }
-
-//         // Find user by email
-//         const user = await User.findByEmail(email);
-
-//         if (!user) {
-//             return res.status(401).json({
-//                 success: false,
-//                 message: 'Invalid email or password'
-//             });
-//         }
-
-//         // Verify password
-//         const isMatch = await bcrypt.compare(password, user.password);
-
-//         if (!isMatch) {
-//             return res.status(401).json({
-//                 success: false,
-//                 message: 'Invalid email or password'
-//             });
-//         }
-
-//         // Generate token using the function from userController
-//         const token = generateToken(user.id, user.role);
-
-
-//         const { password: _, ...userWithoutPassword } = user;
-
-//         console.log('Login successful for:', email);
-
-//         res.json({
-//             success: true,
-//             message: 'Login successful',
-//             token: token,
-//             user: userWithoutPassword
-//         });
-
-//     } catch (error) {
-//         console.error('Login error:', error);
-//         res.status(500).json({
-//             success: false,
-//             message: 'Server error: ' + error.message
-//         });
-//     }
-// });
 // Reverse geocode: coordinates → address
 app.get('/api/geocode/reverse', async (req, res) => {
   try {
@@ -245,13 +227,21 @@ async function startServer() {
         }
 
         // app.listen(PORT, () => {
-            app.listen(3000,'0.0.0.0',() =>{
+        //     app.listen(3000,'0.0.0.0',() =>{
+        //     console.log(`\n Server running on http://localhost:${PORT}`);
+        //     console.log(`   Home: http://localhost:${PORT}/home`);
+        //     console.log(`   Login: http://localhost:${PORT}/login`);
+        //     console.log(`   Register: http://localhost:${PORT}/register`);
+        //     console.log(`   Dashboard: http://localhost:${PORT}/dashboard`);
+        // });
+          server.listen(PORT, '0.0.0.0', () => {
             console.log(`\n Server running on http://localhost:${PORT}`);
             console.log(`   Home: http://localhost:${PORT}/home`);
             console.log(`   Login: http://localhost:${PORT}/login`);
             console.log(`   Register: http://localhost:${PORT}/register`);
             console.log(`   Dashboard: http://localhost:${PORT}/dashboard`);
-        });
+            console.log(`   Socket.IO listening on ws://localhost:${PORT}`);
+          });
 
     } catch (error) {
         console.error('Failed to start server:', error);
