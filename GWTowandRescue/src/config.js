@@ -24,20 +24,42 @@
 // export default API_BASE_URL;
 
 
+
+
+
+// import { Platform } from 'react-native';
+
+// const LAN_URL = 'http://192.168.0.102:3000/api'; // local dev only
+// const PROD_URL = 'https://goodwrench-towing-rescue.onrender.com/api';
+
+// // Debug/Metro builds → LAN_URL automatically
+// // Release builds → PROD_URL automatically, no manual switch needed
+// const API_BASE_URL = __DEV__ ? LAN_URL : PROD_URL;
+
+// // const API_BASE_URL = PROD_URL;  // ← temporary override
+
+// if (__DEV__) {
+//   console.log('🔧 Using API URL:', API_BASE_URL);
+//   console.log('📱 Platform:', Platform.OS);
+// }
+
+// export default API_BASE_URL;
+
 import { Platform } from 'react-native';
 
-const LAN_URL = 'http://192.168.0.102:3000/api'; // local dev only
-const PROD_URL = 'https://goodwrench-towing-rescue.onrender.com/api';
+const LAN_API    = 'http://192.168.0.102:3000/api';
+const PROD_API   = 'https://goodwrench-towing-rescue.onrender.com/api';
 
-// Debug/Metro builds → LAN_URL automatically
-// Release builds → PROD_URL automatically, no manual switch needed
-const API_BASE_URL = __DEV__ ? LAN_URL : PROD_URL;
+const LAN_SOCKET  = 'http://192.168.0.102:3000';
+const PROD_SOCKET = 'https://goodwrench-towing-rescue.onrender.com';
 
-// const API_BASE_URL = PROD_URL;  // ← temporary override
-
-if (__DEV__) {
-  console.log('🔧 Using API URL:', API_BASE_URL);
-  console.log('📱 Platform:', Platform.OS);
-}
+export const API_BASE_URL = __DEV__ ? LAN_API : PROD_API;
+export const SOCKET_URL   = __DEV__ ? LAN_SOCKET : PROD_SOCKET;
 
 export default API_BASE_URL;
+
+if (__DEV__) {
+  console.log('API URL:', API_BASE_URL);
+  console.log('SOCKET URL:', SOCKET_URL);
+  console.log('Platform:', Platform.OS);
+}
