@@ -791,3 +791,152 @@ dialog#emergencyModal .page-title {
   color: #1a1a2e;
   letter-spacing: -0.3px;
 }
+/* ===== INSTALL MODAL ===== */
+dialog#installModal {
+  /* Centers the dialog */
+  position: fixed;
+  inset: 0;
+  margin: auto;
+
+  /* Size */
+  max-width: 480px;
+  width: calc(100% - 32px);
+  max-height: 90vh;
+  overflow-y: auto;
+
+  /* Appearance */
+  border: none;
+  border-radius: 16px;
+  padding: 0;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  font-family: inherit;
+  animation: dialogIn 0.25s ease;
+}
+
+dialog#installModal::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+@keyframes dialogIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Inner wrapper */
+.install-modal {
+  padding: 28px 24px 24px;
+  background: #fff;
+}
+
+/* Close button */
+.install-modal .modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #f1f3f5;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: #333;
+  transition: background 0.15s ease;
+}
+.install-modal .modal-close:hover {
+  background: #e2e6ea;
+}
+
+/* Title */
+.install-modal h3 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  color: #0d3b66;
+}
+
+.install-modal .subtitle {
+  margin: 0 0 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* Steps list */
+.install-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  counter-reset: step;
+}
+
+.install-steps li {
+  position: relative;
+  padding: 0 0 0 44px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #1f2937;
+  counter-increment: step;
+}
+
+.install-steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  background: #0d3b66;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.install-steps strong {
+  color: #0d3b66;
+}
+
+.install-steps code {
+  background: #f1f3f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #b91c1c;
+}
+
+/* Note */
+.install-note {
+  background: #fff8e1;
+  border-left: 4px solid #f59e0b;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #78350f;
+  margin-bottom: 20px;
+}
+
+/* CTA button */
+.install-modal .btn-primary {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: #0d3b66;
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.install-modal .btn-primary:hover {
+  background: #0a2f52;
+}
+.install-modal .btn-primary:active {
+  transform: scale(0.98);
+}
