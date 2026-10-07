@@ -6,15 +6,10 @@ const path = require('path');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
-
-
-// Import database connection
 const db = require('./src/database/database');
 
-// Import User Model
-// const User = require('./src/models/userModel');
 
-// Import JWT function from userController (RECOMMENDED)
+// const User = require('./src/models/userModel');
 // const { generateToken } = require('./src/controllers/userController');
 
 // Import routes
@@ -32,8 +27,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 
-const server = http.createServer(app);                 // ⭐ add
-const io = new Server(server, {                        // ⭐ add
+const server = http.createServer(app);
+const io = new Server(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST'],
@@ -76,11 +71,6 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// app.use((req, res, next) => {
-//     res.setHeader('Cache-Control', 'no-store');
-//     next();
-// });
-
 // API routes
 app.use('/api/users/', userroutes);
 app.use('/api/requests', requestsRoute);
@@ -93,7 +83,7 @@ app.use('/api/earnings',earningsRoutes);
 app.use('/api/settings', settingsRoutes);
 
 
-// Global error handler — keep JSON errors JSON, always
+// global error handler — keep JSON errors JSON,
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.message);
   if (res.headersSent) return next(err);
@@ -135,7 +125,6 @@ app.get('/myvehicles', (req, res) => {
 
 app.use('/uploads',express.static(path.join(__dirname, 'uploads')));
 
-// Reverse geocode: coordinates → address
 app.get('/api/geocode/reverse', async (req, res) => {
   try {
     const { lat, lng } = req.query;
@@ -177,7 +166,6 @@ app.get('/api/geocode/reverse', async (req, res) => {
   }
 });
 
-// Forward geocode: search query → address suggestions
 app.get('/api/geocode/search', async (req, res) => {
   try {
     const { q } = req.query;
