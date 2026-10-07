@@ -285,7 +285,7 @@ async submitProof({ requestId, userId, referenceNumber, proofImagePath }) {
           AND status = 'awaiting_payment'
     `;
     const [result] = await db.query(sql, [
-        proofImagePath,           // ✅ store the URL as-is from req.file.path
+        proofImagePath,           //  store the URL as-is from req.file.path
         referenceNumber,
         requestId,
         userId

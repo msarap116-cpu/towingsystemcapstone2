@@ -9,7 +9,7 @@ const authenticateToken = require('../middleware/authMiddleware');
 
 const Payment = require('../models/paymentModel');
 
-const { uploadProof } = require('../config/cloudinary');  // ✅
+const { uploadProof } = require('../config/cloudinary');  //
 
 const Notification = require('../models/notificationModel');
 

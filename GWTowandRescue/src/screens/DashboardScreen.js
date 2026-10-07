@@ -36,14 +36,27 @@ import API_BASE_URL from '../config';
 
 // Import icons (you can use react-native-vector-icons or emojis)
 // For now using emojis, replace with your actual icons
+const findDupes = (arr, field) => {
+  if (!Array.isArray(arr)) return [];
+  const seen = new Set();
+  const dupes = [];
+  arr.forEach(i => {
+    const k = String(i?.[field]);
+    if (seen.has(k)) dupes.push(k);
+    seen.add(k);
+  });
+  return dupes;
+};
+
 
 const DashboardScreen = ({ navigation, route }) => {
   // ===== STATE =====
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [currentTime, setCurrentTime] = useState('');
+
+
 
   // Map state
   const [mapRegion, setMapRegion] = useState({
@@ -109,6 +122,9 @@ const DashboardScreen = ({ navigation, route }) => {
   // Always call the latest version of loadDashboardData
   const loadRef = useRef(null);
 
+
+
+
   useEffect(() => {
     if (isPaid) {
       setActivePaymentMethod(null);
@@ -119,18 +135,13 @@ const DashboardScreen = ({ navigation, route }) => {
   }, [isPaid]);
 
   useEffect(() => {
+  console.log('receipt dupes:', findDupes(receipts, 'payment_id'));
+  console.log('activity dupes:', findDupes(recentActivities, 'request_id'));
+}, [receipts, recentActivities]);
+
+  useEffect(() => {
     checkAuth();
-    updateClock();
 
-    const clockInterval = setInterval(updateClock, 10000);
-
-    return () => {
-      if (pollingInterval.current) {
-        clearInterval(pollingInterval.current);
-      }
-
-      clearInterval(clockInterval);
-    };
   }, []);
 
   // 1) Real-time: refetch when the server says something changed
@@ -588,23 +599,29 @@ const loadPaymentRecord = async (reqId) => {
 
   };
   // ===== RECENT ACTIVITY =====
-  const loadRecentActivity = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/requests/latest`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-        cache: 'no-store'
-      });
+const loadRecentActivity = async () => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+    const res = await fetch(`${API_BASE_URL}/requests/latest`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      cache: 'no-store'
+    });
 
-      if (res.ok) {
-        const data = await res.json();
-        setRecentActivities(Array.isArray(data) ? data : [data]);
-      }
-    } catch (error) {
-      console.error('Recent activity error:', error);
+    if (res.ok) {
+      const data = await res.json();
+      const arr = Array.isArray(data) ? data : [data];
+
+      // Dedupe by request_id (last occurrence wins)
+      const unique = Array.from(
+        new Map(arr.map(r => [r.request_id, r])).values()
+      );
+
+      setRecentActivities(unique);
     }
-  };
-
+  } catch (error) {
+    console.error('Recent activity error:', error);
+  }
+};
   // ===== RECEIPTS =====
   const loadMyReceipts = async () => {
     try {
@@ -1158,11 +1175,7 @@ setSubmitting(true);
     }
   };
 
-  // ===== HELPERS =====
-  const updateClock = () => {
-    const now = new Date();
-    setCurrentTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-  };
+
 
   const getInitials = (name) => {
     if (!name) return 'U';

@@ -94,7 +94,7 @@ async function downloadReceipt(req, res) {
                 .stroke()
                 .restore();
 
-            doc.font(labelBold ? 'Body-Bold' : 'Body')       // ✅
+            doc.font(labelBold ? 'Body-Bold' : 'Body')       //
                 .fontSize(fontSize)
                 .fillColor('#000000')
                 .text(label, startX + 8, startY + 6, {
@@ -102,7 +102,7 @@ async function downloadReceipt(req, res) {
                     align: 'left'
                 });
 
-            doc.font(valueBold ? 'Body-Bold' : 'Body')       // ✅
+            doc.font(valueBold ? 'Body-Bold' : 'Body')       //
                 .fontSize(fontSize)
                 .fillColor('#000000')
                 .text(String(value ?? '—'), startX + labelWidth + 8, startY + 6, {
@@ -122,7 +122,7 @@ async function downloadReceipt(req, res) {
                 .fill('#1F2937')
                 .restore();
 
-            doc.font('Body-Bold')                             // ✅
+            doc.font('Body-Bold')                             //
                 .fontSize(11)
                 .fillColor('#FFFFFF')
                 .text(title, startX + 8, startY + 7, {

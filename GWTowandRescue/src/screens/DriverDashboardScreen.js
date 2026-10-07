@@ -214,7 +214,7 @@ const DriverDashboardScreen = ({ navigation }) => {
   }, []);
 
 useEffect(() => {
-  const onConnect = () => console.log('✅ connected', socket.id);
+  const onConnect = () => console.log(' connected', socket.id);
   const onDisconnect = (r) => console.log('❌ disconnected', r);
   const onError = (e) => console.log('❌ connect_error', e.message);
   socket.on('connect', onConnect);

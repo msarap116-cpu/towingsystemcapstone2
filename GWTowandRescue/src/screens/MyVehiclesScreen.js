@@ -1,5 +1,5 @@
 // screens/MyVehiclesScreen.js
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
     Text,
@@ -21,7 +21,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import API_BASE_URL from '../config';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const MyVehiclesScreen = ({ navigation }) => {
+const MyVehiclesScreen = ({ navigation, route }) => {
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -47,11 +47,19 @@ const MyVehiclesScreen = ({ navigation }) => {
         { label: 'Other', value: 'other' },
     ];
 
-    useFocusEffect(
-        useCallback(() => {
-            loadVehicles();
-        }, [])
-    );
+useFocusEffect(
+    useCallback(() => {
+        loadVehicles();
+    }, [])
+);
+
+// Auto-open the Add Vehicle modal when navigated with openAddForm param
+useEffect(() => {
+    if (route?.params?.openAddForm) {
+        setShowForm(true);
+        navigation.setParams({ openAddForm: false });
+    }
+}, [route?.params?.openAddForm, navigation]);
 
     const loadVehicles = async () => {
         try {
@@ -225,53 +233,53 @@ const MyVehiclesScreen = ({ navigation }) => {
         }
     };
 
-    const renderVehicleCard = (vehicle) => (
-        <View
-            key={vehicle.vehicle_id}
-            style={[
-                styles.vehicleCard,
-                vehicle.is_default && styles.vehicleCardDefault,
-            ]}
-        >
-            <View style={styles.vehicleInfo}>
-                <View style={styles.vehicleHeader}>
-                    <Text style={styles.vehicleTitle}>
-                        {vehicle.make} {vehicle.model} ({vehicle.year || 'N/A'})
-                    </Text>
-                    {vehicle.is_default && (
-                        <View style={styles.defaultBadge}>
-                            <Text style={styles.defaultBadgeText}>Default</Text>
-                        </View>
-                    )}
-                </View>
-                <Text style={styles.vehicleDetails}>
-                    {vehicle.vehicle_type} • {vehicle.color} • Plate:{' '}
-                    {vehicle.license_plate}
+const renderVehicleCard = (vehicle) => (
+    <View
+        key={String(vehicle.vehicle_id)}
+        style={[
+            styles.vehicleCard,
+            vehicle.is_default && styles.vehicleCardDefault,
+        ]}
+    >
+        <View style={styles.vehicleInfo}>
+            <View style={styles.vehicleHeader}>
+                <Text style={styles.vehicleTitle}>
+                    {`${vehicle.make} ${vehicle.model} (${vehicle.year || 'N/A'})`}
                 </Text>
+                {vehicle.is_default ? (
+                    <View style={styles.defaultBadge}>
+                        <Text style={styles.defaultBadgeText}>Default</Text>
+                    </View>
+                ) : null}
             </View>
-
-            <View style={styles.vehicleActions}>
-                {!vehicle.is_default && (
-                    <TouchableOpacity
-                        style={styles.actionBtn}
-                        onPress={() => setDefaultVehicle(vehicle.vehicle_id)}
-                    >
-                        <Icon name="star-outline" size={16} color="#0d6efd" />
-                        <Text style={styles.actionBtnText}>Set Default</Text>
-                    </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                    style={[styles.actionBtn, styles.actionBtnDanger]}
-                    onPress={() => deleteVehicle(vehicle.vehicle_id)}
-                >
-                    <Icon name="trash-can-outline" size={16} color="#dc3545" />
-                    <Text style={[styles.actionBtnText, styles.actionBtnTextDanger]}>
-                        Delete
-                    </Text>
-                </TouchableOpacity>
-            </View>
+            <Text style={styles.vehicleDetails}>
+                {`${vehicle.vehicle_type} • ${vehicle.color} • Plate: ${vehicle.license_plate}`}
+            </Text>
         </View>
-    );
+
+        <View style={styles.vehicleActions}>
+            {!vehicle.is_default ? (
+                <TouchableOpacity
+                    style={styles.actionBtn}
+                    onPress={() => setDefaultVehicle(vehicle.vehicle_id)}
+                >
+                    <Icon name="star-outline" size={16} color="#0d6efd" />
+                    <Text style={styles.actionBtnText}>Set Default</Text>
+                </TouchableOpacity>
+            ) : null}
+
+            <TouchableOpacity
+                style={[styles.actionBtn, styles.actionBtnDanger]}
+                onPress={() => deleteVehicle(vehicle.vehicle_id)}
+            >
+                <Icon name="trash-can-outline" size={16} color="#dc3545" />
+                <Text style={[styles.actionBtnText, styles.actionBtnTextDanger]}>
+                    Delete
+                </Text>
+            </TouchableOpacity>
+        </View>
+    </View>
+);
 
     return (
         <KeyboardAvoidingView
@@ -343,7 +351,7 @@ const MyVehiclesScreen = ({ navigation }) => {
                         >
                             {/* Vehicle Type */}
                             <View style={styles.formGroup}>
-                                <Text style={styles.label}>Vehicle Type *</Text>
+                                <Text style={styles.label}>Vehicle Type</Text>
                                 <View style={styles.pickerContainer}>
                                     <Picker
                                         selectedValue={formData.vehicle_type}
@@ -364,7 +372,7 @@ const MyVehiclesScreen = ({ navigation }) => {
 
                             {/* Make */}
                             <View style={styles.formGroup}>
-                                <Text style={styles.label}>Make *</Text>
+                                <Text style={styles.label}>Make</Text>
                                 <TextInput
                                     style={styles.input}
                                     placeholder="e.g. Toyota"
@@ -375,7 +383,7 @@ const MyVehiclesScreen = ({ navigation }) => {
 
                             {/* Model */}
                             <View style={styles.formGroup}>
-                                <Text style={styles.label}>Model *</Text>
+                                <Text style={styles.label}>Model</Text>
                                 <TextInput
                                     style={styles.input}
                                     placeholder="e.g. Vios"
@@ -386,7 +394,7 @@ const MyVehiclesScreen = ({ navigation }) => {
 
                             {/* Color */}
                             <View style={styles.formGroup}>
-                                <Text style={styles.label}>Color *</Text>
+                                <Text style={styles.label}>Color</Text>
                                 <TextInput
                                     style={styles.input}
                                     placeholder="e.g. White"
@@ -410,7 +418,7 @@ const MyVehiclesScreen = ({ navigation }) => {
 
                             {/* License Plate */}
                             <View style={styles.formGroup}>
-                                <Text style={styles.label}>License Plate *</Text>
+                                <Text style={styles.label}>License Plate </Text>
                                 <TextInput
                                     style={styles.input}
                                     placeholder="e.g. ABC 1234"
@@ -452,6 +460,7 @@ const MyVehiclesScreen = ({ navigation }) => {
         </KeyboardAvoidingView>
     );
 };
+
 
 export default MyVehiclesScreen;
 

@@ -79,9 +79,11 @@ const RequestFormScreen = ({ navigation, route }) => {
     useFocusEffect(
         useCallback(() => {
             checkUnpaidBalance();
-        }, [])
+            if (!isGuest) {
+                loadVehicles();
+            }
+        }, [isGuest])
     );
-
 
     const checkAuthAndLoadVehicles = async () => {
         try {
@@ -591,8 +593,8 @@ const RequestFormScreen = ({ navigation, route }) => {
                                     onValueChange={(value) => updateField('serviceType', value)}
                                     enabled={!loading && !submitted}
                                     style={styles.picker}
-                                    dropdownIconColor="#080808"   // color of the arrow down
-                                    mode="dropdown"               // ADD THIS (Android only)
+                                    dropdownIconColor="#080808"
+                                    mode="dropdown"
                                 >
                                     {serviceTypes.map((type) => (
                                         <Picker.Item
@@ -622,7 +624,7 @@ const RequestFormScreen = ({ navigation, route }) => {
                                     <Picker.Item
                                         label={loadingVehicles ? "Loading your vehicles..." : "Select a vehicle"}
                                         value=""
-                                        color="#000000"           // 👈 gray placeholder
+                                        color="#000000"
                                         style={{ color: '#f1f2f6' }}
                                     />
                                     {vehicles.map((vehicle) => (
@@ -637,31 +639,47 @@ const RequestFormScreen = ({ navigation, route }) => {
                                 </Picker>
                             </View>
 
-                            {vehicles.length === 0 && !loadingVehicles && !isGuest && (
-                                <Text style={styles.noticeText}>
-                                    You don't have any saved vehicles yet.{' '}
-                                    <Text
-                                        style={styles.linkText}
-                                        onPress={() => navigation.navigate('MyVehicles')}
-                                    >
-                                        Add one here
-                                    </Text>
-                                    {' '}before requesting assistance.
-                                </Text>
-                            )}
+                            {!loadingVehicles && !isGuest && (
+    vehicles.length === 0 ? (
+        <Text style={styles.noticeText}>
+            You don't have any saved vehicles yet.{' '}
+            <Text
+                style={styles.linkText}
+                onPress={() =>
+                    navigation.navigate('MyVehicles', { openAddForm: true })
+                }
+            >
+                Add one here
+            </Text>
+            {' '}before requesting assistance.
+        </Text>
+    ) : (
+        <Text style={styles.noticeText}>
+            Need to add another vehicle?{' '}
+            <Text
+                style={styles.linkText}
+                onPress={() =>
+                    navigation.navigate('MyVehicles', { openAddForm: true })
+                }
+            >
+                Add it here
+            </Text>
+        </Text>
+    )
+)}
 
-                            {isGuest && (
-                                <Text style={styles.noticeText}>
-                                    You need an account to submit a request.{' '}
-                                    <Text style={styles.linkText} onPress={handleGuestLogin}>
-                                        Log in
-                                    </Text>
-                                    {' '}or{' '}
-                                    <Text style={styles.linkText} onPress={handleGuestRegister}>
-                                        Register
-                                    </Text>
-                                </Text>
-                            )}
+{isGuest && (
+    <Text style={styles.noticeText}>
+        You need an account to submit a request.{' '}
+        <Text style={styles.linkText} onPress={handleGuestLogin}>
+            Log in
+        </Text>
+        {' '}or{' '}
+        <Text style={styles.linkText} onPress={handleGuestRegister}>
+            Register
+        </Text>
+    </Text>
+)}
                         </View>
 
                         {/* Location Section */}
@@ -707,7 +725,10 @@ const RequestFormScreen = ({ navigation, route }) => {
                                         <View style={styles.suggestionsContainer}>
                                             <ScrollView
                                                 style={styles.suggestionsScroll}
+                                                contentContainerStyle={{ flexGrow: 0 }}
                                                 keyboardShouldPersistTaps="handled"
+                                                nestedScrollEnabled={true}
+                                                showsVerticalScrollIndicator={true}
                                             >
                                                 {addressSuggestions.map((result, index) => (
                                                     <TouchableOpacity
@@ -754,7 +775,7 @@ const RequestFormScreen = ({ navigation, route }) => {
                         {/* Confirmation */}
                         {submitted && (
                             <View style={styles.confirmationBox}>
-                                <Text style={styles.confirmationIcon}>✅</Text>
+                                <Text style={styles.confirmationIcon}></Text>
                                 <Text style={styles.confirmationTitle}>Request Submitted!</Text>
                                 <Text style={styles.confirmationText}>
                                     Your request ID: <Text style={styles.confirmationStrong}>{requestId}</Text>

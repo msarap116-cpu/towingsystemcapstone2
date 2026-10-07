@@ -592,15 +592,15 @@ const HomeScreen = () => {
 
       <View style={styles.checklist}>
         <View style={styles.checklistItem}>
-          <Text style={styles.checkIcon}>✅</Text>
+          <Text style={styles.checkIcon}></Text>
           <Text style={styles.checkText}>Trouble Shoot Vehicle problem</Text>
         </View>
         <View style={styles.checklistItem}>
-          <Text style={styles.checkIcon}>✅</Text>
+          <Text style={styles.checkIcon}></Text>
           <Text style={styles.checkText}>Underchasis specialist</Text>
         </View>
         <View style={styles.checklistItem}>
-          <Text style={styles.checkIcon}>✅</Text>
+          <Text style={styles.checkIcon}></Text>
           <Text style={styles.checkText}>Transmission Speacialist</Text>
         </View>
       </View>
@@ -867,7 +867,7 @@ const renderServices = () => (
               </TouchableOpacity>
             ) : (
               <View style={styles.confirmationBox}>
-                <Text style={styles.confirmationIcon}>✅</Text>
+                <Text style={styles.confirmationIcon}></Text>
                 <Text style={styles.confirmationTitle}>Request Submitted!</Text>
                 <Text style={styles.confirmationText}>
                   Your request ID: <Text style={styles.confirmationStrong}>{requestId}</Text>
