@@ -17,18 +17,20 @@ document.addEventListener('DOMContentLoaded', function () {
     let activeDropdown = null;
     let activeMenu     = null;
 
-    function closeAllDropdowns() {
-        if (activeDropdown) activeDropdown.style.display = 'none';
-        if (activeMenu)     activeMenu.classList.remove('active');
+function closeAllDropdowns() {
+    // Hide EVERY dropdown currently in <body> or inside a menu
+    document.querySelectorAll('.overflow-dropdown').forEach(el => {
+        el.style.display = 'none';
+    });
 
-        // Also hide any strays parked in <body>
-        document.querySelectorAll('body > .overflow-dropdown').forEach(el => {
-            el.style.display = 'none';
-        });
+    // Remove the active class from any open menu
+    document.querySelectorAll('.overflow-menu.active').forEach(m => {
+        m.classList.remove('active');
+    });
 
-        activeDropdown = null;
-        activeMenu     = null;
-    }
+    activeDropdown = null;
+    activeMenu     = null;
+}
 
     function openDropdown(trigger) {
         const menu = trigger.closest('.overflow-menu');
