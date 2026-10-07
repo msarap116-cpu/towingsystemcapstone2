@@ -1,7 +1,4 @@
-        /* ============================================================
-               admin-dashboard.css — redesigned to match driver dashboard
-               all existing IDs and classes are preserved
-               ============================================================ */
+
 
         /* ---------- RESET & BASE ---------- */
         * {
@@ -607,7 +604,7 @@
             justify-content: flex-end;
         }
 
-        /* ---------- Admin Modal with Button Transitions ---------- */
+
         #adminModal .modal-content {
             padding: 24px;
             border-radius: 16px;
@@ -840,7 +837,6 @@
             /* Removes bottom border from the very last row */
         }
 
-        /* ========== DELETE BUTTON (Icon Only) ========== */
         .btn-delete {
             background: transparent;
             border: none;
@@ -867,7 +863,7 @@
             /* removes the default focus outline */
         }
 
-        /* ========== RESPONSIVE ========== */
+
         @media (max-width: 1000px) {
             .two-col {
                 grid-template-columns: 1fr;
@@ -964,104 +960,124 @@
                 padding-top: 0;
             }
         }
-
-        /* ===== OVERFLOW MENU CONTAINER ===== */
-        .overflow-menu {
-            position: relative;
-            display: inline-block;
-        }
-
-        /* ===== TRIGGER BUTTON — Matches "+ Add Customer" style ===== */
-        .overflow-trigger {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 999px;
-            /* Fully pill-shaped */
-            background: #131313;
-            /* Dark navy background */
-            color: #f2eded;
-            cursor: pointer;
-            line-height: 1;
-            transition: background 0.2s ease, transform 0.15s ease;
-            white-space: nowrap;
-        }
-         .overflow-trigger1 {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 999px;
-            /* Fully pill-shaped */
-            background: #0b3d84;
-            /* Dark navy background */
-            color: #f2eded;
-            cursor: pointer;
-            line-height: 1;
-            transition: background 0.2s ease, transform 0.15s ease;
-            white-space: nowrap;
-        }
-/*
-        .overflow-trigger:hover {
-            background: #0f172a;
-        } */
-
-        .plus-icon {
+            .plus-icon {
             font-size: 18px;
             font-weight: 700;
             line-height: 1;
         }
 
-        /* ===== DROPDOWN MENU ===== */
-        .overflow-dropdown {
-            position: absolute;
-            right: 0;
-            top: calc(100% + 6px);
-            background: #f3f0f0;
-            min-width: 200px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-            border-radius: 12px;
-            border: 1px solid #e5e7eb;
-            z-index: 999;
-            display: none;
-            overflow: hidden;
-        }
+/* ===== OVERFLOW MENU CONTAINER ===== */
+.overflow-menu {
+    position: relative;
+    display: inline-block;
+}
 
-        /* Show dropdown when active */
-        .overflow-menu.active .overflow-dropdown {
-            display: block;
-        }
+/* ===== TRIGGER BUTTON ===== */
+.overflow-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 999px;
+    background: #131313;
+    color: #f2eded;
+    cursor: pointer;
+    line-height: 1;
+    transition: background 0.2s ease, transform 0.15s ease;
+    white-space: nowrap;
+}
 
-        /* ===== DROPDOWN ITEMS ===== */
-        .dropdown-item {
-            width: 100%;
-            text-align: left;
-            border: none;
-            background: transparent;
-            padding: 12px 16px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #1f2937;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.15s ease;
-        }
+.overflow-dropdown {
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: none;
 
-        .dropdown-item:hover {
-            background: #f3f4f6;
-        }
+    min-width: 220px;
+    max-width: 280px;
 
-        .dropdown-item:first-child {
-            border-bottom: 1px solid #f3f4f6;
-        }
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #dadce0;
+    box-shadow:
+        0 2px 6px rgba(60, 64, 67, 0.15),
+        0 8px 24px rgba(60, 64, 67, 0.15);
+
+    padding: 6px 0;
+    z-index: 999999;
+
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    color: #202124;
+
+        max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.overflow-menu.active .overflow-dropdown {
+    display: block;
+}
+@keyframes dropdownIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    width: 100%;
+    padding: 10px 20px;
+
+    background: transparent;
+    border: none;
+    text-align: left;
+
+    font-size: 14px;
+    font-weight: 400;
+    color: #202124;
+    font-family: inherit;
+
+    cursor: pointer;
+    transition: background 0.1s ease;
+}
+
+.dropdown-item:hover {
+    background: #f1f3f4;
+}
+
+.dropdown-item:active {
+    background: #e8eaed;
+}
+
+.dropdown-item.text-danger,
+.dropdown-item[style*="color:#dc3545"],
+.dropdown-item[style*="color: #dc3545"] {
+    color: #d93025 !important;
+}
+
+.dropdown-item.text-danger:hover,
+.dropdown-item[style*="color:#dc3545"]:hover,
+.dropdown-item[style*="color: #dc3545"]:hover {
+    background: #fce8e6;
+}
+
+.dropdown-item.disabled,
+.dropdown-item:disabled {
+    color: #5f6368;
+    cursor: default;
+    background: transparent;
+}
+
+.dropdown-item.disabled:hover {
+    background: transparent;
+}
 
         .profile-avatar-container {
             position: relative;

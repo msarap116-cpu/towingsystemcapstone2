@@ -1,7 +1,7 @@
 // ===== WRAP EVERYTHING IN DOMContentLoaded =====
 document.addEventListener('DOMContentLoaded', function () {
 
-    // ========== DATA STORE (Will be populated from API) ==========
+    //  DATA STORE (Will be populated from API)
     let requests = [];
     let drivers = [];
     let customers = [];
@@ -9,46 +9,139 @@ document.addEventListener('DOMContentLoaded', function () {
     let map, markersList = [];
     let admins = [];
 
+    let servicesCache = [];
 
-    // let customerMarkers = [];
-    // let driverMarkers = [];
+    // ============================================================
+    //  OVERFLOW DROPDOWN — Google-Drive-style floating menu
+    // ============================================================
+    let activeDropdown = null;
+    let activeMenu     = null;
 
+    function closeAllDropdowns() {
+        if (activeDropdown) activeDropdown.style.display = 'none';
+        if (activeMenu)     activeMenu.classList.remove('active');
 
-    // ========== LOAD DATA FUNCTIONS ==========
-    // async function loadMapData() {
+        // Also hide any strays parked in <body>
+        document.querySelectorAll('body > .overflow-dropdown').forEach(el => {
+            el.style.display = 'none';
+        });
 
-    //     try {
+        activeDropdown = null;
+        activeMenu     = null;
+    }
 
-    //         const token = sessionStorage.getItem('token');
+    function openDropdown(trigger) {
+        const menu = trigger.closest('.overflow-menu');
+        if (!menu) return;
 
-    //         const response = await fetch(
-    //             `${API_BASE_URL}/admin/map-data`,
-    //             {
-    //                 headers: {
-    //                     Authorization: `Bearer ${token}`
-    //                 },
-    //
-    //             }
-    //         );
+        const menuId = trigger.dataset.menuId;   // e.g. "req-42"
 
-    //         if (!response.ok) {
-    //             throw new Error(`HTTP ${response.status}`);
-    //         }
+        // 1) Prefer one already parked in <body> (survives table re-renders)
+        let dropdown = menuId
+            ? document.querySelector(`body > .overflow-dropdown[data-menu-id="${CSS.escape(menuId)}"]`)
+            : null;
 
-    //         const data = await response.json();
+        // 2) Otherwise take the fresh one from inside this menu
+        if (!dropdown) {
+            dropdown = menu.querySelector('.overflow-dropdown');
+            if (!dropdown) return;
+            if (menuId) dropdown.dataset.menuId = menuId;
+        }
 
-    //         console.log('Map data:', data);
+        closeAllDropdowns();
 
-    //         // displayMapData(data);
+        // Move it out of the table on first open
+        if (dropdown.parentElement !== document.body) {
+            document.body.appendChild(dropdown);
+        }
 
-    //     } catch (error) {
+        dropdown.style.display = 'block';
 
-    //         console.error('Failed to load map data:', error);
+        // ---- Measure ----
+        const rowEl      = trigger.closest('tr') || trigger;
+        const anchorRect = rowEl.getBoundingClientRect();
+        const btnRect    = trigger.getBoundingClientRect();
+        const ddRect     = dropdown.getBoundingClientRect();
 
-    //     }
-    // }
+        const GAP  = 6;
+        const EDGE = 8;
 
+        // ---- Vertical placement ----
+        const spaceBelow = window.innerHeight - anchorRect.bottom;
+        const spaceAbove = anchorRect.top;
 
+        let top;
+        if (spaceBelow >= ddRect.height + GAP) {
+            top = anchorRect.bottom + GAP;
+        } else if (spaceAbove >= ddRect.height + GAP) {
+            top = anchorRect.top - ddRect.height - GAP;
+        } else {
+            top = window.innerHeight - ddRect.height - EDGE;
+        }
+        if (top < EDGE) top = EDGE;
+        if (top + ddRect.height > window.innerHeight - EDGE) {
+            top = window.innerHeight - ddRect.height - EDGE;
+        }
+
+        // ---- Horizontal placement — right-align with the ⋮ button ----
+        let left = btnRect.right - ddRect.width;
+        const maxLeft = window.innerWidth - ddRect.width - EDGE;
+        if (left > maxLeft) left = maxLeft;
+        if (left < EDGE)    left = EDGE;
+
+        dropdown.style.top  = top  + 'px';
+        dropdown.style.left = left + 'px';
+
+        menu.classList.add('active');
+        activeMenu     = menu;
+        activeDropdown = dropdown;
+    }
+
+    // ---------- One delegated click handler for the whole page ----------
+    document.addEventListener('click', function (e) {
+        const trigger = e.target.closest('.overflow-trigger');
+        const item    = e.target.closest('.dropdown-item');
+
+        if (trigger) {
+            const menu    = trigger.closest('.overflow-menu');
+            const wasOpen = menu && menu.classList.contains('active');
+
+            closeAllDropdowns();
+            if (!wasOpen) openDropdown(trigger);
+            return;
+        }
+
+        if (item) {
+            setTimeout(closeAllDropdowns, 0);
+            return;
+        }
+
+        closeAllDropdowns();
+    });
+
+    // Close on meaningful scroll or resize
+    let lastScrollY = window.scrollY;
+    window.addEventListener('scroll', () => {
+        if (Math.abs(window.scrollY - lastScrollY) < 4) return;
+        lastScrollY = window.scrollY;
+        closeAllDropdowns();
+    }, true);
+    window.addEventListener('resize', closeAllDropdowns);
+
+    // Remove dropdowns left in <body> whose trigger no longer exists
+    function pruneOrphanDropdowns() {
+        document.querySelectorAll('body > .overflow-dropdown').forEach(el => {
+            const id = el.dataset.menuId;
+            if (!id || !document.querySelector(`.overflow-trigger[data-menu-id="${CSS.escape(id)}"]`)) {
+                el.remove();
+            }
+        });
+    }
+    window.pruneOrphanDropdowns = pruneOrphanDropdowns;
+
+    // ============================================================
+    //  LOAD DATA FUNCTIONS
+    // ============================================================
 
     window.loadRequests = async function () {
         try {
@@ -57,8 +150,6 @@ document.addEventListener('DOMContentLoaded', function () {
             requests = Array.isArray(data)
                 ? data
                 : data.requests || [];
-
-            // console.log("Admin fetched fresh requests:", requests);
 
             renderRequests(requests);
 
@@ -71,32 +162,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-
     async function loadDrivers() {
         try {
-
             drivers = await apiFetch("/admin/drivers");
-
-            // console.log("Drivers loaded:", drivers);
-
             renderDrivers();
-
             await loadAdmins();
-
             if (map) {
                 updateMapMarkers();
             }
-
         } catch (err) {
-
             console.error("Failed to load drivers:", err);
-
-            showAlert(
-                "Could not load drivers",
-                "danger"
-            );
+            showAlert("Could not load drivers", "danger");
         }
     }
+
     async function loadCustomers() {
         try {
             customers = await apiFetch('/admin/customers');
@@ -105,32 +184,21 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Failed to load customers:', error);
         }
     }
+
     async function loadAdmins() {
         try {
             const result = await apiFetch("/admin/admins");
-
-            // console.log("FULL ADMIN API RESULT:", result);
-            // console.log("result.admins:", result.admins);
-            // console.log("Is result.admins an array?", Array.isArray(result.admins));
-
             admins = result.admins || [];
-
-            // console.log("FINAL admins variable:", admins);
-            // console.log("Is admins an array?", Array.isArray(admins));
-            // console.log("Number of admins:", admins.length);
-
             renderAdmins();
-
         } catch (error) {
             console.error("Failed to load admins:", error);
             showAlert("Could not load admins", "danger");
         }
     }
+
     window.loadPayments = async function () {
         try {
             payments = await apiFetch('/admin/payments');
-
-            // console.log('Payments loaded:', payments);
             renderPayments();
         } catch (err) {
             console.error('Failed to load payments:', err);
@@ -139,7 +207,6 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     async function loadPendingPayments() {
-
         const token = sessionStorage.getItem('token');
 
         const response = await fetch(
@@ -159,8 +226,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         console.log('Pending payments:', data.payments);
-
-        // render your table here
     }
 
     let requestsPollingInterval = null;
@@ -172,9 +237,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         requestsPollingInterval = setInterval(async () => {
             await loadRequests();
-        }, 5000); // every 5 seconds
+        }, 5000);
     }
-
 
     function initMap() {
         if (typeof L === 'undefined') {
@@ -183,7 +247,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const mapElement = document.getElementById('map');
-
         if (!mapElement) {
             console.error('Map element not found!');
             return;
@@ -193,19 +256,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         L.tileLayer(
             'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            {
-                attribution: '© TowTrack'
-            }
+            { attribution: '© TowTrack' }
         ).addTo(map);
 
-        // Render whatever data is already available
         updateMapMarkers();
-
-        // Load fresh data
         loadRequests();
         loadDrivers();
     }
-
 
     function updateMapMarkers() {
         if (!map) return;
@@ -213,29 +270,26 @@ document.addEventListener('DOMContentLoaded', function () {
         markersList = [];
         const bounds = [];
 
-        // SEPARATE mappings for REQUESTS vs DRIVERS to avoid confusion
         const getRequestIconUrl = (status) => {
             switch (status) {
-                case 'pending': return 'image/waypoint-red.png';    // Pending Customer
-                case 'assigned': return 'image/waypoint-blue.png';   // Customer In Progress
-                case 'in progress': return 'image/waypoint-blue.png';   // Customer In Progress
+                case 'pending': return 'image/waypoint-red.png';
+                case 'assigned': return 'image/waypoint-blue.png';
+                case 'in progress': return 'image/waypoint-blue.png';
                 default: return 'image/waypoint-red.png';
             }
         };
 
         const getDriverIconUrl = (map_status) => {
             switch (map_status) {
-                case 'online': return 'image/waypoint-green.png';  // Driver Available
-                case 'busy': return 'image/waypoint-yellow.png'; // Busy Driver
+                case 'online': return 'image/waypoint-green.png';
+                case 'busy': return 'image/waypoint-yellow.png';
                 default: return 'image/waypoint-green.png';
             }
         };
 
         const ICON_SIZE = [24, 24];
 
-
         // REQUESTS (Customers)
-
         requests
             .filter(req => ['pending', 'assigned', 'in progress'].includes(req.status))
             .forEach(req => {
@@ -254,18 +308,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
                 marker.bindPopup(`
-                <b>${req.status === 'pending' ? 'Pending Request' : 'Service Request'}</b>
-                <br>Request ID: ${req.request_id}
-                <br>Customer: ${req.customer_name || 'Unknown'}
-                <br>Status: ${req.status}
-            `);
+                    <b>${req.status === 'pending' ? 'Pending Request' : 'Service Request'}</b>
+                    <br>Request ID: ${req.request_id}
+                    <br>Customer: ${req.customer_name || 'Unknown'}
+                    <br>Status: ${req.status}
+                `);
                 markersList.push(marker);
                 bounds.push([lat, lng]);
             });
 
-
         // DRIVERS
-
         drivers
             .filter(d => ['online', 'busy'].includes(d.map_status))
             .forEach(d => {
@@ -273,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const lng = Number(d.lng ?? d.longitude ?? d.driver_lng);
                 if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-                const iconUrl = getDriverIconUrl(d.map_status); // SEPARATE function!
+                const iconUrl = getDriverIconUrl(d.map_status);
 
                 const markerIcon = L.icon({
                     iconUrl: iconUrl,
@@ -284,17 +336,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
                 marker.bindPopup(`
-                <b>${d.name || 'Driver'}</b>
-                <br>Vehicle: ${d.vehicle || 'N/A'}
-                <br>Status: ${d.status}
-                <br>Rating: ${d.rating || 'N/A'} ⭐
-            `);
+                    <b>${d.name || 'Driver'}</b>
+                    <br>Vehicle: ${d.vehicle || 'N/A'}
+                    <br>Status: ${d.status}
+                    <br>Rating: ${d.rating || 'N/A'} ⭐
+                `);
                 markersList.push(marker);
                 bounds.push([lat, lng]);
             });
-
-
-        // Map View
 
         const KORONADAL = [6.4215, 124.7859];
         if (bounds.length > 0) {
@@ -306,14 +355,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function refreshMapMarkers() {
-        // In production, this would update with real location data
         loadDrivers();
         loadRequests();
         showAlert("Map updated", "success");
     }
 
+    // ============================================================
+    //  RENDER: DRIVERS
+    // ============================================================
     function renderDrivers() {
-        // console.log('driver data:', drivers);
         const container = document.getElementById("driversListContainer");
         if (!container) return;
 
@@ -331,7 +381,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         <th>Phone</th>
                         <th>Email</th>
                         <th>Status</th>
-                      <!--  <th>Performance</th> -->
                         <th>Trips</th>
                         <th>Earnings (30d)</th>
                         <th>Actions</th>
@@ -348,9 +397,6 @@ document.addEventListener('DOMContentLoaded', function () {
                                     ${d.status || 'Inactive'}
                                 </span>
                             </td>
-                      <!--      <td>
-                                ${d.rating ? Number(d.rating).toFixed(1) + ' ⭐' : 'No rating'}
-                            </td> -->
                             <td>${d.total_completed || 0}</td>
                             <td>₱${Number(d.earnings_30d || 0).toFixed(2)}</td>
                             <td>
@@ -366,9 +412,11 @@ document.addEventListener('DOMContentLoaded', function () {
     `;
     }
 
+    // ============================================================
+    //  RENDER: CUSTOMERS
+    // ============================================================
     function renderCustomers(dataToRender) {
         const tbody = document.getElementById('customersTable');
-        console.trace();
         if (!tbody) return;
 
         if (!Array.isArray(dataToRender) || dataToRender.length === 0) {
@@ -377,26 +425,27 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         tbody.innerHTML = dataToRender.map(c => `<tr>
-        <td>${c.id}</td>
-        <td>${c.name || '—'}</td>
-        <td>${c.phone || '—'}</td>
-        <td>${c.email || 0}</td>
-        <td>₱${Number(c.total_spent || 0).toFixed(2)}</td>
-        <td>
-            <div class="overflow-menu">
-                <button class="btn-icon overflow-trigger" title="Actions">⋮</button>
-                <div class="overflow-dropdown">
-                    <button class="dropdown-item" onclick="editCustomer(${c.id})" title="Edit Customer">✏️ Edit</button>
-                    <button class="dropdown-item" onclick="deleteCustomer(${c.id})" title="Delete Customer" style="color: #dc3545;">🗑️ Delete</button>
+            <td>${c.id}</td>
+            <td>${c.name || '—'}</td>
+            <td>${c.phone || '—'}</td>
+            <td>${c.email || '—'}</td>
+            <td>₱${Number(c.total_spent || 0).toFixed(2)}</td>
+            <td>
+                <div class="overflow-menu">
+                    <button class="btn-icon overflow-trigger" data-menu-id="cust-${c.id}" title="Actions">⋮</button>
+                    <div class="overflow-dropdown" data-menu-id="cust-${c.id}">
+                        <button class="dropdown-item" onclick="editCustomer(${c.id})" title="Edit Customer">✏️ Edit</button>
+                        <button class="dropdown-item" onclick="deleteCustomer(${c.id})" title="Delete Customer" style="color: #dc3545;">🗑️ Delete</button>
+                    </div>
                 </div>
-            </div>
-        </td>
-    </tr>`).join('');
+            </td>
+        </tr>`).join('');
+
+        pruneOrphanDropdowns();
     }
 
     function editCustomer(customerId) {
         const customer = customers.find(c => String(c.id) === String(customerId));
-
         if (!customer) {
             console.error('Customer not found:', customerId);
             return;
@@ -409,16 +458,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.getElementById('customerModal').style.display = 'flex';
     }
+
     window.deleteCustomer = async function (customerId) {
-        if (!confirm('Are you sure you want to delete this customer?')) {
-            return;
-        }
+        if (!confirm('Are you sure you want to delete this customer?')) return;
 
         try {
-            await apiFetch(`/admin/customers/${customerId}`, {
-                method: 'DELETE'
-            });
-
+            await apiFetch(`/admin/customers/${customerId}`, { method: 'DELETE' });
             await loadCustomers();
             showAlert('Customer deleted', 'success');
         } catch (error) {
@@ -433,6 +478,20 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('customerModal').style.display = 'flex';
     }
 
+    window.viewCustomer = function (customerId) {
+        const customer = customers.find(c => String(c.id) === String(customerId));
+        if (!customer) {
+            showAlert('Customer not found', 'danger');
+            return;
+        }
+
+        document.getElementById('editCustId').value = customer.id;
+        document.getElementById('custName').value = customer.name || '';
+        document.getElementById('custPhone').value = customer.phone || '';
+        document.getElementById('custEmail').value = customer.email || '';
+        document.getElementById('customerModal').style.display = 'flex';
+    };
+
     async function saveCustomer() {
         const id = document.getElementById('editCustId').value.trim();
 
@@ -446,17 +505,13 @@ document.addEventListener('DOMContentLoaded', function () {
             if (id) {
                 await apiFetch(`/admin/customers/${id}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
             } else {
                 await apiFetch('/admin/customers', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
             }
@@ -470,16 +525,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-
-
-
-
-
+    // ============================================================
+    //  RENDER: PAYMENTS
+    // ============================================================
     function renderPayments() {
-        // console.log('payments data:', payments);
-
         const tbody = document.getElementById('paymentsTable');
-
         if (!tbody) return;
 
         if (!payments || payments.length === 0) {
@@ -488,72 +538,51 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td colspan="8" style="text-align:center; padding:2rem;">
                     No payment records found
                 </td>
-            </tr>
-        `;
+            </tr>`;
             return;
         }
 
         tbody.innerHTML = payments.map(p => `
-    <tr>
-        <td>${p.receipt || '—'}</td>
-
-        <td>#${p.request_id || '—'}</td>
-
-        <td>${p.customer || '—'}</td>
-
-        <td>₱${Number(p.amount || 0).toFixed(2)}</td>
-
-        <td>${p.payment_method || '—'}</td>
-
-        <td>
-            ${p.payment_date
-                ? new Date(p.payment_date).toLocaleDateString()
-                : '—'}
-        </td>
-
-        <td>
-            <span class="status-badge status-${p.status || 'unknown'}">
-                ${p.status || '—'}
-            </span>
-        </td>
-
-        <td>
-            <div class="overflow-menu">
-
-                <button class="btn-icon overflow-trigger" title="Actions">
-                    ⋮
-                </button>
-
-                <div class="overflow-dropdown">
-
-                    ${p.payment_method === 'cash'
-                ? `<span class="dropdown-item disabled">Awaiting driver confirmation</span>`
-                : `
-                            <button class="dropdown-item" onclick="viewPaymentProof(${p.payment_id})">
-                                View Proof
-                            </button>
-                            ${p.status === 'pending'
-                    ? `<button class="dropdown-item" onclick="approvePayment(${p.payment_id})">Approve</button>
-                                   <button class="dropdown-item" onclick="rejectPayment(${p.payment_id})">Reject</button>`
-                    : ''}
-                        `
-            }
-                <button class="dropdown-item text-danger" onclick="deletePayment(${p.payment_id})">
-        Delete
-    </button>
-
-
+        <tr>
+            <td>${p.receipt || '—'}</td>
+            <td>#${p.request_id || '—'}</td>
+            <td>${p.customer || '—'}</td>
+            <td>₱${Number(p.amount || 0).toFixed(2)}</td>
+            <td>${p.payment_method || '—'}</td>
+            <td>${p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '—'}</td>
+            <td>
+                <span class="status-badge status-${p.status || 'unknown'}">
+                    ${p.status || '—'}
+                </span>
+            </td>
+            <td>
+                <div class="overflow-menu">
+                    <button class="btn-icon overflow-trigger" data-menu-id="pay-${p.payment_id}" title="Actions">⋮</button>
+                    <div class="overflow-dropdown" data-menu-id="pay-${p.payment_id}">
+                        ${p.payment_method === 'cash'
+                            ? `<span class="dropdown-item disabled">Awaiting driver confirmation</span>`
+                            : `
+                                <button class="dropdown-item" onclick="viewPaymentProof(${p.payment_id})">View Proof</button>
+                                ${p.status === 'pending'
+                                    ? `<button class="dropdown-item" onclick="approvePayment(${p.payment_id})">Approve</button>
+                                       <button class="dropdown-item" onclick="rejectPayment(${p.payment_id})">Reject</button>`
+                                    : ''}
+                            `
+                        }
+                        <button class="dropdown-item text-danger" onclick="deletePayment(${p.payment_id})">
+                            Delete
+                        </button>
+                    </div>
                 </div>
-            </div>
-        </td>
-    </tr>
-`).join('');
+            </td>
+        </tr>
+        `).join('');
+
+        pruneOrphanDropdowns();
     }
 
     window.deletePayment = async function (paymentId) {
-        if (!confirm('Are you sure you want to delete this payment record? This cannot be undone.')) {
-            return;
-        }
+        if (!confirm('Are you sure you want to delete this payment record? This cannot be undone.')) return;
 
         try {
             await apiFetch(`/admin/payments/${paymentId}`, { method: 'DELETE' });
@@ -564,6 +593,7 @@ document.addEventListener('DOMContentLoaded', function () {
             showAlert('Could not delete payment', 'danger');
         }
     };
+
     const PAYMENT_LABELS = {
         completed: { cls: 'paid', text: 'Paid' },
         pending: { cls: 'pending', text: 'Pending' },
@@ -578,118 +608,79 @@ document.addEventListener('DOMContentLoaded', function () {
         return `<span class="payment-status ${p.cls}">${p.text}</span>`;
     }
 
-    function renderRequests(dataToRender) { // <--- Accept data as a parameter
+    // ============================================================
+    //  RENDER: REQUESTS
+    // ============================================================
+    function renderRequests(dataToRender) {
         const tbody = document.getElementById("requestsTable");
         if (!tbody) return;
 
-        // Use dataToRender instead of the global 'requests' variable
         if (!Array.isArray(dataToRender) || dataToRender.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem;">No service requests found</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:2rem;">No service requests found</td></tr>`;
             return;
         }
 
         tbody.innerHTML = dataToRender.map(r => `
-   <tr>
-    <td><strong>#${r.request_id}</strong></td>
-    <td>
-        <div><strong>${r.customer_name || 'Unknown'}</strong></div>
-      <!--  <div style="font-size:0.9em; color:#666;">${r.customer_phone || '123'}</div>-->
-    </td>
-    <td style="max-width:300px; white-space:normal; word-wrap:break-word;">${r.location || 'Unknown'}</td>
-    <td>${r.driver_name || '—'}</td>
-    <td><span class="status-badge status-${r.status || 'pending'}">${r.status || 'pending'}</span></td>
-   <td>${paymentBadge(r.payment_status)}</td>
-    <td style="color:#666; font-size:0.9em;">${r.created_at || ''}</td>
-   <td>
-    <div class="overflow-menu">
-    <button class="btn-icon overflow-trigger" title="Actions">⋮</button>
+        <tr>
+            <td><strong>#${r.request_id}</strong></td>
+            <td>
+                <div><strong>${r.customer_name || 'Unknown'}</strong></div>
+            </td>
+            <td style="max-width:300px; white-space:normal; word-wrap:break-word;">${r.location || 'Unknown'}</td>
+            <td>${r.driver_name || '—'}</td>
+            <td><span class="status-badge status-${r.status || 'pending'}">${r.status || 'pending'}</span></td>
+            <td>${paymentBadge(r.payment_status)}</td>
+            <td style="color:#666; font-size:0.9em;">${r.created_at || ''}</td>
+            <td>
+                <div class="overflow-menu">
+                    <button class="btn-icon overflow-trigger" data-menu-id="req-${r.request_id}" title="Actions">⋮</button>
+                    <div class="overflow-dropdown" data-menu-id="req-${r.request_id}">
+                        ${!r.driver_id && r.status === 'pending'
+                            ? `<button class="dropdown-item" onclick="openAssignDriverModal(${r.request_id})">Assign Driver</button>`
+                            : ''
+                        }
 
-    <div class="overflow-dropdown">
+                        ${r.completion_photo_url
+                            ? `<button
+                                    class="dropdown-item view-completion-btn"
+                                    data-url="${escapeHtml(r.completion_photo_url)}"
+                                    data-request-id="${r.request_id}">
+                                    Completion Photo
+                               </button>`
+                            : ''
+                        }
 
-        ${!r.driver_id && r.status === 'pending'
-                ? `<button
-                    class="dropdown-item"
-                    onclick="openAssignDriverModal(${r.request_id})">
-                     Assign Driver
-                </button>`
-                : ''
-            }
+                        <button class="dropdown-item" onclick="editRequest(${r.request_id})" title="Edit Request">
+                            Edit Request
+                        </button>
 
-        ${r.completion_photo_url
-                ? `<button
-    class="dropdown-item view-completion-btn"
-    data-url="${escapeHtml(r.completion_photo_url)}"
-    data-request-id="${r.request_id}">
-    Completion Photo
-</button>`
-                : ''
-            }
+                        <button class="dropdown-item" onclick="viewCustomer(${r.user_id})" title="View Customer">
+                            View Customer
+                        </button>
 
-        <button
-            class="dropdown-item"
-            onclick="editRequest(${r.request_id})"
-            title="Edit Request">
-            Edit Request
-        </button>
+                        <button class="dropdown-item" onclick="deleteRequest(${r.request_id})" title="Delete Request" style="color:#dc3545;">
+                            Delete Request
+                        </button>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        `).join("");
 
-        <button
-            class="dropdown-item"
-            onclick="openCustomerModal(${r.user_id})"
-            title="View Customer">
-             View Customer
-        </button>
-
-        <button
-            class="dropdown-item"
-            onclick="deleteRequest(${r.request_id})"
-            title="Delete Request"
-            style="color:#dc3545;">
-             Delete Request
-        </button>
-
-    </div>
-    </div>
-</td>
-
-</tr>
-`).join("");
+        pruneOrphanDropdowns();
     }
 
-    document.addEventListener('click', (e) => {
-        const btn = e.target.closest('.view-completion-btn');
-        if (!btn) return;
-        viewCompletionProof(btn.dataset.url, btn.dataset.requestId);
-    });
-
-
-
-
-    document.addEventListener('click', function (e) {
-        const menu = e.target.closest('.overflow-menu');
-        if (menu && e.target.classList.contains('overflow-trigger')) {
-            menu.classList.toggle('active');
-        } else if (!menu) {
-            document.querySelectorAll('.overflow-menu').forEach(m => m.classList.remove('active'));
-        } else if (menu && e.target.classList.contains('dropdown-item')) {
-            menu.classList.remove('active');
-        }
-    });
-
-
-
-
+    // ============================================================
+    //  SEARCH
+    // ============================================================
     window.handleGlobalSearch = async function (term) {
         const clearBtn = document.getElementById('clearSearch');
-        clearBtn.style.display = term ? 'inline-block' : 'none';
+        if (clearBtn) clearBtn.style.display = term ? 'inline-block' : 'none';
 
         const matchedRequests = filterRequests(term);
         const matchedUsers = filterUsers(term);
 
-        console.log('term:', term);
-        console.log('matchedRequests count:', matchedRequests.length, matchedRequests);
-
         const activePanel = document.querySelector('.tab-panel.active')?.id;
-        console.log('activePanel:', activePanel);
 
         if (activePanel === 'requestsPanel') {
             renderRequests(matchedRequests);
@@ -699,8 +690,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         updateSearchHint(term, activePanel, matchedRequests, matchedUsers);
     };
+
     function updateSearchHint(term, activePanel, matchedRequests, matchedUsers) {
         const hint = document.getElementById('searchHint');
+        if (!hint) return;
 
         if (!term.trim()) {
             hint.style.display = 'none';
@@ -718,35 +711,23 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    window.switchTab = function (tabName) {
-        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-        document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
-
-        document.getElementById(tabName + 'Pane').classList.add('active');
-        document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
-
-        const term = document.getElementById('globalSearch').value;
-        if (tabName === 'requests') {
-            renderRequests(filterRequests(term));
-        } else if (tabName === 'users') {
-            renderCustomers(filterUsers(term));
-        }
-    }
     window.clearGlobalSearch = function () {
         const input = document.getElementById('globalSearch');
         input.value = '';
         handleGlobalSearch('');
         input.focus();
-    }
+    };
+
     document.addEventListener('keydown', function (e) {
         if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
             e.preventDefault();
             document.getElementById('globalSearch').focus();
         }
     });
+
     function filterRequests(term) {
         term = (term || '').toLowerCase().trim();
-        if (!term) return requests; // <-- replace `requests` with your actual variable name
+        if (!term) return requests;
         return requests.filter(r =>
             String(r.request_id).includes(term) ||
             (r.customer_name || '').toLowerCase().includes(term) ||
@@ -759,36 +740,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function filterUsers(term) {
         term = (term || '').toLowerCase().trim();
-        if (!term) return customers; // <-- replace `users` with your actual variable name
+        if (!term) return customers;
         return customers.filter(u =>
             (u.name || '').toLowerCase().includes(term) ||
             (u.phone || '').toLowerCase().includes(term) ||
             (u.email || '').toLowerCase().includes(term)
         );
     }
-
-    // function updateSearchHint(term, matchedRequests, matchedUsers) {
-    //     const hint = document.getElementById('searchHint');
-    //     if (!term.trim()) {
-    //         hint.style.display = 'none';
-    //         return;
-    //     }
-
-    //     const currentlyShowing = activeModal === 'users'
-    //         ? 'users'
-    //         : document.querySelector('.tab.active')?.dataset.tab;
-
-    //     let html = '';
-    //     if (currentlyShowing !== 'requests') {
-    //         html += `${matchedRequests.length} request(s) — <a href="#" onclick="switchTab('requests'); return false;">view</a><br>`;
-    //     }
-    //     if (currentlyShowing !== 'users') {
-    //         html += `${matchedUsers.length} customer(s) — <a href="#" onclick="switchTab('users'); return false;">view</a>`;
-    //     }
-
-    //     hint.innerHTML = html;
-    //     hint.style.display = html ? 'block' : 'none';
-    // }
 
     function updateStats() {
         const statRequests = document.getElementById('statRequests');
@@ -800,13 +758,16 @@ document.addEventListener('DOMContentLoaded', function () {
         if (statDrivers) statDrivers.innerText = drivers.filter(d => d.status !== 'offline').length;
         if (statCompleted) statCompleted.innerText = requests.filter(r => r.status === 'completed').length;
         if (statRevenue) {
-            let pendingRev = requests.filter(r => r.status === 'completed' && r.payment !== 'paid')
-                .reduce((s, r) => s + r.amount, 0);
+            let pendingRev = requests
+                .filter(r => r.status === 'completed' && r.payment !== 'paid')
+                .reduce((s, r) => s + (Number(r.amount) || 0), 0);
             statRevenue.innerText = `$${pendingRev}`;
         }
     }
 
-
+    // ============================================================
+    //  REQUESTS CRUD
+    // ============================================================
     function openRequestModal() {
         document.getElementById('editReqId').value = '';
         document.getElementById('requestForm').reset();
@@ -825,7 +786,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('reqStatus').value = req.status || 'pending';
         document.getElementById('requestModal').style.display = 'flex';
     }
-    //make request?
+
     async function saveRequest() {
         const request_id = document.getElementById('editReqId').value.trim();
         const data = {
@@ -838,51 +799,42 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             if (request_id) {
-                // Update existing
                 await apiFetch(`/admin/requests/${request_id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-
                 showAlert("Request updated successfully", "success");
             } else {
-                // Create new
                 await apiFetch(`/admin/requests`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-
                 showAlert("New request added", "success");
             }
 
-            await loadRequests(); // Refresh list
+            await loadRequests();
             closeModal('requestModal');
         } catch (err) {
             console.error("Save error:", err);
             showAlert("Error saving request — check console", "danger");
-            console.log('check and r.id kag ang sa getrequests matulog nko');
         }
     }
-    // delete request
+
     async function deleteRequest(reqId) {
         if (!confirm("Are you sure you want to delete this request? This cannot be undone.")) return;
 
         try {
-            await apiFetch(`/admin/requests/${reqId}`, {
-                method: 'DELETE'
-            });
-
+            await apiFetch(`/admin/requests/${reqId}`, { method: 'DELETE' });
             showAlert("Request deleted successfully", "success");
-            await loadRequests(); // Refresh list after delete
+            await loadRequests();
         } catch (err) {
             console.error("Delete error:", err);
             showAlert("Failed to delete request", "danger");
         }
     }
 
-    // update the payment status
     async function markPayment(reqId) {
         if (!confirm("Mark this request as paid?")) return;
         try {
@@ -890,101 +842,36 @@ document.addEventListener('DOMContentLoaded', function () {
             showAlert("Payment marked as paid", "success");
             await loadRequests();
             await loadPayments();
-
         } catch (err) {
             console.error("Failed to update payment:", err);
             showAlert("Error updating payment", "danger");
         }
     }
 
-    async function assignDriverPrompt(reqId) {
-        let freeDrivers = drivers.filter(d => d.status !== 'busy');
-        if (freeDrivers.length === 0) {
-            alert("No available drivers");
-            return;
-        }
-        let input = prompt(`Enter driver ID (${freeDrivers.map(d => `${d.id}: ${d.name}`).join(', ')})`);
-        let driver = drivers.find(d => d.id == input);
-        if (driver) {
-            try {
-                await apiFetch(`/requests/${reqId}/assign`, {
-                    method: 'POST',
-                    body: JSON.stringify({ driver_id: driver.id })
-                });
-                showAlert(`Assigned to ${driver.name}`, "success");
-                await loadRequests();
-                await loadDrivers();
-                updateMapMarkers();
-
-            } catch (error) {
-                console.error('Failed to assign driver:', error);
-            }
-        }
-    }
-
-    // async function markPayment(reqId, amt) {
-    //     let req = requests.find(r => r.id === reqId);
-    //     if (req && req.payment !== 'paid') {
-    //         try {
-    //             await apiFetch(`/requests/${reqId}/pay`, {
-    //                 method: 'POST',
-    //                 body: JSON.stringify({
-    //                     amount: amt,
-    //                     payment_method: 'cash'
-    //                 })
-    //             });
-    //             showAlert(`Payment recorded: $${amt}`, "success");
-    //             await loadRequests();
-    //             await loadPayments();
-    //             updateStats();
-    //         } catch (error) {
-    //             console.error('Failed to record payment:', error);
-    //         }
-    //     }
-    // }
-
-    // ========== CRUD: DRIVERS ==========
+    // ============================================================
+    //  DRIVERS CRUD
+    // ============================================================
     function openDriverModal() {
         document.getElementById('editDriverId').value = '';
-
         document.getElementById('driverForm').reset();
-
-        document.getElementById('driverStatusSelect').value =
-            'offline';
-
-        document.getElementById('driverModal').style.display =
-            'flex';
+        document.getElementById('driverStatusSelect').value = 'offline';
+        document.getElementById('driverModal').style.display = 'flex';
     }
 
     function editDriver(id) {
-        const d = drivers.find(
-            x => Number(x.id) === Number(id)
-        );
-
+        const d = drivers.find(x => Number(x.id) === Number(id));
         if (!d) {
             console.error('Driver not found:', id);
             return;
         }
 
         document.getElementById('editDriverId').value = d.id;
-
-        document.getElementById('driverName').value =
-            d.name || '';
-
-        document.getElementById('driverPhone').value =
-            d.phone || '';
-
-        document.getElementById('driverEmail').value =
-            d.email || '';
-
-        document.getElementById('driverPassword').value =
-            '';
-
-        document.getElementById('driverStatusSelect').value =
-            d.status || 'offline';
-
-        document.getElementById('driverModal').style.display =
-            'flex';
+        document.getElementById('driverName').value = d.name || '';
+        document.getElementById('driverPhone').value = d.phone || '';
+        document.getElementById('driverEmail').value = d.email || '';
+        document.getElementById('driverPassword').value = '';
+        document.getElementById('driverStatusSelect').value = d.status || 'offline';
+        document.getElementById('driverModal').style.display = 'flex';
     }
 
     async function saveDriver() {
@@ -1003,7 +890,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Only require password when creating a driver
         if (!id && !data.password) {
             showAlert('Password is required for a new driver.', 'danger');
             return;
@@ -1011,66 +897,45 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             if (id) {
-
                 await apiFetch(`/admin/drivers/${id}`, {
                     method: 'PUT',
                     body: JSON.stringify(data)
                 });
-
-
-                showAlert(
-                    'Driver updated successfully.',
-                    'success'
-                );
-
+                showAlert('Driver updated successfully.', 'success');
             } else {
-
                 await apiFetch('/admin/drivers', {
                     method: 'POST',
                     body: JSON.stringify(data)
                 });
-
-
-                showAlert(
-                    'Driver account created successfully.',
-                    'success'
-                );
+                showAlert('Driver account created successfully.', 'success');
             }
 
             await loadDrivers();
-
             closeModal('driverModal');
-
         } catch (error) {
             console.error('Failed to save driver:', error);
-
-            showAlert(
-                error.message || 'Failed to save driver.',
-                'danger'
-            );
+            showAlert(error.message || 'Failed to save driver.', 'danger');
         }
     }
 
     async function deleteDriver(id) {
-        if (confirm("Remove this driver?")) {
-            try {
-                await apiFetch(`/drivers/${id}`, {
-                    method: 'DELETE'
-                });
-                showAlert("Deleted", "success");
-                await loadDrivers();
-                updateMapMarkers();
+        if (!confirm("Remove this driver?")) return;
 
-            } catch (error) {
-                console.error('Failed to delete driver:', error);
-            }
+        try {
+            await apiFetch(`/admin/drivers/${id}`, { method: 'DELETE' });
+            showAlert("Deleted", "success");
+            await loadDrivers();
+            updateMapMarkers();
+        } catch (error) {
+            console.error('Failed to delete driver:', error);
         }
     }
 
-    // ========== PAYMENTS ==========
+    // ============================================================
+    //  PAYMENTS (demo)
+    // ============================================================
     async function addDemoPayment() {
         try {
-            // Find a completed request without payment
             let unpaidRequest = requests.find(r => r.status === 'completed' && r.payment !== 'paid');
             if (unpaidRequest) {
                 await markPayment(unpaidRequest.id, unpaidRequest.amount);
@@ -1082,9 +947,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // ========== UI NAVIGATION ==========
+    // ============================================================
+    //  UI NAVIGATION
+    // ============================================================
     async function switchPanel(panelId, title) {
-
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         const panel = document.getElementById(panelId);
         if (panel) panel.classList.add('active');
@@ -1098,128 +964,48 @@ document.addEventListener('DOMContentLoaded', function () {
             updateMapMarkers();
         }
 
-        if (panelId === 'requestsPanel') {
-            await loadRequests();
-        }
-        if (panelId === 'driversPanel') {
-            await loadDrivers();
-        }
-        if (panelId === 'usersPanel') {
-            await loadCustomers();
-        }
-        if (panelId === 'paymentsPanel') {
-            await loadPayments();
-        }
-        if (panelId === 'servicePricesPanel') {
-            await loadServicePrices();
-        }
+        if (panelId === 'requestsPanel')   await loadRequests();
+        if (panelId === 'driversPanel')    await loadDrivers();
+        if (panelId === 'usersPanel')      await loadCustomers();
+        if (panelId === 'paymentsPanel')   await loadPayments();
+        if (panelId === 'servicePricesPanel') await loadServicePrices();
+        if (panelId === 'gcashqrPanel')    await loadGcashQr();
 
-        // Now runs AFTER the data has actually finished loading
         const term = document.getElementById('globalSearch')?.value || '';
-        if (term) {
-            handleGlobalSearch(term);
-        }
+        if (term) handleGlobalSearch(term);
     }
 
-    // ========== EXPOSE FUNCTIONS TO GLOBAL SCOPE ==========
-    window.refreshMapMarkers = refreshMapMarkers;
-    window.openRequestModal = openRequestModal;
-    window.editRequest = editRequest;
-    window.saveRequest = saveRequest;
-    window.assignDriverPrompt = assignDriverPrompt;
-    window.markPayment = markPayment;
-    window.openDriverModal = openDriverModal;
-    window.editDriver = editDriver;
-    window.saveDriver = saveDriver;
-    window.deleteDriver = deleteDriver;
-    window.openCustomerModal = openCustomerModal;
-    window.editCustomer = editCustomer;
-    window.saveCustomer = saveCustomer;
-    window.addDemoPayment = addDemoPayment;
-    window.closeModal = closeModal;
-    window.switchPanel = switchPanel;
-    window.deleteRequest = deleteRequest;
-
-    // ========== EVENT LISTENERS ==========
-    function setupNavigation() {
-        document.querySelectorAll('.nav-item[data-tab]').forEach(link => {
-            link.addEventListener('click', function (e) {
-                const tab = this.getAttribute('data-tab');
-
-                if (tab === 'dashboard') {
-                    switchPanel('dashboardPanel', 'Dashboard');
-                } else if (tab === 'requests') {
-                    switchPanel('requestsPanel', 'Service Requests');
-                } else if (tab === 'drivers') {
-                    switchPanel('driversPanel', 'Tow Drivers');
-                } else if (tab === 'users') {
-                    switchPanel('usersPanel', 'Customers');
-                } else if (tab === 'payments') {
-                    switchPanel('paymentsPanel', 'Payments & Receipts');
-                } else if (tab === 'serviceprices') {
-                    switchPanel('servicePricesPanel', 'Service Prices');
-                } else if (tab === 'gcashqr') {
-                    switchPanel('gcashqrPanel', 'GCash QR');
-                }
-            });
-        });
-    }
-
-    function setupLogout() {
-        const logoutBtn = document.getElementById('logoutBtnSidebar');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', handleLogout);
-        }
-    }
+    // ============================================================
+    //  ADMIN CRUD
+    // ============================================================
     window.openAdminModal = function () {
-
         document.getElementById('editAdminId').value = '';
-
         document.getElementById('adminName').value = '';
         document.getElementById('adminPhone').value = '';
         document.getElementById('adminEmail').value = '';
         document.getElementById('adminPassword').value = '';
-
-        document.getElementById('adminModalTitle').textContent =
-            'Add Admin';
-
+        document.getElementById('adminModalTitle').textContent = 'Add Admin';
         document.getElementById('adminModal').style.display = 'flex';
     };
 
     function editAdmin(id) {
-
-        const admin = admins.find(
-            x => Number(x.id) === Number(id)
-        );
-
+        const admin = admins.find(x => Number(x.id) === Number(id));
         if (!admin) {
             console.error('Admin not found:', id);
             return;
         }
 
         document.getElementById('editAdminId').value = admin.id;
-
-        document.getElementById('adminName').value =
-            admin.name || '';
-
-        document.getElementById('adminPhone').value =
-            admin.phone || '';
-
-        document.getElementById('adminEmail').value =
-            admin.email || '';
-
+        document.getElementById('adminName').value = admin.name || '';
+        document.getElementById('adminPhone').value = admin.phone || '';
+        document.getElementById('adminEmail').value = admin.email || '';
         document.getElementById('adminPassword').value = '';
-
-        document.getElementById('adminModalTitle').textContent =
-            'Edit Admin';
-
+        document.getElementById('adminModalTitle').textContent = 'Edit Admin';
         document.getElementById('adminModal').style.display = 'flex';
     }
 
     window.saveAdmin = async function () {
-
-        const id =
-            document.getElementById('editAdminId').value;
+        const id = document.getElementById('editAdminId').value;
 
         const data = {
             name: document.getElementById('adminName').value.trim(),
@@ -1232,81 +1018,49 @@ document.addEventListener('DOMContentLoaded', function () {
             showAlert('Admin name is required.', 'danger');
             return;
         }
-
         if (!data.email) {
             showAlert('Admin email is required.', 'danger');
             return;
         }
-
-        // Password required only when creating
         if (!id && !data.password) {
-            showAlert(
-                'Password is required for a new admin.',
-                'danger'
-            );
+            showAlert('Password is required for a new admin.', 'danger');
             return;
         }
 
         try {
-
             if (id) {
-
                 await apiFetch(`/admin/admins/${id}`, {
                     method: 'PUT',
                     body: JSON.stringify(data)
                 });
-
-                showAlert(
-                    'Admin updated successfully.',
-                    'success'
-                );
-
+                showAlert('Admin updated successfully.', 'success');
             } else {
-
                 await apiFetch('/admin/admins', {
                     method: 'POST',
                     body: JSON.stringify(data)
                 });
-
-                showAlert(
-                    'Admin account created successfully.',
-                    'success'
-                );
+                showAlert('Admin account created successfully.', 'success');
             }
 
             await loadAdmins();
-
             closeModal('adminModal');
-
         } catch (error) {
-
-            console.error(
-                'Failed to save admin:',
-                error
-            );
-
-            showAlert(
-                error.message || 'Failed to save admin.',
-                'danger'
-            );
+            console.error('Failed to save admin:', error);
+            showAlert(error.message || 'Failed to save admin.', 'danger');
         }
-    }
+    };
 
     function renderAdmins() {
-        // console.log("admin data:", admins);
         const container = document.getElementById("adminsListContainer");
-
         if (!container) {
-            console.error("adminListContainer NOT FOUND");
+            console.error("adminsListContainer NOT FOUND");
             return;
         }
 
         if (!Array.isArray(admins) || admins.length === 0) {
             container.innerHTML = `
-            <p style="text-align:center; padding:2rem; color:#666;">
-                No admins found
-            </p>
-        `;
+                <p style="text-align:center; padding:2rem; color:#666;">No admins found</p>
+            `;
             return;
         }
 
@@ -1329,11 +1083,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <td>${admin.phone || '--'}</td>
                             <td>${admin.email || '--'}</td>
                             <td>${admin.is_active ? 'Active' : 'Inactive'}</td>
-                            <td>
-                                ${admin.created_at
-                ? new Date(admin.created_at).toLocaleDateString()
-                : '--'}
-                            </td>
+                            <td>${admin.created_at ? new Date(admin.created_at).toLocaleDateString() : '--'}</td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -1342,8 +1092,10 @@ document.addEventListener('DOMContentLoaded', function () {
     `;
     }
 
+    // ============================================================
+    //  INIT
+    // ============================================================
     async function init() {
-        // Load user from sessionStorage (set during login)
         let user = JSON.parse(sessionStorage.getItem('user') || '{"name":"Admin User"}');
 
         const avatar = document.getElementById('avatarInitials');
@@ -1352,95 +1104,312 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const profileName = document.getElementById('profileName');
-        if (profileName) {
-            profileName.innerText = user.name;
-        }
+        if (profileName) profileName.innerText = user.name;
 
-        // Initialize everything
         initMap();
-        // await loadDashboardStats();
         await loadRequests();
         await loadDrivers();
         await loadCustomers();
         await loadPayments();
+
+        updateStats();
+
         setupNavigation();
         setupLogout();
         setupQrUpload();
-        setupLogout();
-
 
         console.log('Admin dashboard initialized successfully!');
     }
 
+    function setupNavigation() {
+        document.querySelectorAll('.nav-item[data-tab]').forEach(link => {
+            link.addEventListener('click', function () {
+                const tab = this.getAttribute('data-tab');
+
+                if (tab === 'dashboard')      switchPanel('dashboardPanel', 'Dashboard');
+                else if (tab === 'requests')  switchPanel('requestsPanel', 'Service Requests');
+                else if (tab === 'drivers')   switchPanel('driversPanel', 'Tow Drivers');
+                else if (tab === 'users')     switchPanel('usersPanel', 'Customers');
+                else if (tab === 'payments')  switchPanel('paymentsPanel', 'Payments & Receipts');
+                else if (tab === 'serviceprices') switchPanel('servicePricesPanel', 'Service Prices');
+                else if (tab === 'gcashqr')   switchPanel('gcashqrPanel', 'GCash QR');
+            });
+        });
+    }
+
+    function setupLogout() {
+        const logoutBtn = document.getElementById('logoutBtnSidebar');
+        if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+    }
+
+    // ============================================================
+    //  SERVICE PRICES
+    // ============================================================
+    async function loadServicePrices() {
+        const tbody = document.getElementById('servicePricesTableBody');
+        if (!tbody) {
+            console.error('servicePricesTableBody not found');
+            return;
+        }
+
+        tbody.innerHTML = `<tr><td colspan="5">Loading services...</td></tr>`;
+
+        try {
+            const data = await apiFetch('/admin/service-types');
+
+            const services = Array.isArray(data.services) ? data.services : [];
+
+            servicesCache = services;
+
+            if (services.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5">No service types found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = services.map(service => {
+                const price = Number(service.base_price || 0);
+
+                return `
+                    <tr>
+                        <td><strong>${escapeHtml(service.name)}</strong></td>
+                        <td>${escapeHtml(service.description || 'No description')}</td>
+                        <td><strong>₱${price.toLocaleString('en-PH', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        })}</strong></td>
+                        <td>
+                            ${Number(service.is_active) === 1
+                                ? '<span class="status active">Active</span>'
+                                : '<span class="status inactive">Inactive</span>'}
+                        </td>
+                        <td>
+                            <button
+                                class="btn btn-primary edit-service-price-btn"
+                                data-service-id="${service.service_type_id}">
+                                Edit Price
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Load service prices error:', error);
+            tbody.innerHTML = `<tr><td colspan="5">Failed to load service prices.</td></tr>`;
+        }
+    }
+
+    const servicePricesTableBody = document.getElementById('servicePricesTableBody');
+    if (servicePricesTableBody) {
+        servicePricesTableBody.addEventListener('click', (e) => {
+            const btn = e.target.closest('.edit-service-price-btn');
+            if (!btn) return;
+
+            const id = btn.dataset.serviceId;
+            const service = servicesCache.find(s => String(s.service_type_id) === String(id));
+            if (!service) return;
+
+            openServicePriceModal(service);
+        });
+    }
+
+    function openServicePriceModal(service) {
+        document.getElementById('editServiceTypeId').value = service.service_type_id;
+        document.getElementById('editServiceName').value = service.name || '';
+        document.getElementById('editServiceDescription').value = service.description || '';
+        document.getElementById('editServicePrice').value = Number(service.base_price || 0).toFixed(2);
+
+        const modal = document.getElementById('servicePriceModal');
+        modal.style.display = '';
+        modal.classList.add('active');
+    }
+
+    async function saveServicePrice() {
+        const serviceTypeId = document.getElementById('editServiceTypeId').value;
+        const priceInput = document.getElementById('editServicePrice');
+        const basePrice = Number(priceInput.value);
+
+        if (!serviceTypeId) {
+            alert('Invalid service type.');
+            return;
+        }
+
+        if (!Number.isFinite(basePrice) || basePrice < 0) {
+            alert('Please enter a valid price.');
+            priceInput.focus();
+            return;
+        }
+
+        try {
+            await apiFetch(`/admin/service-types/${serviceTypeId}/price`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ base_price: basePrice })
+            });
+
+            closeModal('servicePriceModal');
+            await loadServicePrices();
+            alert('Service price updated successfully.');
+        } catch (error) {
+            console.error('Save service price error:', error);
+            alert(error.message || 'Failed to update service price.');
+        }
+    }
+
+    // ============================================================
+    //  GCASH QR
+    // ============================================================
+    async function loadGcashQr() {
+        const qrImg = document.getElementById('currentQr');
+        const msg = document.getElementById('qrMsg');
+        if (!qrImg) return;
+
+        try {
+            const r = await fetch('/api/settings/gcash-qr');
+            const data = await r.json();
+
+            if (data.success && data.image_path) {
+                const raw = data.image_path;
+                qrImg.src = raw.startsWith('http') || raw.startsWith('data:')
+                    ? raw
+                    : raw + '?t=' + Date.now();
+                qrImg.alt = 'Current GCash QR';
+                if (msg) msg.textContent = '';
+            } else {
+                qrImg.removeAttribute('src');
+                qrImg.alt = 'No QR set';
+                if (msg) {
+                    msg.textContent = 'No QR set yet — upload one below.';
+                    msg.style.color = '#666';
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load QR:', e);
+            if (msg) {
+                msg.textContent = 'Failed to load current QR.';
+                msg.style.color = 'red';
+            }
+        }
+    }
+
+    function setupQrUpload() {
+        const form = document.getElementById('qrUploadForm');
+        const qrImg = document.getElementById('currentQr');
+        const msg = document.getElementById('qrMsg');
+
+        if (!form || form.dataset.bound === '1') return;
+        form.dataset.bound = '1';
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            msg.textContent = 'Uploading...';
+            msg.style.color = '#666';
+
+            const formData = new FormData(form);
+
+            try {
+                const r = await fetch('/api/settings/gcash-qr', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await r.json();
+
+                if (data.success) {
+                    msg.textContent = 'QR updated!';
+                    msg.style.color = 'green';
+
+                    const raw = data.image_path;
+                    qrImg.src = raw.startsWith('http') || raw.startsWith('data:')
+                        ? raw
+                        : raw + '?t=' + Date.now();
+
+                    form.reset();
+                } else {
+                    msg.textContent = 'Error: ' + data.message;
+                    msg.style.color = 'red';
+                }
+            } catch (err) {
+                msg.textContent = 'Upload failed: ' + err.message;
+                msg.style.color = 'red';
+            }
+        });
+    }
+
+    // ============================================================
+    //  EXPOSE FUNCTIONS TO GLOBAL SCOPE
+    // ============================================================
+    window.refreshMapMarkers   = refreshMapMarkers;
+    window.openRequestModal    = openRequestModal;
+    window.editRequest         = editRequest;
+    window.saveRequest         = saveRequest;
+    window.markPayment         = markPayment;
+    window.openDriverModal     = openDriverModal;
+    window.editDriver          = editDriver;
+    window.saveDriver          = saveDriver;
+    window.deleteDriver        = deleteDriver;
+    window.openCustomerModal   = openCustomerModal;
+    window.editCustomer        = editCustomer;
+    window.saveCustomer        = saveCustomer;
+    window.addDemoPayment      = addDemoPayment;
+    window.closeModal          = closeModal;
+    window.switchPanel         = switchPanel;
+    window.deleteRequest       = deleteRequest;
+    window.loadServicePrices     = loadServicePrices;
+    window.openServicePriceModal = openServicePriceModal;
+    window.saveServicePrice      = saveServicePrice;
+    window.loadGcashQr           = loadGcashQr;
+
     // Start everything
     init();
 
-});//dom wrapper
-window.viewPaymentProof = async function (paymentId) {
+}); // end DOMContentLoaded wrapper
 
+// ============================================================
+//  GLOBAL HELPERS (outside wrapper)
+// ============================================================
+
+window.viewPaymentProof = async function (paymentId) {
     console.log('View payment proof:', paymentId);
 
     const token = sessionStorage.getItem('token');
-
     if (!token) {
         alert('Authentication required.');
         return;
     }
 
     try {
-
-        const response = await fetch(
-            `${API_BASE_URL}/payments/${paymentId}`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            }
-        );
+        const response = await fetch(`${API_BASE_URL}/payments/${paymentId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
 
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(
-                data.message || 'Failed to load payment.'
-            );
+            throw new Error(data.message || 'Failed to load payment.');
         }
 
         const payment = data.payment;
-
-        console.log('Payment:', payment);
 
         if (!payment.proof_image_path) {
             alert('This payment has no uploaded proof.');
             return;
         }
+
         const proof = payment.proof_image_path || '';
-
         const imageUrl = /^https?:\/\//i.test(proof)
-            ? proof                                            // Cloudinary / any CDN
-            : `${API_BASE_URL.replace(/\/api\/?$/, '')}/${proof.replace(/^\/+/, '')}`; // legacy local path
-
-        console.log('Proof image:', imageUrl);
+            ? proof
+            : `${API_BASE_URL.replace(/\/api\/?$/, '')}/${proof.replace(/^\/+/, '')}`;
 
         document.getElementById('proofImage').src = imageUrl;
-
         document.getElementById('proofMeta').textContent =
             `Reference: ${payment.reference_number || '—'} · ₱${Number(payment.amount || 0).toFixed(2)}`;
 
         document.getElementById('proofModal').classList.add('show');
-
     } catch (error) {
-
-        console.error(
-            'View payment proof error:',
-            error
-        );
-
+        console.error('View payment proof error:', error);
         alert(error.message);
-
     }
-
 };
+
 window.viewCompletionProof = function (photoUrl, requestId) {
     if (!photoUrl) {
         alert('This request has no completion photo.');
@@ -1460,27 +1429,28 @@ window.closeCompletionProofModal = function () {
     document.getElementById('completionProofModal').classList.remove('show');
 };
 
-window.closeCompletionProofModal = function () {
-    document.getElementById('completionProofModal').classList.remove('show');
-};
-
 function closeProofModal() {
     document.getElementById('proofModal').classList.remove('show');
     document.getElementById('proofImage').src = '';
 }
-document.getElementById('proofImage').onerror = function () {
-    this.onerror = null;
-    document.getElementById('proofMeta').textContent = 'Proof image could not be loaded.';
-};
-document.getElementById('proofModal').addEventListener('click', function (e) {
-    if (e.target === this) closeProofModal();
-});
 
+const proofImageEl = document.getElementById('proofImage');
+if (proofImageEl) {
+    proofImageEl.onerror = function () {
+        this.onerror = null;
+        document.getElementById('proofMeta').textContent = 'Proof image could not be loaded.';
+    };
+}
+
+const proofModalEl = document.getElementById('proofModal');
+if (proofModalEl) {
+    proofModalEl.addEventListener('click', function (e) {
+        if (e.target === this) closeProofModal();
+    });
+}
 
 window.approvePayment = async function (paymentId) {
-
     const token = sessionStorage.getItem('token');
-
     if (!token) {
         alert('Authentication required.');
         return;
@@ -1490,119 +1460,73 @@ window.approvePayment = async function (paymentId) {
         `Approve payment #${paymentId}?\n\n` +
         `This will mark the payment as COMPLETED and generate a receipt.`
     );
-
-    if (!confirmed) {
-        return;
-    }
+    if (!confirmed) return;
 
     try {
-
         const response = await fetch(
             `${API_BASE_URL}/admin/payments/${paymentId}/approve`,
             {
                 method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             }
         );
 
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(
-                data.message || 'Failed to approve payment.'
-            );
+            throw new Error(data.message || 'Failed to approve payment.');
         }
 
-        alert(
-            `Payment approved!\n\n` +
-            `Receipt: ${data.receipt_number}`
-        );
-
-        // Reload admin payment table
+        alert(`Payment approved!\n\nReceipt: ${data.receipt_number}`);
         await loadPayments();
-
     } catch (error) {
-
-        console.error(
-            ' Approve payment error:',
-            error
-        );
-
+        console.error('Approve payment error:', error);
         alert(error.message);
     }
 };
 
-
 window.rejectPayment = async function (paymentId) {
-
     const token = sessionStorage.getItem('token');
-
     if (!token) {
         alert('Authentication required.');
         return;
     }
 
-    const reason = prompt(
-        'Why are you rejecting this payment proof?'
-    );
-
-    if (reason === null) {
-        return;
-    }
-
+    const reason = prompt('Why are you rejecting this payment proof?');
+    if (reason === null) return;
     if (!reason.trim()) {
         alert('Please provide a rejection reason.');
         return;
     }
 
     try {
-
         const response = await fetch(
             `${API_BASE_URL}/admin/payments/${paymentId}/reject`,
             {
                 method: 'PUT',
-
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-
-                body: JSON.stringify({
-                    reason: reason.trim()
-                })
+                body: JSON.stringify({ reason: reason.trim() })
             }
         );
 
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(
-                data.message || 'Failed to reject payment.'
-            );
+            throw new Error(data.message || 'Failed to reject payment.');
         }
 
-        alert(
-            'Payment proof rejected.\n\n' +
-            'The customer can now resubmit their proof.'
-        );
-
+        alert('Payment proof rejected.\n\nThe customer can now resubmit their proof.');
         await loadPayments();
-
     } catch (error) {
-
-        console.error(
-            'Reject payment error:',
-            error
-        );
-
+        console.error('Reject payment error:', error);
         alert(error.message);
     }
 };
 
 window.openAssignDriverModal = async function (requestId) {
-
     const modal = document.getElementById('assignDriverModal');
     const requestInput = document.getElementById('assignRequestId');
     const requestDisplay = document.getElementById('assignRequestDisplay');
@@ -1615,355 +1539,73 @@ window.openAssignDriverModal = async function (requestId) {
 
     requestInput.value = requestId;
     requestDisplay.value = `Request #${requestId}`;
-
-    driverSelect.innerHTML = `
-        <option value="">Loading drivers...</option>
-    `;
-
+    driverSelect.innerHTML = `<option value="">Loading drivers...</option>`;
     modal.style.display = 'flex';
 
     try {
-
         const drivers = await apiFetch('/admin/drivers/available');
 
-        const driverList =
-            Array.isArray(drivers)
-                ? drivers
-                : drivers.drivers || [];
+        const driverList = Array.isArray(drivers) ? drivers : drivers.drivers || [];
 
         if (driverList.length === 0) {
-
-            driverSelect.innerHTML = `
-                <option value="">
-                    No available drivers
-                </option>
-            `;
-
+            driverSelect.innerHTML = `<option value="">No available drivers</option>`;
             return;
         }
 
         driverSelect.innerHTML = `
             <option value="">-- Select Driver --</option>
-
             ${driverList.map(driver => `
                 <option value="${driver.user_id}">
-                    ${driver.name}
-                    ${driver.phone ? ` - ${driver.phone}` : ''}
+                    ${driver.name}${driver.phone ? ` - ${driver.phone}` : ''}
                 </option>
             `).join('')}
         `;
-
     } catch (err) {
-
         console.error('Failed to load drivers:', err);
-
-        driverSelect.innerHTML = `
-            <option value="">
-                Failed to load drivers
-            </option>
-        `;
+        driverSelect.innerHTML = `<option value="">Failed to load drivers</option>`;
     }
 };
+
 window.closeAssignDriverModal = function () {
-
     const modal = document.getElementById('assignDriverModal');
-
-    if (modal) {
-        modal.style.display = 'none';
-    }
+    if (modal) modal.style.display = 'none';
 };
+
 window.confirmAssignDriver = async function () {
-
-    const requestId =
-        document.getElementById('assignRequestId').value;
-
-    const driverId =
-        document.getElementById('assignDriverSelect').value;
+    const requestId = document.getElementById('assignRequestId').value;
+    const driverId = document.getElementById('assignDriverSelect').value;
 
     if (!requestId) {
         alert('Request ID is missing.');
         return;
     }
-
     if (!driverId) {
         alert('Please select a driver.');
         return;
     }
 
     try {
-
-        const data = await apiFetch(
-            `/admin/requests/${requestId}/assign-driver`,
-            {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    driver_id: Number(driverId)
-                })
-            }
-        );
+        const data = await apiFetch(`/admin/requests/${requestId}/assign-driver`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ driver_id: Number(driverId) })
+        });
 
         console.log('Driver assigned:', data);
-
-        showToast(
-            `Driver assigned to Request #${requestId}`
-        );
+        showToast(`Driver assigned to Request #${requestId}`);
 
         closeAssignDriverModal();
-
-        // Refresh admin requests
         await loadRequests();
-
     } catch (err) {
-
         console.error('Assign driver error:', err);
-
-        alert(
-            err.message ||
-            'Failed to assign driver.'
-        );
+        alert(err.message || 'Failed to assign driver.');
     }
 };
+
 function escapeHtml(value) {
     const div = document.createElement('div');
     div.textContent = value ?? '';
     return div.innerHTML
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
-}
-
-async function loadServicePrices() {
-
-    const tbody = document.getElementById('servicePricesTableBody');
-
-    if (!tbody) {
-        console.error('servicePricesTableBody not found');
-        return;
-    }
-
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="5">Loading services...</td>
-        </tr>
-    `;
-
-    try {
-
-        const data = await apiFetch('/admin/service-types');
-
-        console.log('🔎 Service Types API response:', data);
-        console.log('🔎 data.services:', data.services);
-
-        // declared ONCE
-        const services = Array.isArray(data.services) ? data.services : [];
-
-        // save to outer cache so the click handler can use it
-        servicesCache = services;
-        console.log('🟢 servicesCache =', servicesCache);
-
-        if (services.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5">No service types found.</td>
-                </tr>
-            `;
-            return;
-        }
-
-        tbody.innerHTML = services.map(service => {
-            const price = Number(service.base_price || 0);
-
-            return `
-                <tr>
-                    <td><strong>${escapeHtml(service.name)}</strong></td>
-                    <td>${escapeHtml(service.description || 'No description')}</td>
-                    <td><strong>₱${price.toLocaleString('en-PH', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            })}</strong></td>
-                    <td>
-                        ${Number(service.is_active) === 1
-                    ? '<span class="status active">Active</span>'
-                    : '<span class="status inactive">Inactive</span>'}
-                    </td>
-                    <td>
-                        <button
-                            class="btn btn-primary edit-service-price-btn"
-                            data-service-id="${service.service_type_id}">
-                            Edit Price
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-
-    } catch (error) {
-
-        console.error('Load service prices error:', error);
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5">Failed to load service prices.</td>
-            </tr>
-        `;
-    }
-}
-document.getElementById('servicePricesTableBody').addEventListener('click', (e) => {
-    const btn = e.target.closest('.edit-service-price-btn');
-    if (!btn) return;
-
-    console.log('🟢 button clicked, id =', btn.dataset.serviceId);
-
-    const id = btn.dataset.serviceId;
-    const service = servicesCache.find(s => String(s.service_type_id) === String(id));
-
-    console.log('🟢 found service =', service);
-
-    if (!service) return;
-
-    openServicePriceModal(service);
-});
-function openServicePriceModal(service) {
-    document.getElementById('editServiceTypeId').value = service.service_type_id;
-    document.getElementById('editServiceName').value = service.name || '';
-    document.getElementById('editServiceDescription').value = service.description || '';
-    document.getElementById('editServicePrice').value = Number(service.base_price || 0).toFixed(2);
-
-    const modal = document.getElementById('servicePriceModal');
-    modal.style.display = '';           // clear leftover inline style
-    modal.classList.add('active');      // show via CSS class
-}
-
-async function saveServicePrice() {
-
-    const serviceTypeId =
-        document.getElementById('editServiceTypeId').value;
-
-    const priceInput =
-        document.getElementById('editServicePrice');
-
-    const basePrice = Number(priceInput.value);
-
-    if (!serviceTypeId) {
-        alert('Invalid service type.');
-        return;
-    }
-
-    if (!Number.isFinite(basePrice) || basePrice < 0) {
-        alert('Please enter a valid price.');
-        priceInput.focus();
-        return;
-    }
-
-    try {
-
-        const data = await apiFetch(
-            `/admin/service-types/${serviceTypeId}/price`,
-            {
-                method: 'PUT',
-
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-
-                body: JSON.stringify({
-                    base_price: basePrice
-                })
-            }
-        );
-
-        // console.log('Price updated:', data);
-
-        closeModal('servicePriceModal');
-
-        await loadServicePrices();
-
-        alert('Service price updated successfully.');
-
-    } catch (error) {
-
-        console.error('Save service price error:', error);
-
-        alert(
-            error.message ||
-            'Failed to update service price.'
-        );
-    }
-};
-async function loadGcashQr() {
-    const qrImg = document.getElementById('currentQr');
-    const msg = document.getElementById('qrMsg');
-    if (!qrImg) return;
-
-    try {
-        const r = await fetch('/api/settings/gcash-qr');
-        const data = await r.json();
-
-        if (data.success && data.image_path) {
-            const raw = data.image_path;
-            qrImg.src = raw.startsWith('http') || raw.startsWith('data:')
-                ? raw
-                : raw + '?t=' + Date.now();
-            qrImg.alt = 'Current GCash QR';
-            if (msg) msg.textContent = '';
-        } else {
-            qrImg.removeAttribute('src');
-            qrImg.alt = 'No QR set';
-            if (msg) {
-                msg.textContent = 'No QR set yet — upload one below.';
-                msg.style.color = '#666';
-            }
-        }
-    } catch (e) {
-        console.error('Failed to load QR:', e);
-        if (msg) {
-            msg.textContent = 'Failed to load current QR.';
-            msg.style.color = 'red';
-        }
-    }
-}
-
-function setupQrUpload() {
-    const form = document.getElementById('qrUploadForm');
-    const qrImg = document.getElementById('currentQr');
-    const msg = document.getElementById('qrMsg');
-
-    if (!form || form.dataset.bound === '1') return;
-    form.dataset.bound = '1';
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        msg.textContent = 'Uploading...';
-        msg.style.color = '#666';
-
-        const formData = new FormData(form);
-
-        try {
-            const r = await fetch('/api/settings/gcash-qr', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await r.json();
-
-            if (data.success) {
-                msg.textContent = 'QR updated!';
-                msg.style.color = 'green';
-
-                const raw = data.image_path;
-                qrImg.src = raw.startsWith('http') || raw.startsWith('data:')
-                    ? raw
-                    : raw + '?t=' + Date.now();
-
-                form.reset();
-            } else {
-                msg.textContent = 'Error: ' + data.message;
-                msg.style.color = 'red';
-            }
-        } catch (err) {
-            msg.textContent = 'Upload failed: ' + err.message;
-            msg.style.color = 'red';
-        }
-    });
 }
