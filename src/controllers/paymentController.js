@@ -14,7 +14,7 @@ async function downloadReceipt(req, res) {
         const paymentId = req.params.paymentId;
 
         console.log('🧾 Generating receipt for payment:', paymentId);
-        console.log('👤 Requested by user:', req.user);
+        console.log(' Requested by user:', req.user);
 
         const payment = await Payment.getReceiptDetails(paymentId);
 

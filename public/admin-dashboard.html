@@ -135,7 +135,7 @@
             <div id="requestsPanel" class="tab-panel">
                 <div class="panel-header-actions">
                     <h2>Service Requests</h2>
-                    <button class="btn btn-primary" onclick="openRequestModal()"> New Request</button>
+
                 </div>
                 <div class="table-wrapper">
                     <table class="data-table">
@@ -165,8 +165,9 @@
 
                     <!-- Overflow Menu -->
                     <div class="overflow-menu">
-                        <button class="btn btn-primary overflow-trigger">
-                            <span class="plus-icon">+</span> Add Someone
+                        <!-- Notice both classes are present -->
+                        <button class="btn add-someone-btn overflow-trigger">
+                            <span class="plus-icon"></span> Add Someone
                         </button>
                         <div class="overflow-dropdown">
                             <button class="dropdown-item" onclick="openDriverModal()">Add Member / Driver</button>
@@ -182,17 +183,15 @@
 
                 <!-- Admins Table Container -->
                 <div class="table-card">
-                    <div class="table-header-label">
-                        <p><b>add delete laturr</b></p>
-                    </div>
+
                     <div id="adminsListContainer"></div>
                 </div>
             </div>
             <!-- CUSTOMERS TAB-->
             <div id="usersPanel" class="tab-panel">
                 <div class="panel-header-actions">
-                    <h2>👥 Customer Directory</h2>
-                    <button class="btn btn-primary" onclick="openCustomerModal()">➕ Add Customer</button>
+                    <h2> Customer Directory</h2>
+                    <button class="btn btn-primary" onclick="openCustomerModal()"> Add Customer</button>
                 </div>
                 <div class="table-wrapper">
                     <table class="data-table">
@@ -214,7 +213,7 @@
             <div id="paymentsPanel" class="tab-panel">
                 <div class="panel-header-actions">
                     <h2>Receipts & Transactions</h2>
-                    <button class="btn btn-primary" onclick="addDemoPayment()">➕ Add Payment</button>
+
                 </div>
                 <div class="table-wrapper">
                     <table class="data-table">
@@ -272,21 +271,31 @@
                     </div>
                 </div>
 
-                <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; margin-top:16px;">
-                    <div>
-                        <p style="margin-bottom:8px; font-weight:600;">Current QR</p>
-                        <img id="currentQr" src="" alt="Current GCash QR"
-                            style="max-width:260px; border:1px solid #ddd; border-radius:8px; padding:6px; background:#fff;">
+                <div class="qr-layout">
+
+                    <!-- Current QR Section -->
+                    <div class="qr-section">
+                        <p class="qr-label">Current QR</p>
+
+                        <div class="qr-image-wrapper">
+                            <img id="currentQr" src="" alt="Current GCash QR"
+                                onerror="this.style.display='none'; document.getElementById('qrPlaceholder').style.display='flex';">
+                            <div id="qrPlaceholder" class="qr-placeholder">
+                                <span class="qr-placeholder-icon">🖼️</span>
+                                No QR Code uploaded
+                            </div>
+                        </div>
                     </div>
 
-                    <div style="min-width:280px;">
-                        <p style="margin-bottom:8px; font-weight:600;">Replace QR</p>
+                    <!-- Replace QR Section -->
+                    <div class="qr-section qr-upload-card">
+                        <p class="qr-label">Replace QR</p>
                         <form id="qrUploadForm" enctype="multipart/form-data">
                             <input type="file" name="gcash_qr" id="gcash_qr" accept="image/png, image/jpeg" required
-                                style="display:block; margin-bottom:10px;">
-                            <button type="submit" class="btn btn-primary">Update QR Code</button>
+                                class="qr-file-input">
+                            <button type="submit" class="btn btn-primary btn-block">Update QR Code</button>
                         </form>
-                        <p id="qrMsg" style="margin-top:10px; font-size:0.9rem;"></p>
+                        <p id="qrMsg" class="qr-message"></p>
                     </div>
                 </div>
             </div>
@@ -403,7 +412,7 @@
     <div id="customerModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <span>👤 Customer Info</span>
+                <span> Customer Info</span>
                 <button onclick="closeModal('customerModal')">✕</button>
             </div>
             <div class="modal-body">
@@ -454,40 +463,42 @@
         </div>
     </div>
     <div id="assignDriverModal" class="modal">
+        <div class="modal-content assign-driver-modal">
 
-        <div class="modal-content">
-
-            <h2>Assign Driver</h2>
-
-            <input type="hidden" id="assignRequestId">
-
-            <div class="form-group">
-                <label>Request</label>
-                <input type="text" id="assignRequestDisplay" readonly>
+            <!-- Header -->
+            <div class="modal-header">
+                <h2>Assign Driver</h2>
+                <button type="button" onclick="closeAssignDriverModal()">&times;</button>
             </div>
 
-            <div class="form-group">
-                <label>Select Driver</label>
+            <!-- Body -->
+            <div class="modal-body">
+                <input type="hidden" id="assignRequestId">
 
-                <select id="assignDriverSelect">
-                    <option value="">Loading drivers...</option>
-                </select>
+                <div class="form-group">
+                    <label for="assignRequestDisplay">Request</label>
+                    <input type="text" id="assignRequestDisplay" readonly class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="assignDriverSelect">Select Driver</label>
+                    <select id="assignDriverSelect" class="form-control">
+                        <option value="">Loading drivers...</option>
+                    </select>
+                </div>
             </div>
 
-            <div style="display:flex; gap:10px; justify-content:flex-end;">
-
-                <button type="button" class="btn btn-secondary" onclick="closeAssignDriverModal()">
+            <!-- Footer / Actions -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAssignDriverModal()">
                     Cancel
                 </button>
-
                 <button type="button" class="btn btn-primary" onclick="confirmAssignDriver()">
                     Assign Driver
                 </button>
-
             </div>
 
         </div>
-
     </div>
     <!-- Edit Service Price Modal -->
     <div id="servicePriceModal" class="modal">

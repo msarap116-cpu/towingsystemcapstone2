@@ -11,9 +11,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let servicesCache = [];
 
-    // ============================================================
+
     //  OVERFLOW DROPDOWN — Google-Drive-style floating menu
-    // ============================================================
+
     let activeDropdown = null;
     let activeMenu     = null;
 
@@ -32,72 +32,40 @@ function closeAllDropdowns() {
     activeMenu     = null;
 }
 
-    function openDropdown(trigger) {
-        const menu = trigger.closest('.overflow-menu');
-        if (!menu) return;
+function openDropdown(trigger) {
+    const menu = trigger.closest('.overflow-menu');
+    if (!menu) return;
 
-        const menuId = trigger.dataset.menuId;   // e.g. "req-42"
+    const dropdown = menu.querySelector('.overflow-dropdown');
+    if (!dropdown) return;
 
-        // 1) Prefer one already parked in <body> (survives table re-renders)
-        let dropdown = menuId
-            ? document.querySelector(`body > .overflow-dropdown[data-menu-id="${CSS.escape(menuId)}"]`)
-            : null;
+    // 1. Add the active class to make it visible (display: block)
+    menu.classList.add('active');
 
-        // 2) Otherwise take the fresh one from inside this menu
-        if (!dropdown) {
-            dropdown = menu.querySelector('.overflow-dropdown');
-            if (!dropdown) return;
-            if (menuId) dropdown.dataset.menuId = menuId;
-        }
+    // 2. Get the exact position of the button
+    const rect = trigger.getBoundingClientRect();
 
-        closeAllDropdowns();
+    // 3. Calculate position (below the button, aligned to the left)
+    // We add 8px so it doesn't touch the button directly
+    let top = rect.bottom + 8;
+    let left = rect.left;
 
-        // Move it out of the table on first open
-        if (dropdown.parentElement !== document.body) {
-            document.body.appendChild(dropdown);
-        }
-
-        dropdown.style.display = 'block';
-
-        // ---- Measure ----
-        const rowEl      = trigger.closest('tr') || trigger;
-        const anchorRect = rowEl.getBoundingClientRect();
-        const btnRect    = trigger.getBoundingClientRect();
-        const ddRect     = dropdown.getBoundingClientRect();
-
-        const GAP  = 6;
-        const EDGE = 8;
-
-        // ---- Vertical placement ----
-        const spaceBelow = window.innerHeight - anchorRect.bottom;
-        const spaceAbove = anchorRect.top;
-
-        let top;
-        if (spaceBelow >= ddRect.height + GAP) {
-            top = anchorRect.bottom + GAP;
-        } else if (spaceAbove >= ddRect.height + GAP) {
-            top = anchorRect.top - ddRect.height - GAP;
-        } else {
-            top = window.innerHeight - ddRect.height - EDGE;
-        }
-        if (top < EDGE) top = EDGE;
-        if (top + ddRect.height > window.innerHeight - EDGE) {
-            top = window.innerHeight - ddRect.height - EDGE;
-        }
-
-        // ---- Horizontal placement — right-align with the ⋮ button ----
-        let left = btnRect.right - ddRect.width;
-        const maxLeft = window.innerWidth - ddRect.width - EDGE;
-        if (left > maxLeft) left = maxLeft;
-        if (left < EDGE)    left = EDGE;
-
-        dropdown.style.top  = top  + 'px';
-        dropdown.style.left = left + 'px';
-
-        menu.classList.add('active');
-        activeMenu     = menu;
-        activeDropdown = dropdown;
+    // 4. Prevent it from going off the right side of the screen
+    // (Assuming max-width is 280px)
+    if (left + 280 > window.innerWidth) {
+        left = window.innerWidth - 290;
     }
+
+    // 5. Prevent it from going off the bottom of the screen
+    // If there's not enough room below, open it upwards instead
+    if (top + dropdown.offsetHeight > window.innerHeight) {
+        top = rect.top - dropdown.offsetHeight - 8;
+    }
+
+    // 6. Apply the calculated positions directly to the element
+    dropdown.style.top = top + 'px';
+    dropdown.style.left = left + 'px';
+}
 
     // ---------- One delegated click handler for the whole page ----------
     document.addEventListener('click', function (e) {
@@ -107,6 +75,8 @@ function closeAllDropdowns() {
         if (trigger) {
             const menu    = trigger.closest('.overflow-menu');
             const wasOpen = menu && menu.classList.contains('active');
+
+             console.log("Was it open?", wasOpen); // Is this true when it should be false?
 
             closeAllDropdowns();
             if (!wasOpen) openDropdown(trigger);
@@ -141,9 +111,9 @@ function closeAllDropdowns() {
     }
     window.pruneOrphanDropdowns = pruneOrphanDropdowns;
 
-    // ============================================================
+
     //  LOAD DATA FUNCTIONS
-    // ============================================================
+
 
     window.loadRequests = async function () {
         try {
@@ -362,9 +332,9 @@ function closeAllDropdowns() {
         showAlert("Map updated", "success");
     }
 
-    // ============================================================
+
     //  RENDER: DRIVERS
-    // ============================================================
+
     function renderDrivers() {
         const container = document.getElementById("driversListContainer");
         if (!container) return;
@@ -383,8 +353,7 @@ function closeAllDropdowns() {
                         <th>Phone</th>
                         <th>Email</th>
                         <th>Status</th>
-                        <th>Trips</th>
-                        <th>Earnings (30d)</th>
+
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -399,8 +368,7 @@ function closeAllDropdowns() {
                                     ${d.status || 'Inactive'}
                                 </span>
                             </td>
-                            <td>${d.total_completed || 0}</td>
-                            <td>₱${Number(d.earnings_30d || 0).toFixed(2)}</td>
+
                             <td>
                                 <button class="btn-delete" onclick="deleteDriver(${d.user_id})" title="Delete driver">
                                     🗑️
@@ -414,9 +382,9 @@ function closeAllDropdowns() {
     `;
     }
 
-    // ============================================================
+
     //  RENDER: CUSTOMERS
-    // ============================================================
+
     function renderCustomers(dataToRender) {
         const tbody = document.getElementById('customersTable');
         if (!tbody) return;
@@ -436,8 +404,8 @@ function closeAllDropdowns() {
                 <div class="overflow-menu">
                     <button class="btn-icon overflow-trigger" data-menu-id="cust-${c.id}" title="Actions">⋮</button>
                     <div class="overflow-dropdown" data-menu-id="cust-${c.id}">
-                        <button class="dropdown-item" onclick="editCustomer(${c.id})" title="Edit Customer">✏️ Edit</button>
-                        <button class="dropdown-item" onclick="deleteCustomer(${c.id})" title="Delete Customer" style="color: #dc3545;">🗑️ Delete</button>
+                        <button class="dropdown-item" onclick="editCustomer(${c.id})" title="Edit Customer"> Edit</button>
+                        <button class="dropdown-item" onclick="deleteCustomer(${c.id})" title="Delete Customer" style="color: #dc3545;"> Delete</button>
                     </div>
                 </div>
             </td>
@@ -527,9 +495,9 @@ function closeAllDropdowns() {
         }
     }
 
-    // ============================================================
+
     //  RENDER: PAYMENTS
-    // ============================================================
+
     function renderPayments() {
         const tbody = document.getElementById('paymentsTable');
         if (!tbody) return;
@@ -610,9 +578,9 @@ function closeAllDropdowns() {
         return `<span class="payment-status ${p.cls}">${p.text}</span>`;
     }
 
-    // ============================================================
+
     //  RENDER: REQUESTS
-    // ============================================================
+
     function renderRequests(dataToRender) {
         const tbody = document.getElementById("requestsTable");
         if (!tbody) return;
@@ -672,9 +640,9 @@ function closeAllDropdowns() {
         pruneOrphanDropdowns();
     }
 
-    // ============================================================
+
     //  SEARCH
-    // ============================================================
+
     window.handleGlobalSearch = async function (term) {
         const clearBtn = document.getElementById('clearSearch');
         if (clearBtn) clearBtn.style.display = term ? 'inline-block' : 'none';
@@ -767,9 +735,9 @@ function closeAllDropdowns() {
         }
     }
 
-    // ============================================================
+
     //  REQUESTS CRUD
-    // ============================================================
+
     function openRequestModal() {
         document.getElementById('editReqId').value = '';
         document.getElementById('requestForm').reset();
@@ -850,9 +818,9 @@ function closeAllDropdowns() {
         }
     }
 
-    // ============================================================
+
     //  DRIVERS CRUD
-    // ============================================================
+
     function openDriverModal() {
         document.getElementById('editDriverId').value = '';
         document.getElementById('driverForm').reset();
@@ -933,9 +901,9 @@ function closeAllDropdowns() {
         }
     }
 
-    // ============================================================
+
     //  PAYMENTS (demo)
-    // ============================================================
+
     async function addDemoPayment() {
         try {
             let unpaidRequest = requests.find(r => r.status === 'completed' && r.payment !== 'paid');
@@ -949,9 +917,9 @@ function closeAllDropdowns() {
         }
     }
 
-    // ============================================================
+
     //  UI NAVIGATION
-    // ============================================================
+
     async function switchPanel(panelId, title) {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         const panel = document.getElementById(panelId);
@@ -977,9 +945,9 @@ function closeAllDropdowns() {
         if (term) handleGlobalSearch(term);
     }
 
-    // ============================================================
+
     //  ADMIN CRUD
-    // ============================================================
+
     window.openAdminModal = function () {
         document.getElementById('editAdminId').value = '';
         document.getElementById('adminName').value = '';
@@ -1094,9 +1062,9 @@ function closeAllDropdowns() {
     `;
     }
 
-    // ============================================================
+
     //  INIT
-    // ============================================================
+
     async function init() {
         let user = JSON.parse(sessionStorage.getItem('user') || '{"name":"Admin User"}');
 
@@ -1144,9 +1112,9 @@ function closeAllDropdowns() {
         if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
     }
 
-    // ============================================================
+
     //  SERVICE PRICES
-    // ============================================================
+
     async function loadServicePrices() {
         const tbody = document.getElementById('servicePricesTableBody');
         if (!tbody) {
@@ -1257,88 +1225,122 @@ function closeAllDropdowns() {
         }
     }
 
-    // ============================================================
+
     //  GCASH QR
-    // ============================================================
-    async function loadGcashQr() {
-        const qrImg = document.getElementById('currentQr');
-        const msg = document.getElementById('qrMsg');
-        if (!qrImg) return;
+async function loadGcashQr() {
+    const qrImg = document.getElementById('currentQr');
+    const placeholder = document.getElementById('qrPlaceholder');
+    const msg = document.getElementById('qrMsg');
+
+    if (!qrImg || !placeholder) return;
+
+    try {
+        const r = await fetch('/api/settings/gcash-qr');
+        const data = await r.json();
+
+        if (data.success && data.image_path) {
+            const raw = data.image_path;
+            qrImg.src = raw.startsWith('http') || raw.startsWith('data:')
+                ? raw
+                : raw + '?t=' + Date.now();
+            qrImg.alt = 'Current GCash QR';
+
+            // Show image, hide placeholder
+            qrImg.style.display = 'block';
+            placeholder.style.display = 'none';
+
+            if (msg) {
+                msg.textContent = '';
+                msg.className = 'qr-message'; // Reset classes
+            }
+        } else {
+            // No QR code set
+            qrImg.removeAttribute('src');
+            qrImg.alt = 'No QR set';
+
+            // Hide broken image, show placeholder
+            qrImg.style.display = 'none';
+            placeholder.style.display = 'flex';
+
+            if (msg) {
+                msg.textContent = 'No QR set yet — upload one below.';
+                msg.className = 'qr-message info'; // Use CSS class for styling
+            }
+        }
+    } catch (e) {
+        console.error('Failed to load QR:', e);
+
+        // Hide image, show placeholder on error
+        qrImg.style.display = 'none';
+        placeholder.style.display = 'flex';
+
+        if (msg) {
+            msg.textContent = 'Failed to load current QR.';
+            msg.className = 'qr-message error'; // Use CSS class for styling
+        }
+    }
+}
+
+function setupQrUpload() {
+    const form = document.getElementById('qrUploadForm');
+    const qrImg = document.getElementById('currentQr');
+    const placeholder = document.getElementById('qrPlaceholder');
+    const msg = document.getElementById('qrMsg');
+
+    if (!form || form.dataset.bound === '1') return;
+    form.dataset.bound = '1';
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (msg) {
+            msg.textContent = 'Uploading...';
+            msg.className = 'qr-message info'; // Use CSS class
+        }
+
+        const formData = new FormData(form);
 
         try {
-            const r = await fetch('/api/settings/gcash-qr');
+            const r = await fetch('/api/settings/gcash-qr', {
+                method: 'POST',
+                body: formData
+            });
             const data = await r.json();
 
-            if (data.success && data.image_path) {
+            if (data.success) {
+                if (msg) {
+                    msg.textContent = 'QR updated!';
+                    msg.className = 'qr-message success'; // Use CSS class
+                }
+
                 const raw = data.image_path;
                 qrImg.src = raw.startsWith('http') || raw.startsWith('data:')
                     ? raw
                     : raw + '?t=' + Date.now();
-                qrImg.alt = 'Current GCash QR';
-                if (msg) msg.textContent = '';
+
+                // Show image, hide placeholder
+                qrImg.style.display = 'block';
+                placeholder.style.display = 'none';
+
+                form.reset();
             } else {
-                qrImg.removeAttribute('src');
-                qrImg.alt = 'No QR set';
                 if (msg) {
-                    msg.textContent = 'No QR set yet — upload one below.';
-                    msg.style.color = '#666';
+                    msg.textContent = 'Error: ' + (data.message || 'Unknown error');
+                    msg.className = 'qr-message error'; // Use CSS class
                 }
             }
-        } catch (e) {
-            console.error('Failed to load QR:', e);
+        } catch (err) {
             if (msg) {
-                msg.textContent = 'Failed to load current QR.';
-                msg.style.color = 'red';
+                msg.textContent = 'Upload failed: ' + err.message;
+                msg.className = 'qr-message error'; // Use CSS class
             }
         }
-    }
+    });
+}
 
-    function setupQrUpload() {
-        const form = document.getElementById('qrUploadForm');
-        const qrImg = document.getElementById('currentQr');
-        const msg = document.getElementById('qrMsg');
 
-        if (!form || form.dataset.bound === '1') return;
-        form.dataset.bound = '1';
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            msg.textContent = 'Uploading...';
-            msg.style.color = '#666';
-
-            const formData = new FormData(form);
-
-            try {
-                const r = await fetch('/api/settings/gcash-qr', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await r.json();
-
-                if (data.success) {
-                    msg.textContent = 'QR updated!';
-                    msg.style.color = 'green';
-
-                    const raw = data.image_path;
-                    qrImg.src = raw.startsWith('http') || raw.startsWith('data:')
-                        ? raw
-                        : raw + '?t=' + Date.now();
-
-                    form.reset();
-                } else {
-                    msg.textContent = 'Error: ' + data.message;
-                    msg.style.color = 'red';
-                }
-            } catch (err) {
-                msg.textContent = 'Upload failed: ' + err.message;
-                msg.style.color = 'red';
-            }
-        });
-    }
-
-    // ============================================================
     //  EXPOSE FUNCTIONS TO GLOBAL SCOPE
-    // ============================================================
+
     window.refreshMapMarkers   = refreshMapMarkers;
     window.openRequestModal    = openRequestModal;
     window.editRequest         = editRequest;
@@ -1365,9 +1367,9 @@ function closeAllDropdowns() {
 
 }); // end DOMContentLoaded wrapper
 
-// ============================================================
+
 //  GLOBAL HELPERS (outside wrapper)
-// ============================================================
+
 
 window.viewPaymentProof = async function (paymentId) {
     console.log('View payment proof:', paymentId);

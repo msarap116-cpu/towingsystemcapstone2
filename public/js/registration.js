@@ -558,11 +558,11 @@ if (emailInput) {
                 const isAvailable = await checkEmailAvailability(emailToCheck);
                 if (emailStatus) {
                     if (!isAvailable) {
-                        emailStatus.textContent = '⚠️ Email already registered';
+                        emailStatus.textContent = 'Email already registered';
                         emailStatus.style.color = 'red';
                         emailStatus.style.display = 'block';
                     } else {
-                        emailStatus.textContent = 'GoodWrenchEmail available';
+                        emailStatus.textContent = 'available, ensure that it is active';
                         emailStatus.style.color = 'green';
                         emailStatus.style.display = 'block';
                     }

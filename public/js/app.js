@@ -667,7 +667,7 @@ window.loadUserProfile = async function () {
 
         const user = await apiFetch('/users/profile');
 
-        console.log('👤 Loaded user profile:', user);
+        console.log(' Loaded user profile:', user);
 
         const nameElement =
             document.getElementById('profileName');

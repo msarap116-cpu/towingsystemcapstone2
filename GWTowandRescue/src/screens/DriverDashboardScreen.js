@@ -1379,7 +1379,7 @@ useEffect(() => {
                     </View>
                     {/* NEW: Customer info */}
                     <Text style={styles.tripCustomer}>
-                      👤 {item.customer_name || 'Customer'}
+                       {item.customer_name || 'Customer'}
                     </Text>
 
                     {item.customer_phone ? (
