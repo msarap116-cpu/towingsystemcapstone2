@@ -165,7 +165,7 @@ const DriverDashboardScreen = ({ navigation }) => {
       watchIdRef.current = null;
     }
 
-    console.log('GPS tracking stopped');
+    // console.log('GPS tracking stopped');
   };
 
   useEffect(() => {
@@ -198,7 +198,7 @@ const DriverDashboardScreen = ({ navigation }) => {
     socket.on('trip:updated', refresh);
     socket.on('payment:updated', refresh);
     socket.on('connect', () => {
-      console.log('🔌 socket connected, id =', socket.id);
+      console.log(' socket connected, id =', socket.id);
       refresh();
     });
 
@@ -267,7 +267,7 @@ useEffect(() => {
   // };
 
 
-  console.log(' API_BASE_URL =', API_BASE_URL);
+  // console.log(' API_BASE_URL =', API_BASE_URL);
 
   // ===== AUTH FUNCTIONS =====
   const checkAuth = async () => {
@@ -372,7 +372,7 @@ useEffect(() => {
     try {
       console.log(' GET', url);
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      console.log('my-trips status:', res.status);
+      // console.log('my-trips status:', res.status);
       if (!res.ok) {
         console.warn(' my-trips body:', await res.text());
         return [];
@@ -494,7 +494,7 @@ useEffect(() => {
 
       // Check for active trip for tracking
       const activeTrip = active.find(t => t.status === 'assigned' || t.status === 'in progress');
-      console.log('activeTrip:', activeTrip);
+      // console.log('activeTrip:', activeTrip);
       if (activeTrip) {
         setActiveRequestId(activeTrip.request_id);
         setActiveTripData(activeTrip);
@@ -582,8 +582,8 @@ useEffect(() => {
           enableHighAccuracy: true,
           timeout: 15000,
           maximumAge: 10000,
-          forceRequestLocation: true,       // ⭐ this was missing or wrong
-          showLocationDialog: true,         // ⭐
+          forceRequestLocation: true,
+          showLocationDialog: true,
         }
       );
     });
@@ -591,7 +591,7 @@ useEffect(() => {
 
   const startGPSTracking = () => {
     stopGPSTracking();
-    console.log('Starting driver GPS tracking...');
+    // console.log('Starting driver GPS tracking...');
 
     watchIdRef.current = Geolocation.watchPosition(
       async position => {
@@ -691,13 +691,13 @@ useEffect(() => {
       console.log('drawRoute called with:', fromLat, fromLng, toLat, toLng);
       const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
       const response = await fetch(url);
-      console.log('OSRM response status:', response.status);
+      // console.log('OSRM response status:', response.status);
       const data = await response.json();
-      console.log('OSRM response code:', data.code, 'routes found:', data.routes?.length);
+      // console.log('OSRM response code:', data.code, 'routes found:', data.routes?.length);
 
       if (data.code === 'Ok') {
         const coordinates = data.routes[0].geometry.coordinates;
-        console.log('Route points:', coordinates.length);
+        // console.log('Route points:', coordinates.length);
         const coords = coordinates.map(coord => ({
           latitude: coord[1],
           longitude: coord[0]

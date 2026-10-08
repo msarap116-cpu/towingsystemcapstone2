@@ -26,13 +26,88 @@ document.addEventListener("DOMContentLoaded", () => {
     const loginForm = document.getElementById("loginForm");
     if (loginForm) {
         loginForm.addEventListener("submit", handleLogin);
+
+        // Restore any existing lockout state
+        if (isLockedOut()) {
+            lockLoginForm();
+        }
     }
 });
+
+// ---- Login attempt limiter config ----
+const MAX_ATTEMPTS = 4;
+const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 minutes (optional)
+
+// ---- Attempt tracking helpers ----
+function getFailedAttempts() {
+    return parseInt(sessionStorage.getItem("failedLoginAttempts") || "0", 10);
+}
+
+function setFailedAttempts(count) {
+    sessionStorage.setItem("failedLoginAttempts", String(count));
+}
+
+function getLockoutUntil() {
+    return parseInt(sessionStorage.getItem("loginLockoutUntil") || "0", 10);
+}
+
+function setLockoutUntil(timestamp) {
+    sessionStorage.setItem("loginLockoutUntil", String(timestamp));
+}
+
+function isLockedOut() {
+    const lockoutUntil = getLockoutUntil();
+
+    // Permanent lockout (no expiry set)
+    if (lockoutUntil === -1) return true;
+
+    // Timed lockout
+    if (lockoutUntil > Date.now()) return true;
+
+    // Lockout expired → reset
+    if (lockoutUntil > 0 && lockoutUntil <= Date.now()) {
+        resetLoginAttempts();
+    }
+    return false;
+}
+
+function resetLoginAttempts() {
+    sessionStorage.removeItem("failedLoginAttempts");
+    sessionStorage.removeItem("loginLockoutUntil");
+}
+
+function lockLoginForm() {
+    const loginForm = document.getElementById("loginForm");
+    const loginBtn = document.getElementById("loginBtn");
+
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = "Too many attempts – locked";
+    }
+    if (loginForm) {
+        loginForm.querySelectorAll("input, button").forEach(el => {
+            el.disabled = true;
+        });
+    }
+
+    showAlert(
+        `Too many failed login attempts. Please try again later.`,
+        "danger"
+    );
+}
+
 //handle the login
 async function handleLogin(e) {
     console.log("starting the handleLogin");
 
     e.preventDefault();
+
+    // ---- Block if already locked out ----
+    if (isLockedOut()) {
+        showAlert("Too many failed login attempts. Please try again later.", "danger");
+        lockLoginForm();
+        return;
+    }
 
     console.log(typeof API_BASE_URL);
 
@@ -62,6 +137,9 @@ async function handleLogin(e) {
         const data = await response.json();
 
         if (response.ok) {
+
+            // ---- Successful login → reset attempts ----
+            resetLoginAttempts();
 
             sessionStorage.setItem("token", data.token);
             sessionStorage.setItem("user", JSON.stringify(data.user));
@@ -94,7 +172,29 @@ async function handleLogin(e) {
 
         } else {
 
-            showAlert(data.error || "Login failed", "danger");
+            // ---- Failed login → increment attempt count ----
+            const attempts = getFailedAttempts() + 1;
+            setFailedAttempts(attempts);
+
+            const remaining = MAX_ATTEMPTS - attempts;
+
+            if (attempts >= MAX_ATTEMPTS) {
+                // Lock the account
+                setLockoutUntil(-1); // permanent until reset
+                // Or for timed lockout, use: setLockoutUntil(Date.now() + LOCKOUT_DURATION_MS);
+
+                showAlert(
+                    "Too many failed login attempts. Your account has been temporarily locked.",
+                    "danger"
+                );
+                lockLoginForm();
+                return;
+            }
+
+            showAlert(
+                `${data.error || "Login failed"}. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining.`,
+                "danger"
+            );
 
         }
 
@@ -102,12 +202,16 @@ async function handleLogin(e) {
 
         console.error(error);
 
+        // Network errors do NOT count toward the attempt limit
         showAlert("Network error", "danger");
 
     } finally {
 
-        loginBtn.innerHTML = originalText;
-        loginBtn.disabled = false;
+        // Don't re-enable the form if locked out
+        if (!isLockedOut()) {
+            loginBtn.innerHTML = originalText;
+            loginBtn.disabled = false;
+        }
 
     }
 }

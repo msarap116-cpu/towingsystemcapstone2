@@ -135,8 +135,8 @@ const DashboardScreen = ({ navigation, route }) => {
   }, [isPaid]);
 
   useEffect(() => {
-  console.log('receipt dupes:', findDupes(receipts, 'payment_id'));
-  console.log('activity dupes:', findDupes(recentActivities, 'request_id'));
+  // console.log('receipt dupes:', findDupes(receipts, 'payment_id'));
+  // console.log('activity dupes:', findDupes(recentActivities, 'request_id'));
 }, [receipts, recentActivities]);
 
   useEffect(() => {
@@ -403,7 +403,7 @@ const DashboardScreen = ({ navigation, route }) => {
     );
   };
 
-  // ===== DASHBOARD DATA =====
+  //DASHBOARD DATA
   const loadDashboardData = async (silent = false) => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -415,15 +415,15 @@ const DashboardScreen = ({ navigation, route }) => {
         cache: 'no-store'
       });
 
-      console.log('Response status:', res.status);
+      // console.log('Response status:', res.status);
 
-      const data = await res.json();           //  read ONCE, declare `data` here
-      console.log('Raw data:', JSON.stringify(data));
+      const data = await res.json();
+      // console.log('Raw data:', JSON.stringify(data));
 
       if (res.ok) {
         const request = Array.isArray(data) ? data[0] : data;
-        console.log('POLL RESULT:', request?.request_id, request?.status);
-        console.log('RENDERING WITH STATUS:', latestRequest?.status);
+        // console.log('POLL RESULT:', request?.request_id, request?.status);
+        // console.log('RENDERING WITH STATUS:', latestRequest?.status);
 
         setLatestRequest(request);
         await loadPaymentRecord(request?.request_id);
@@ -566,7 +566,7 @@ const loadPaymentRecord = async (reqId) => {
         const data = await res.json();
         const request = Array.isArray(data) ? data[0] : data;
 
-        console.log('POLL RESULT:', request?.request_id, request?.status);
+        // console.log('POLL RESULT:', request?.request_id, request?.status);
 
         setLatestRequest(request);
 

@@ -41,7 +41,7 @@ app.set('io', io);
 
 // Connection handler
 io.on('connection', (socket) => {
-  console.log('🔌 socket connected:', socket.id);
+  console.log(' socket connected:', socket.id);
 
   // Auth (optional): read token from handshake
   const token = socket.handshake.auth?.token;

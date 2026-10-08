@@ -12,68 +12,68 @@ document.addEventListener('DOMContentLoaded', function () {
     let servicesCache = [];
 
     let activeDropdown = null;
-    let activeMenu     = null;
+    let activeMenu = null;
 
-function closeAllDropdowns() {
-    // hide every dropdown currently in <body> or inside a menu
-    document.querySelectorAll('.overflow-dropdown').forEach(el => {
-        el.style.display = 'none';
-    });
+    function closeAllDropdowns() {
+        // hide every dropdown currently in <body> or inside a menu
+        document.querySelectorAll('.overflow-dropdown').forEach(el => {
+            el.style.display = 'none';
+        });
 
-    // remove the active class from any open menu
-    document.querySelectorAll('.overflow-menu.active').forEach(m => {
-        m.classList.remove('active');
-    });
+        // remove the active class from any open menu
+        document.querySelectorAll('.overflow-menu.active').forEach(m => {
+            m.classList.remove('active');
+        });
 
-    activeDropdown = null;
-    activeMenu     = null;
-}
-
-function openDropdown(trigger) {
-    const menu = trigger.closest('.overflow-menu');
-    if (!menu) return;
-
-    const dropdown = menu.querySelector('.overflow-dropdown');
-    if (!dropdown) return;
-
-    // add the active class to make it visible (display: block)
-    menu.classList.add('active');
-
-    // Get the exact position of the button
-    const rect = trigger.getBoundingClientRect();
-
-    //calculate position (below the button, aligned to the left)
-    // We add 8px so it doesn't touch the button directly
-    let top = rect.bottom + 8;
-    let left = rect.left;
-
-    // prevent it from going off the right side of the screen
-
-    if (left + 280 > window.innerWidth) {
-        left = window.innerWidth - 290;
+        activeDropdown = null;
+        activeMenu = null;
     }
 
-    // prevent it from going off the bottom of the screen
-    // If there's not enough room below, open it upwards instead
-    if (top + dropdown.offsetHeight > window.innerHeight) {
-        top = rect.top - dropdown.offsetHeight - 8;
-    }
+    function openDropdown(trigger) {
+        const menu = trigger.closest('.overflow-menu');
+        if (!menu) return;
 
-    // apply the calculated positions directly to the element
-    dropdown.style.top = top + 'px';
-    dropdown.style.left = left + 'px';
-}
+        const dropdown = menu.querySelector('.overflow-dropdown');
+        if (!dropdown) return;
+
+        // add the active class to make it visible (display: block)
+        menu.classList.add('active');
+
+        // Get the exact position of the button
+        const rect = trigger.getBoundingClientRect();
+
+        //calculate position (below the button, aligned to the left)
+        // We add 8px so it doesn't touch the button directly
+        let top = rect.bottom + 8;
+        let left = rect.left;
+
+        // prevent it from going off the right side of the screen
+
+        if (left + 280 > window.innerWidth) {
+            left = window.innerWidth - 290;
+        }
+
+        // prevent it from going off the bottom of the screen
+        // If there's not enough room below, open it upwards instead
+        if (top + dropdown.offsetHeight > window.innerHeight) {
+            top = rect.top - dropdown.offsetHeight - 8;
+        }
+
+        // apply the calculated positions directly to the element
+        dropdown.style.top = top + 'px';
+        dropdown.style.left = left + 'px';
+    }
 
 
     document.addEventListener('click', function (e) {
         const trigger = e.target.closest('.overflow-trigger');
-        const item    = e.target.closest('.dropdown-item');
+        const item = e.target.closest('.dropdown-item');
 
         if (trigger) {
-            const menu    = trigger.closest('.overflow-menu');
+            const menu = trigger.closest('.overflow-menu');
             const wasOpen = menu && menu.classList.contains('active');
 
-             console.log("Was it open?", wasOpen);
+            console.log("Was it open?", wasOpen);
 
             closeAllDropdowns();
             if (!wasOpen) openDropdown(trigger);
@@ -277,11 +277,11 @@ function openDropdown(trigger) {
 
                 const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
                 marker.bindPopup(`
-                    <b>${req.status === 'pending' ? 'Pending Request' : 'Service Request'}</b>
-                    <br>Request ID: ${req.request_id}
-                    <br>Customer: ${req.customer_name || 'Unknown'}
-                    <br>Status: ${req.status}
-                `);
+                                <b>${req.status === 'pending' ? 'Pending Request' : 'Service Request'}</b>
+                                <br>Request ID: ${req.request_id}
+                                <br>Customer: ${req.customer_name || 'Unknown'}
+                                <br>Status: ${req.status}
+                            `);
                 markersList.push(marker);
                 bounds.push([lat, lng]);
             });
@@ -305,11 +305,11 @@ function openDropdown(trigger) {
 
                 const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
                 marker.bindPopup(`
-                    <b>${d.name || 'Driver'}</b>
-                    <br>Vehicle: ${d.vehicle || 'N/A'}
-                    <br>Status: ${d.status}
-                    <br>Rating: ${d.rating || 'N/A'} ⭐
-                `);
+                                <b>${d.name || 'Driver'}</b>
+                                <br>Vehicle: ${d.vehicle || 'N/A'}
+                                <br>Status: ${d.status}
+                                <br>Rating: ${d.rating || 'N/A'} ⭐
+                            `);
                 markersList.push(marker);
                 bounds.push([lat, lng]);
             });
@@ -342,41 +342,41 @@ function openDropdown(trigger) {
         }
 
         container.innerHTML = `
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Driver</th>
-                        <th>Phone</th>
-                        <th>Email</th>
-                        <th>Status</th>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Driver</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
 
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${drivers.map(d => `
-                        <tr>
-                            <td><strong>${d.name || 'Unnamed'}</strong></td>
-                            <td>${d.phone || 'No phone'}</td>
-                            <td>${d.email || 'No email'}</td>
-                            <td>
-                                <span class="status-${d.status || 'inactive'}">
-                                    ${d.status || 'Inactive'}
-                                </span>
-                            </td>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${drivers.map(d => `
+                                    <tr>
+                                        <td><strong>${d.name || 'Unnamed'}</strong></td>
+                                        <td>${d.phone || 'No phone'}</td>
+                                        <td>${d.email || 'No email'}</td>
+                                        <td>
+                                            <span class="status-${d.status || 'inactive'}">
+                                                ${d.status || 'Inactive'}
+                                            </span>
+                                        </td>
 
-                            <td>
-                                <button class="btn-delete" onclick="deleteDriver(${d.user_id})" title="Delete driver">
-                                    🗑️
-                                </button>
-                            </td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
+                                        <td>
+                                            <button class="btn-delete" onclick="deleteDriver(${d.user_id})" title="Delete driver">
+                                                🗑️
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
     }
 
 
@@ -392,21 +392,21 @@ function openDropdown(trigger) {
         }
 
         tbody.innerHTML = dataToRender.map(c => `<tr>
-            <td>${c.id}</td>
-            <td>${c.name || '—'}</td>
-            <td>${c.phone || '—'}</td>
-            <td>${c.email || '—'}</td>
-            <td>₱${Number(c.total_spent || 0).toFixed(2)}</td>
-            <td>
-                <div class="overflow-menu">
-                    <button class="btn-icon overflow-trigger" data-menu-id="cust-${c.id}" title="Actions">⋮</button>
-                    <div class="overflow-dropdown" data-menu-id="cust-${c.id}">
-                        <button class="dropdown-item" onclick="editCustomer(${c.id})" title="Edit Customer"> Edit</button>
-                        <button class="dropdown-item" onclick="deleteCustomer(${c.id})" title="Delete Customer" style="color: #dc3545;"> Delete</button>
-                    </div>
-                </div>
-            </td>
-        </tr>`).join('');
+                        <td>${c.id}</td>
+                        <td>${c.name || '—'}</td>
+                        <td>${c.phone || '—'}</td>
+                        <td>${c.email || '—'}</td>
+                        <td>₱${Number(c.total_spent || 0).toFixed(2)}</td>
+                        <td>
+                            <div class="overflow-menu">
+                                <button class="btn-icon overflow-trigger" data-menu-id="cust-${c.id}" title="Actions">⋮</button>
+                                <div class="overflow-dropdown" data-menu-id="cust-${c.id}">
+                                    <button class="dropdown-item" onclick="editCustomer(${c.id})" title="Edit Customer"> Edit</button>
+                                    <button class="dropdown-item" onclick="deleteCustomer(${c.id})" title="Delete Customer" style="color: #dc3545;"> Delete</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>`).join('');
 
         pruneOrphanDropdowns();
     }
@@ -501,49 +501,49 @@ function openDropdown(trigger) {
 
         if (!payments || payments.length === 0) {
             tbody.innerHTML = `
-            <tr>
-                <td colspan="8" style="text-align:center; padding:2rem;">
-                    No payment records found
-                </td>
-            </tr>`;
+                        <tr>
+                            <td colspan="8" style="text-align:center; padding:2rem;">
+                                No payment records found
+                            </td>
+                        </tr>`;
             return;
         }
 
         tbody.innerHTML = payments.map(p => `
-        <tr>
-            <td>${p.receipt || '—'}</td>
-            <td>#${p.request_id || '—'}</td>
-            <td>${p.customer || '—'}</td>
-            <td>₱${Number(p.amount || 0).toFixed(2)}</td>
-            <td>${p.payment_method || '—'}</td>
-            <td>${p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '—'}</td>
-            <td>
-                <span class="status-badge status-${p.status || 'unknown'}">
-                    ${p.status || '—'}
-                </span>
-            </td>
-            <td>
-                <div class="overflow-menu">
-                    <button class="btn-icon overflow-trigger" data-menu-id="pay-${p.payment_id}" title="Actions">⋮</button>
-                    <div class="overflow-dropdown" data-menu-id="pay-${p.payment_id}">
-                        ${p.payment_method === 'cash'
-                            ? `<span class="dropdown-item disabled">Awaiting driver confirmation</span>`
-                            : `
-                                <button class="dropdown-item" onclick="viewPaymentProof(${p.payment_id})">View Proof</button>
-                                ${p.status === 'pending'
-                                    ? `<button class="dropdown-item" onclick="approvePayment(${p.payment_id})">Approve</button>
-                                       <button class="dropdown-item" onclick="rejectPayment(${p.payment_id})">Reject</button>`
-                                    : ''}
-                            `
-                        }
-                        <button class="dropdown-item text-danger" onclick="deletePayment(${p.payment_id})">
-                            Delete
-                        </button>
-                    </div>
-                </div>
-            </td>
-        </tr>
-        `).join('');
+                    <tr>
+                        <td>${p.receipt || '—'}</td>
+                        <td>#${p.request_id || '—'}</td>
+                        <td>${p.customer || '—'}</td>
+                        <td>₱${Number(p.amount || 0).toFixed(2)}</td>
+                        <td>${p.payment_method || '—'}</td>
+                        <td>${p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '—'}</td>
+                        <td>
+                            <span class="status-badge status-${p.status || 'unknown'}">
+                                ${p.status || '—'}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="overflow-menu">
+                                <button class="btn-icon overflow-trigger" data-menu-id="pay-${p.payment_id}" title="Actions">⋮</button>
+                                <div class="overflow-dropdown" data-menu-id="pay-${p.payment_id}">
+                                    ${p.payment_method === 'cash'
+                ? `<span class="dropdown-item disabled">Awaiting driver confirmation</span>`
+                : `
+                                            <button class="dropdown-item" onclick="viewPaymentProof(${p.payment_id})">View Proof</button>
+                                            ${p.status === 'pending'
+                    ? `<button class="dropdown-item" onclick="approvePayment(${p.payment_id})">Approve</button>
+                                                <button class="dropdown-item" onclick="rejectPayment(${p.payment_id})">Reject</button>`
+                    : ''}
+                                        `
+            }
+                                    <button class="dropdown-item text-danger" onclick="deletePayment(${p.payment_id})">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    `).join('');
 
         pruneOrphanDropdowns();
     }
@@ -588,51 +588,51 @@ function openDropdown(trigger) {
         }
 
         tbody.innerHTML = dataToRender.map(r => `
-        <tr>
-            <td><strong>#${r.request_id}</strong></td>
-            <td>
-                <div><strong>${r.customer_name || 'Unknown'}</strong></div>
-            </td>
-            <td style="max-width:300px; white-space:normal; word-wrap:break-word;">${r.location || 'Unknown'}</td>
-            <td>${r.driver_name || '—'}</td>
-            <td><span class="status-badge status-${r.status || 'pending'}">${r.status || 'pending'}</span></td>
-            <td>${paymentBadge(r.payment_status)}</td>
-            <td style="color:#666; font-size:0.9em;">${r.created_at || ''}</td>
-            <td>
-                <div class="overflow-menu">
-                    <button class="btn-icon overflow-trigger" data-menu-id="req-${r.request_id}" title="Actions">⋮</button>
-                    <div class="overflow-dropdown" data-menu-id="req-${r.request_id}">
-                        ${!r.driver_id && r.status === 'pending'
-                            ? `<button class="dropdown-item" onclick="openAssignDriverModal(${r.request_id})">Assign Driver</button>`
-                            : ''
-                        }
+                    <tr>
+                        <td><strong>#${r.request_id}</strong></td>
+                        <td>
+                            <div><strong>${r.customer_name || 'Unknown'}</strong></div>
+                        </td>
+                        <td style="max-width:300px; white-space:normal; word-wrap:break-word;">${r.location || 'Unknown'}</td>
+                        <td>${r.driver_name || '—'}</td>
+                        <td><span class="status-badge status-${r.status || 'pending'}">${r.status || 'pending'}</span></td>
+                        <td>${paymentBadge(r.payment_status)}</td>
+                        <td style="color:#666; font-size:0.9em;">${r.created_at || ''}</td>
+                        <td>
+                            <div class="overflow-menu">
+                                <button class="btn-icon overflow-trigger" data-menu-id="req-${r.request_id}" title="Actions">⋮</button>
+                                <div class="overflow-dropdown" data-menu-id="req-${r.request_id}">
+                                    ${!r.driver_id && r.status === 'pending'
+                ? `<button class="dropdown-item" onclick="openAssignDriverModal(${r.request_id})">Assign Driver</button>`
+                : ''
+            }
 
-                        ${r.completion_photo_url
-                            ? `<button
-                                    class="dropdown-item view-completion-btn"
-                                    data-url="${escapeHtml(r.completion_photo_url)}"
-                                    data-request-id="${r.request_id}">
-                                    Completion Photo
-                               </button>`
-                            : ''
-                        }
+                                    ${r.completion_photo_url
+                ? `<button
+                                                class="dropdown-item view-completion-btn"
+                                                data-url="${escapeHtml(r.completion_photo_url)}"
+                                                data-request-id="${r.request_id}">
+                                                Completion Photo
+                                        </button>`
+                : ''
+            }
 
-                        <button class="dropdown-item" onclick="editRequest(${r.request_id})" title="Edit Request">
-                            Edit Request
-                        </button>
+                                    <button class="dropdown-item" onclick="editRequest(${r.request_id})" title="Edit Request">
+                                        Edit Request
+                                    </button>
 
-                        <button class="dropdown-item" onclick="viewCustomer(${r.user_id})" title="View Customer">
-                            View Customer
-                        </button>
+                                    <button class="dropdown-item" onclick="viewCustomer(${r.user_id})" title="View Customer">
+                                        View Customer
+                                    </button>
 
-                        <button class="dropdown-item" onclick="deleteRequest(${r.request_id})" title="Delete Request" style="color:#dc3545;">
-                            Delete Request
-                        </button>
-                    </div>
-                </div>
-            </td>
-        </tr>
-        `).join("");
+                                    <button class="dropdown-item" onclick="deleteRequest(${r.request_id})" title="Delete Request" style="color:#dc3545;">
+                                        Delete Request
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    `).join("");
 
         pruneOrphanDropdowns();
     }
@@ -931,12 +931,12 @@ function openDropdown(trigger) {
             updateMapMarkers();
         }
 
-        if (panelId === 'requestsPanel')   await loadRequests();
-        if (panelId === 'driversPanel')    await loadDrivers();
-        if (panelId === 'usersPanel')      await loadCustomers();
-        if (panelId === 'paymentsPanel')   await loadPayments();
+        if (panelId === 'requestsPanel') await loadRequests();
+        if (panelId === 'driversPanel') await loadDrivers();
+        if (panelId === 'usersPanel') await loadCustomers();
+        if (panelId === 'paymentsPanel') await loadPayments();
         if (panelId === 'servicePricesPanel') await loadServicePrices();
-        if (panelId === 'gcashqrPanel')    await loadGcashQr();
+        if (panelId === 'gcashqrPanel') await loadGcashQr();
 
         const term = document.getElementById('globalSearch')?.value || '';
         if (term) handleGlobalSearch(term);
@@ -1026,37 +1026,37 @@ function openDropdown(trigger) {
 
         if (!Array.isArray(admins) || admins.length === 0) {
             container.innerHTML = `
-                <p style="text-align:center; padding:2rem; color:#666;">No admins found</p>
-            `;
+                            <p style="text-align:center; padding:2rem; color:#666;">No admins found</p>
+                        `;
             return;
         }
 
         container.innerHTML = `
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Admin</th>
-                        <th>Phone</th>
-                        <th>Email</th>
-                        <th>Status</th>
-                        <th>Created</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${admins.map(admin => `
-                        <tr>
-                            <td>${admin.name || 'Unnamed'}</td>
-                            <td>${admin.phone || '--'}</td>
-                            <td>${admin.email || '--'}</td>
-                            <td>${admin.is_active ? 'Active' : 'Inactive'}</td>
-                            <td>${admin.created_at ? new Date(admin.created_at).toLocaleDateString() : '--'}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Admin</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${admins.map(admin => `
+                                    <tr>
+                                        <td>${admin.name || 'Unnamed'}</td>
+                                        <td>${admin.phone || '--'}</td>
+                                        <td>${admin.email || '--'}</td>
+                                        <td>${admin.is_active ? 'Active' : 'Inactive'}</td>
+                                        <td>${admin.created_at ? new Date(admin.created_at).toLocaleDateString() : '--'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
     }
 
 
@@ -1093,13 +1093,13 @@ function openDropdown(trigger) {
             link.addEventListener('click', function () {
                 const tab = this.getAttribute('data-tab');
 
-                if (tab === 'dashboard')      switchPanel('dashboardPanel', 'Dashboard');
-                else if (tab === 'requests')  switchPanel('requestsPanel', 'Service Requests');
-                else if (tab === 'drivers')   switchPanel('driversPanel', 'Tow Drivers');
-                else if (tab === 'users')     switchPanel('usersPanel', 'Customers');
-                else if (tab === 'payments')  switchPanel('paymentsPanel', 'Payments & Receipts');
+                if (tab === 'dashboard') switchPanel('dashboardPanel', 'Dashboard');
+                else if (tab === 'requests') switchPanel('requestsPanel', 'Service Requests');
+                else if (tab === 'drivers') switchPanel('driversPanel', 'Tow Drivers');
+                else if (tab === 'users') switchPanel('usersPanel', 'Customers');
+                else if (tab === 'payments') switchPanel('paymentsPanel', 'Payments & Receipts');
                 else if (tab === 'serviceprices') switchPanel('servicePricesPanel', 'Service Prices');
-                else if (tab === 'gcashqr')   switchPanel('gcashqrPanel', 'GCash QR');
+                else if (tab === 'gcashqr') switchPanel('gcashqrPanel', 'GCash QR');
             });
         });
     }
@@ -1137,27 +1137,27 @@ function openDropdown(trigger) {
                 const price = Number(service.base_price || 0);
 
                 return `
-                    <tr>
-                        <td><strong>${escapeHtml(service.name)}</strong></td>
-                        <td>${escapeHtml(service.description || 'No description')}</td>
-                        <td><strong>₱${price.toLocaleString('en-PH', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                        })}</strong></td>
-                        <td>
-                            ${Number(service.is_active) === 1
-                                ? '<span class="status active">Active</span>'
-                                : '<span class="status inactive">Inactive</span>'}
-                        </td>
-                        <td>
-                            <button
-                                class="btn btn-primary edit-service-price-btn"
-                                data-service-id="${service.service_type_id}">
-                                Edit Price
-                            </button>
-                        </td>
-                    </tr>
-                `;
+                                <tr>
+                                    <td><strong>${escapeHtml(service.name)}</strong></td>
+                                    <td>${escapeHtml(service.description || 'No description')}</td>
+                                    <td><strong>₱${price.toLocaleString('en-PH', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })}</strong></td>
+                                    <td>
+                                        ${Number(service.is_active) === 1
+                        ? '<span class="status active">Active</span>'
+                        : '<span class="status inactive">Inactive</span>'}
+                                    </td>
+                                    <td>
+                                        <button
+                                            class="btn btn-primary edit-service-price-btn"
+                                            data-service-id="${service.service_type_id}">
+                                            Edit Price
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
             }).join('');
         } catch (error) {
             console.error('Load service prices error:', error);
@@ -1224,140 +1224,155 @@ function openDropdown(trigger) {
 
 
     //  GCASH QR
-async function loadGcashQr() {
-    const qrImg = document.getElementById('currentQr');
-    const placeholder = document.getElementById('qrPlaceholder');
-    const msg = document.getElementById('qrMsg');
+    async function loadGcashQr() {
+        const qrImg = document.getElementById('currentQr');
+        const placeholder = document.getElementById('qrPlaceholder');
+        const msg = document.getElementById('qrMsg');
 
-    if (!qrImg || !placeholder) return;
-
-    try {
-        const r = await fetch('/api/settings/gcash-qr');
-        const data = await r.json();
-
-        if (data.success && data.image_path) {
-            const raw = data.image_path;
-            qrImg.src = raw.startsWith('http') || raw.startsWith('data:')
-                ? raw
-                : raw + '?t=' + Date.now();
-            qrImg.alt = 'Current GCash QR';
-
-            // Show image, hide placeholder
-            qrImg.style.display = 'block';
-            placeholder.style.display = 'none';
-
-            if (msg) {
-                msg.textContent = '';
-                msg.className = 'qr-message'; // Reset classes
-            }
-        } else {
-            // No QR code set
-            qrImg.removeAttribute('src');
-            qrImg.alt = 'No QR set';
-
-            // Hide broken image, show placeholder
-            qrImg.style.display = 'none';
-            placeholder.style.display = 'flex';
-
-            if (msg) {
-                msg.textContent = 'No QR set yet — upload one below.';
-                msg.className = 'qr-message info'; // Use CSS class for styling
-            }
-        }
-    } catch (e) {
-        console.error('Failed to load QR:', e);
-
-        // Hide image, show placeholder on error
-        qrImg.style.display = 'none';
-        placeholder.style.display = 'flex';
-
-        if (msg) {
-            msg.textContent = 'Failed to load current QR.';
-            msg.className = 'qr-message error'; // Use CSS class for styling
-        }
-    }
-}
-
-function setupQrUpload() {
-    const form = document.getElementById('qrUploadForm');
-    const qrImg = document.getElementById('currentQr');
-    const placeholder = document.getElementById('qrPlaceholder');
-    const msg = document.getElementById('qrMsg');
-
-    if (!form || form.dataset.bound === '1') return;
-    form.dataset.bound = '1';
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        if (msg) {
-            msg.textContent = 'Uploading...';
-            msg.className = 'qr-message info'; // Use CSS class
-        }
-
-        const formData = new FormData(form);
+        if (!qrImg || !placeholder) return;
 
         try {
-            const r = await fetch('/api/settings/gcash-qr', {
-                method: 'POST',
-                body: formData
-            });
+            const r = await fetch('/api/settings/gcash-qr');
             const data = await r.json();
 
-            if (data.success) {
-                if (msg) {
-                    msg.textContent = 'QR updated!';
-                    msg.className = 'qr-message success'; // Use CSS class
-                }
-
+            if (data.success && data.image_path) {
                 const raw = data.image_path;
                 qrImg.src = raw.startsWith('http') || raw.startsWith('data:')
                     ? raw
                     : raw + '?t=' + Date.now();
+                qrImg.alt = 'Current GCash QR';
 
                 // Show image, hide placeholder
                 qrImg.style.display = 'block';
                 placeholder.style.display = 'none';
 
-                form.reset();
-            } else {
                 if (msg) {
-                    msg.textContent = 'Error: ' + (data.message || 'Unknown error');
+                    msg.textContent = '';
+                    msg.className = 'qr-message'; // Reset classes
+                }
+            } else {
+                // No QR code set
+                qrImg.removeAttribute('src');
+                qrImg.alt = 'No QR set';
+
+                // Hide broken image, show placeholder
+                qrImg.style.display = 'none';
+                placeholder.style.display = 'flex';
+
+                if (msg) {
+                    msg.textContent = 'No QR set yet — upload one below.';
+                    msg.className = 'qr-message info'; // Use CSS class for styling
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load QR:', e);
+
+            // Hide image, show placeholder on error
+            qrImg.style.display = 'none';
+            placeholder.style.display = 'flex';
+
+            if (msg) {
+                msg.textContent = 'Failed to load current QR.';
+                msg.className = 'qr-message error'; // Use CSS class for styling
+            }
+        }
+    }
+
+    function setupQrUpload() {
+        const form = document.getElementById('qrUploadForm');
+        const qrImg = document.getElementById('currentQr');
+        const placeholder = document.getElementById('qrPlaceholder');
+        const msg = document.getElementById('qrMsg');
+
+        if (!form || form.dataset.bound === '1') return;
+        form.dataset.bound = '1';
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (msg) {
+                msg.textContent = 'Uploading...';
+                msg.className = 'qr-message info'; // Use CSS class
+            }
+
+            const formData = new FormData(form);
+
+            try {
+                const r = await fetch('/api/settings/gcash-qr', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await r.json();
+
+                if (data.success) {
+                    if (msg) {
+                        msg.textContent = 'QR updated!';
+                        msg.className = 'qr-message success'; // Use CSS class
+                    }
+
+                    const raw = data.image_path;
+                    qrImg.src = raw.startsWith('http') || raw.startsWith('data:')
+                        ? raw
+                        : raw + '?t=' + Date.now();
+
+                    // Show image, hide placeholder
+                    qrImg.style.display = 'block';
+                    placeholder.style.display = 'none';
+
+                    form.reset();
+                } else {
+                    if (msg) {
+                        msg.textContent = 'Error: ' + (data.message || 'Unknown error');
+                        msg.className = 'qr-message error'; // Use CSS class
+                    }
+                }
+            } catch (err) {
+                if (msg) {
+                    msg.textContent = 'Upload failed: ' + err.message;
                     msg.className = 'qr-message error'; // Use CSS class
                 }
             }
-        } catch (err) {
-            if (msg) {
-                msg.textContent = 'Upload failed: ' + err.message;
-                msg.className = 'qr-message error'; // Use CSS class
-            }
-        }
-    });
-}
+        });
+    }
+
+    // Handle completion photo button clicks
+document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.view-completion-btn');
+    if (!btn) return;
+
+    const url = btn.dataset.url;
+    const requestId = btn.dataset.requestId;
+
+    if (url) {
+        viewCompletionProof(url, requestId);
+    }
+});
+
+
 
 
     //  EXPOSE FUNCTIONS TO GLOBAL SCOPE
 
-    window.refreshMapMarkers   = refreshMapMarkers;
-    window.openRequestModal    = openRequestModal;
-    window.editRequest         = editRequest;
-    window.saveRequest         = saveRequest;
-    window.markPayment         = markPayment;
-    window.openDriverModal     = openDriverModal;
-    window.editDriver          = editDriver;
-    window.saveDriver          = saveDriver;
-    window.deleteDriver        = deleteDriver;
-    window.openCustomerModal   = openCustomerModal;
-    window.editCustomer        = editCustomer;
-    window.saveCustomer        = saveCustomer;
-    window.addDemoPayment      = addDemoPayment;
-    window.closeModal          = closeModal;
-    window.switchPanel         = switchPanel;
-    window.deleteRequest       = deleteRequest;
-    window.loadServicePrices     = loadServicePrices;
+    window.refreshMapMarkers = refreshMapMarkers;
+    window.openRequestModal = openRequestModal;
+    window.editRequest = editRequest;
+    window.saveRequest = saveRequest;
+    window.markPayment = markPayment;
+    window.openDriverModal = openDriverModal;
+    window.editDriver = editDriver;
+    window.saveDriver = saveDriver;
+    window.deleteDriver = deleteDriver;
+    window.openCustomerModal = openCustomerModal;
+    window.editCustomer = editCustomer;
+    window.saveCustomer = saveCustomer;
+    window.addDemoPayment = addDemoPayment;
+    window.closeModal = closeModal;
+    window.switchPanel = switchPanel;
+    window.deleteRequest = deleteRequest;
+    window.loadServicePrices = loadServicePrices;
     window.openServicePriceModal = openServicePriceModal;
-    window.saveServicePrice      = saveServicePrice;
-    window.loadGcashQr           = loadGcashQr;
+    window.saveServicePrice = saveServicePrice;
+    window.loadGcashQr = loadGcashQr;
 
     // Start everything
     init();
@@ -1554,13 +1569,13 @@ window.openAssignDriverModal = async function (requestId) {
         }
 
         driverSelect.innerHTML = `
-            <option value="">-- Select Driver --</option>
-            ${driverList.map(driver => `
-                <option value="${driver.user_id}">
-                    ${driver.name}${driver.phone ? ` - ${driver.phone}` : ''}
-                </option>
-            `).join('')}
-        `;
+                        <option value="">-- Select Driver --</option>
+                        ${driverList.map(driver => `
+                            <option value="${driver.user_id}">
+                                ${driver.name}${driver.phone ? ` - ${driver.phone}` : ''}
+                            </option>
+                        `).join('')}
+                    `;
     } catch (err) {
         console.error('Failed to load drivers:', err);
         driverSelect.innerHTML = `<option value="">Failed to load drivers</option>`;

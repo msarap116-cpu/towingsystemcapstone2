@@ -1,12 +1,4 @@
-/* ===== CALTEX COLORS =====
-   Blue:    #0046a8  (deep Caltex blue)
-   Red:     #e30613  (Caltex red)
-   Gray:    #eaeef2 / #d3d9e0 / #5a6c7d
-   Accent:  #0046a8
-   Highlights: #e30613
-   Backgrounds: soft grays
-   All selectors keep original IDs/classes — only colors changed
-*/
+
 
 /* ===== RESET & BASE ===== */
 * {
@@ -18,7 +10,7 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-    /* 🎯 Vertical fade: Top+BOTTOM faded → CENTER clear */
+    /*  Vertical fade: Top+BOTTOM faded → CENTER clear */
     background:
         linear-gradient(
             to bottom,
@@ -59,7 +51,7 @@ body {
     gap: 10px;
     text-decoration: none;
     color: #fff;
-    font-size: 22px;
+    font-size: 2.0rem;
     font-weight: 700;
     letter-spacing: -0.3px;
 }
