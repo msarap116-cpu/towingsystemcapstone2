@@ -220,7 +220,7 @@ function renderTripCard(trip) {
         </div>
         <div class="actions">
             ${isActive
-            ? `<button class="btn btn-success btn-sm" onclick="confirmCompleteTrip(${trip.request_id})">✓ Complete</button>`
+            ? `<button class="btn btn-success btn-sm" onclick="confirmCompleteTrip(${trip.request_id})"> Complete</button>`
             : ''}
 
             ${isActive

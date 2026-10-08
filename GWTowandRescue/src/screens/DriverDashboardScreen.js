@@ -111,8 +111,21 @@ const DriverDashboardScreen = ({ navigation }) => {
   const [chargeAmount, setChargeAmount] = useState('');
   const [submittingCharge, setSubmittingCharge] = useState(false);
 
+
+  //  CHANGE #1: Added myTripsRef + moved ref assignment into useEffect
+  // WHY: myTripsRef lets acceptJob() check "already accepted?" without
+  //      relying on a stale closure. Moving the ref sync into useEffect
+  //      avoids assigning a possibly-undefined const during render.
+
   const loadDriverDashboardDataRef = useRef(null);
-  loadDriverDashboardDataRef.current = loadDriverDashboardData;
+  const myTripsRef = useRef([]);
+  useEffect(() => {
+    loadDriverDashboardDataRef.current = loadDriverDashboardData;
+  });
+
+  useEffect(() => {
+    myTripsRef.current = myTrips;
+  }, [myTrips]);
 
   useEffect(() => {
     customerLocationRef.current = customerLocation;
@@ -213,40 +226,40 @@ const DriverDashboardScreen = ({ navigation }) => {
     };
   }, []);
 
-useEffect(() => {
-  const onConnect = () => console.log(' connected', socket.id);
-  const onDisconnect = (r) => console.log(' disconnected', r);
-  const onError = (e) => console.log(' connect_error', e.message);
-  socket.on('connect', onConnect);
-  socket.on('disconnect', onDisconnect);
-  socket.on('connect_error', onError);
-  return () => {
-    socket.off('connect', onConnect);
-    socket.off('disconnect', onDisconnect);
-    socket.off('connect_error', onError);
-  };
-}, []);
+  useEffect(() => {
+    const onConnect = () => console.log(' connected', socket.id);
+    const onDisconnect = (r) => console.log(' disconnected', r);
+    const onError = (e) => console.log(' connect_error', e.message);
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onError);
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onError);
+    };
+  }, []);
 
   useEffect(() => {
-  if (!activeRequestId) return;
+    if (!activeRequestId) return;
 
-  console.log(' polling started for trip', activeRequestId);
-  const id = setInterval(() => {
-    console.log(' poll tick');
-    loadDriverDashboardDataRef.current?.();
-  }, 8000);
+    console.log(' polling started for trip', activeRequestId);
+    const id = setInterval(() => {
+      console.log(' poll tick');
+      loadDriverDashboardDataRef.current?.();
+    }, 8000);
 
-  return () => {
-    console.log(' polling stopped');
-    clearInterval(id);
-  };
-}, [activeRequestId]);
+    return () => {
+      console.log(' polling stopped');
+      clearInterval(id);
+    };
+  }, [activeRequestId]);
 
-useEffect(() => {
-  if (activeTab === 'tracking') {
-    loadDriverDashboardDataRef.current?.();
-  }
-}, [activeTab]);
+  useEffect(() => {
+    if (activeTab === 'tracking') {
+      loadDriverDashboardDataRef.current?.();
+    }
+  }, [activeTab]);
 
   // Place this OUTSIDE initDriverMap — at the top level of your component or file
   // const diagnoseLocation = async () => {
@@ -272,23 +285,23 @@ useEffect(() => {
   // ===== AUTH FUNCTIONS =====
   const checkAuth = async () => {
 
-     // const token = await AsyncStorage.getItem('token');
+    // const token = await AsyncStorage.getItem('token');
     // console.log('token length:', token?.length);
     // console.log(' token starts:', token?.slice(0, 30) + '...');
     // console.log(' token ends:   ...' + token?.slice(-30));
 
 
-  const token = await AsyncStorage.getItem('token');
-  if (!token) {
-    navigation.replace('Login');
-    return;
-  }
-  connectSocket(token);
-  try {
-    const userData = await AsyncStorage.getItem('user');
-    if (userData) setUser(JSON.parse(userData));
-    await loadDriverDashboardData();
-  } catch (err) {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      navigation.replace('Login');
+      return;
+    }
+    connectSocket(token);
+    try {
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) setUser(JSON.parse(userData));
+      await loadDriverDashboardData();
+    } catch (err) {
       console.error('Auth error:', err);
 
       //  KUNG SESSION EXPIRED → TANGTANGON ANG TOKEN DAYON PADTO SA LOGIN
@@ -478,23 +491,45 @@ useEffect(() => {
       console.log(' Dashboard data received:', { pending, trips, earnings, payments });
 
       setPendingRequests(pending);
-      const active = trips.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
+
+
+      //  CHANGE #3a: Use normalized status helpers instead of exact
+      //                string comparisons. This is the MAIN reason
+      //                accepted jobs weren't showing up.
+
+      const active = trips.filter(isActiveTrip);          //  CHANGED
       console.log('active trips:', active);
-      const completed = trips.filter(t => t.status === 'completed');
-      setMyTrips(active);
+      const completed = trips.filter(t => normalizeStatus(t.status) === 'completed'); //  CHANGED
+
+
+      //  CHANGE #3b: Merge optimistic (not-yet-confirmed) trips
+      //                so the UI updates instantly after Accept.
+      //                Optimistic entries get replaced once the real
+      //                row appears from the server.
+
+      const optimisticOnly = (myTripsRef.current || []).filter(
+        t => t._optimistic &&
+          !trips.some(r => String(r.request_id) === String(t.request_id))
+      );
+      const activeMerged = [...optimisticOnly, ...active]; //  NEW
+
+      setMyTrips(activeMerged);                             //  CHANGED (was: active)
       setCompletedTripsList(completed);
       setPaymentHistory(completed.slice(0, 10));
       setAvailableJobs(pending.length);
-      setActiveTrips(active.length);
+      setActiveTrips(activeMerged.length);                  //  CHANGED (was: active.length)
       setCompletedTrips(completed.length);
       setTodayEarnings(earnings.today || 0);
       setTotalEarnings(earnings.allTime || 0);
 
-      setDriverPayments(payments);   //now `payments` exists
+      setDriverPayments(payments);
 
-      // Check for active trip for tracking
-      const activeTrip = active.find(t => t.status === 'assigned' || t.status === 'in progress');
-      // console.log('activeTrip:', activeTrip);
+
+      // CHANGE #3c: Use isTrackingTrip() so any of the accepted/
+      //                ongoing variants trigger tracking. Previously
+      //                only exact "assigned"/"in progress" matched.
+
+      const activeTrip = activeMerged.find(isTrackingTrip);
       if (activeTrip) {
         setActiveRequestId(activeTrip.request_id);
         setActiveTripData(activeTrip);
@@ -774,32 +809,74 @@ useEffect(() => {
   };
 
   // ===== JOB ACTIONS =====
+  // ============================================================
+  //  CHANGE #4: acceptJob now:
+  //   1. Guards against double-accept (idempotency).
+  //   2. Inserts an optimistic row so the trip shows INSTANTLY.
+  //   3. Retries loadDriverDashboardData a few times because the
+  //      backend may not return the new trip on the first read
+  //      (this was the "previous job suddenly appears" bug).
+  //   4. Rolls back the optimistic row if the request fails.
+  // ============================================================
   const acceptJob = async (requestId) => {
     const token = await AsyncStorage.getItem('token');
-
     if (!token) {
       Alert.alert('Error', 'Please log in again.');
       return;
     }
+
+    // ---- Idempotency guard ----
+    const alreadyMine = (myTripsRef.current || []).some(
+      t => String(t.request_id) === String(requestId)
+    );
+    if (alreadyMine) {
+      Alert.alert('Already accepted', `Job #${requestId} is already in your trips.`);
+      return;
+    }
+
+    // ---- Optimistic insert ----
+    const optimisticTrip = {
+      request_id: requestId,
+      status: 'assigned',
+      customer_name: 'Loading…',
+      location: '',
+      total_amount: 0,
+      _optimistic: true,     // marker so we can replace/rollback
+    };
+    setMyTrips(prev => [optimisticTrip, ...(prev || [])]);
+    setActiveRequestId(requestId);
+    setActiveTab('tracking');
+
     try {
       const res = await fetch(`${API_BASE_URL}/requests/${requestId}/accept`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
         },
-        cache: 'no-store'
+        cache: 'no-store',
       });
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Accept failed');
-      }
-      Alert.alert('Success', `Job #${requestId} accepted!`);
-      await loadDriverDashboardData();
-      setActiveTab('tracking');
+      if (!res.ok) throw new Error(data.error || 'Accept failed');
 
+      Alert.alert('Success', `Job #${requestId} accepted!`);
+
+      // ---- Retry refresh a few times until the server sees the new trip ----
+      for (let i = 0; i < 4; i++) {
+        await loadDriverDashboardData();
+        const confirmed = (myTripsRef.current || []).some(
+          t => String(t.request_id) === String(requestId) && !t._optimistic
+        );
+        if (confirmed) break;
+        await new Promise(r => setTimeout(r, 800));
+      }
     } catch (error) {
       console.error('Accept error:', error);
+      // ---- Rollback optimistic row ----
+      setMyTrips(prev => (prev || []).filter(
+        t => String(t.request_id) !== String(requestId)
+      ));
+      setActiveRequestId(null);
       Alert.alert('Error', 'Failed to accept job: ' + error.message);
     }
   };
@@ -807,20 +884,33 @@ useEffect(() => {
   const updateTripStatus = async (requestId, newStatus) => {
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
+
     const trip = myTrips.find(t => Number(t.request_id) === Number(requestId));
     if (!trip) {
       Alert.alert('Error', 'Trip not found.');
       return;
     }
-    const statusOrder = {
-      'assigned': 1,
-      'completed': 2
-    };
-    const currentStatus = trip.status;
-    if (statusOrder[newStatus] < statusOrder[currentStatus]) {
+
+    // ============================================================
+    //  CHANGE #7: Replaced the fragile statusOrder map with a
+    //    normalized check. The old map only knew 'assigned' and
+    //    'completed', so any other current status crashed the
+    //    comparison (undefined < undefined === false, but the flow
+    //    was still wrong).
+    // ============================================================
+    const currentStatus = normalizeStatus(trip.status);
+    const targetStatus = normalizeStatus(newStatus);
+
+    if (CLOSED_STATUSES.includes(currentStatus)) {
+      Alert.alert('Error', `Trip is already "${currentStatus}" — cannot update.`);
+      return;
+    }
+
+    if (currentStatus === 'completed' && targetStatus !== 'completed') {
       Alert.alert('Error', `Cannot change from "${currentStatus}" back to "${newStatus}"`);
       return;
     }
+
     Alert.alert(
       'Update Status',
       `Change request #${requestId} from "${currentStatus}" to "${newStatus}"?`,
@@ -996,6 +1086,21 @@ useEffect(() => {
   const formatPrice = (amount) => {
     return `₱${Number(amount || 0).toFixed(2)}`;
   };
+
+
+  //  CHANGE #2: Status normalization helpers
+  // WHY: Backend may return "accepted", "ongoing", "in_progress" etc.
+  //      Previously we only checked for exact strings "assigned" /
+  //      "in progress", so accepted jobs silently fell through and
+  //      never appeared in Active Trips.
+
+  const CLOSED_STATUSES = ['completed', 'cancelled', 'canceled'];
+  const TRACKING_STATUSES = ['assigned', 'accepted', 'in progress', 'ongoing', 'in_progress'];
+
+  const normalizeStatus = (s) => (s || '').toLowerCase().trim();
+
+  const isActiveTrip = (t) => !CLOSED_STATUSES.includes(normalizeStatus(t.status));
+  const isTrackingTrip = (t) => TRACKING_STATUSES.includes(normalizeStatus(t.status));
 
   const promptEnableLocation = () => {
     Alert.alert(
@@ -1351,7 +1456,20 @@ useEffect(() => {
   };
   const renderTrips = () => {
 
-    const allTrips = [...(myTrips || []), ...(completedTripsList || [])];
+    // ============================================================
+    //  CHANGE #5: De-duplicate by request_id.
+    // WHY: myTrips and completedTripsList can briefly overlap while
+    //      the backend is catching up, producing what looked like a
+    //      "duplicated request". This dedupes on the client side too.
+    // ============================================================
+    const seen = new Set();
+    const allTrips = [...(myTrips || []), ...(completedTripsList || [])].filter(t => {
+      const key = String(t.request_id);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
     return (
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Work History</Text>
@@ -1379,7 +1497,7 @@ useEffect(() => {
                     </View>
                     {/* NEW: Customer info */}
                     <Text style={styles.tripCustomer}>
-                       {item.customer_name || 'Customer'}
+                      {item.customer_name || 'Customer'}
                     </Text>
 
                     {item.customer_phone ? (
@@ -1401,17 +1519,21 @@ useEffect(() => {
                         </TouchableOpacity>
                       )} */}
 
-                      {status === 'assigned' && (
+                      {/* ============================================================
+     CHANGE #6: Use normalized status checks so buttons show
+    for "accepted", "ongoing", etc. — not just the literal
+    "assigned" / "in progress" strings.
+   ============================================================ */}
+                      {isTrackingTrip(item) && (
                         <TouchableOpacity
                           style={[styles.tripBtn, styles.tripBtnSuccess]}
-                          // onPress={() => updateTripStatus(item.request_id, 'completed')}
                           onPress={() => openCompletionCamera(item.request_id, 'completed')}
                         >
                           <Text style={styles.tripBtnSuccessText}>Complete</Text>
                         </TouchableOpacity>
                       )}
 
-                      {(status === 'assigned' || status === 'in progress') && (
+                      {isActiveTrip(item) && (
                         <TouchableOpacity
                           style={[styles.tripBtn, styles.tripBtnDanger]}
                           onPress={() => openCancelModal(item.request_id)}
@@ -1419,9 +1541,10 @@ useEffect(() => {
                           <Text style={styles.tripBtnDangerText}>Cancel</Text>
                         </TouchableOpacity>
                       )}
-                      {(status === 'assigned' || status === 'in progress') && (
+
+                      {isActiveTrip(item) && (
                         <TouchableOpacity
-                          style={[styles.tripBtn, styles.tripBtnSecondary]}  // see step 6 for style
+                          style={[styles.tripBtn, styles.tripBtnSecondary]}
                           onPress={() => openAddChargeForm(item.request_id)}
                         >
                           <Text style={styles.tripBtnSecondaryText}>+ Add Charge</Text>
@@ -1559,9 +1682,15 @@ useEffect(() => {
         {/*  MAIN CONTENT — flex:1 ang naa sa styles */}
         <View style={styles.contentArea}>
           {activeTab === 'dashboard' && renderDashboard()}
-          <View style={{ flex: 1, marginHorizontal: -16, display: activeTab === 'tracking' ? 'flex' : 'none' }}>
-            {renderTracking()}
-          </View>
+          {/* ============================================================
+     CHANGE #8 (optional): Mount tracking only when the tab is
+    active. Prevents stale GPS overlays from a previous trip.
+   ============================================================ */}
+          {activeTab === 'tracking' && (
+            <View style={{ flex: 1, marginHorizontal: -16 }}>
+              {renderTracking()}
+            </View>
+          )}
           {activeTab === 'trips' && renderTrips()}
           {activeTab === 'earnings' && renderEarnings()}
         </View>
