@@ -85,9 +85,24 @@ app.use('/api/settings', settingsRoutes);
 
 // global error handler — keep JSON errors JSON,
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err.message);
-  if (res.headersSent) return next(err);
-  res.status(500).json({ success: false, message: err.message || 'Server error' });
+    // Safely log whatever we got
+    const message =
+        (err && err.message) ||
+        (typeof err === 'string' ? err : null) ||
+        (err === undefined ? 'undefined (nothing passed to next())' : String(err));
+
+    console.error('Unhandled error:', message);
+    console.error('  route:', req.method, req.originalUrl);
+    console.error('  stack:', err && err.stack ? err.stack : '(no stack)');
+
+    if (res.headersSent) return next(err);
+
+    // If err is not a real Error, don't leak "undefined" to the client
+    res.status(500).json({
+        success: false,
+        message: message,
+        route: `${req.method} ${req.originalUrl}`,
+    });
 });
 
 // HTML page routes

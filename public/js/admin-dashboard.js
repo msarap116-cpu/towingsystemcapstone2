@@ -1,4 +1,4 @@
-// ===== WRAP EVERYTHING IN DOMContentLoaded =====
+
 document.addEventListener('DOMContentLoaded', function () {
 
     //  DATA STORE (Will be populated from API)
@@ -11,19 +11,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let servicesCache = [];
 
-
-    //  OVERFLOW DROPDOWN — Google-Drive-style floating menu
-
     let activeDropdown = null;
     let activeMenu     = null;
 
 function closeAllDropdowns() {
-    // Hide EVERY dropdown currently in <body> or inside a menu
+    // hide every dropdown currently in <body> or inside a menu
     document.querySelectorAll('.overflow-dropdown').forEach(el => {
         el.style.display = 'none';
     });
 
-    // Remove the active class from any open menu
+    // remove the active class from any open menu
     document.querySelectorAll('.overflow-menu.active').forEach(m => {
         m.classList.remove('active');
     });
@@ -39,35 +36,35 @@ function openDropdown(trigger) {
     const dropdown = menu.querySelector('.overflow-dropdown');
     if (!dropdown) return;
 
-    // 1. Add the active class to make it visible (display: block)
+    // add the active class to make it visible (display: block)
     menu.classList.add('active');
 
-    // 2. Get the exact position of the button
+    // Get the exact position of the button
     const rect = trigger.getBoundingClientRect();
 
-    // 3. Calculate position (below the button, aligned to the left)
+    //calculate position (below the button, aligned to the left)
     // We add 8px so it doesn't touch the button directly
     let top = rect.bottom + 8;
     let left = rect.left;
 
-    // 4. Prevent it from going off the right side of the screen
-    // (Assuming max-width is 280px)
+    // prevent it from going off the right side of the screen
+
     if (left + 280 > window.innerWidth) {
         left = window.innerWidth - 290;
     }
 
-    // 5. Prevent it from going off the bottom of the screen
+    // prevent it from going off the bottom of the screen
     // If there's not enough room below, open it upwards instead
     if (top + dropdown.offsetHeight > window.innerHeight) {
         top = rect.top - dropdown.offsetHeight - 8;
     }
 
-    // 6. Apply the calculated positions directly to the element
+    // apply the calculated positions directly to the element
     dropdown.style.top = top + 'px';
     dropdown.style.left = left + 'px';
 }
 
-    // ---------- One delegated click handler for the whole page ----------
+
     document.addEventListener('click', function (e) {
         const trigger = e.target.closest('.overflow-trigger');
         const item    = e.target.closest('.dropdown-item');
@@ -76,7 +73,7 @@ function openDropdown(trigger) {
             const menu    = trigger.closest('.overflow-menu');
             const wasOpen = menu && menu.classList.contains('active');
 
-             console.log("Was it open?", wasOpen); // Is this true when it should be false?
+             console.log("Was it open?", wasOpen);
 
             closeAllDropdowns();
             if (!wasOpen) openDropdown(trigger);
@@ -100,7 +97,7 @@ function openDropdown(trigger) {
     }, true);
     window.addEventListener('resize', closeAllDropdowns);
 
-    // Remove dropdowns left in <body> whose trigger no longer exists
+
     function pruneOrphanDropdowns() {
         document.querySelectorAll('body > .overflow-dropdown').forEach(el => {
             const id = el.dataset.menuId;
