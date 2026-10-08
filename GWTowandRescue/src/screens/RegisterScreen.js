@@ -205,7 +205,7 @@ const RegisterScreen = ({ navigation }) => {
         const result = await checkEmailAvailability(emailToCheck);
 
         if (result && result.available === false) {
-            setEmailStatus({ text: '⚠️ Email already registered', color: '#dc3545' });
+            setEmailStatus({ text: ' Email already registered', color: '#dc3545' });
         } else if (result) {
             setEmailStatus({ text: '✓ Email available', color: '#28a745' });
         }

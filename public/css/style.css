@@ -913,6 +913,7 @@ dialog#installModal::backdrop {
 .install-note {
   background: #fff8e1;
   border-left: 4px solid #f59e0b;
+  border-right: 4px solid #f59e0b ;
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 13px;

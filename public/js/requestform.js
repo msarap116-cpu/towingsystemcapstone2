@@ -330,7 +330,7 @@ async function searchAddressLocations(query) {
         console.error('Address search error:', error);
         addressSuggestions.innerHTML = `
             <div class="address-no-results">
-                ⚠️ Unable to search locations.
+                 Unable to search locations.
             </div>
         `;
     }

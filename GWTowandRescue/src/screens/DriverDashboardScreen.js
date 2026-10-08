@@ -311,7 +311,7 @@ useEffect(() => {
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('user');
     Alert.alert(
-      '⚠️ Session expired',
+      ' Session expired',
       'Please log in again.',
       [{ text: 'OK', onPress: () => navigation.replace('Login') }]
     );

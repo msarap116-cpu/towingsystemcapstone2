@@ -1361,7 +1361,7 @@ async function searchAddressLocations(query) {
     } catch (error) {
         if (error.name === 'AbortError') return;
         console.error('Address search error:', error);
-        addressSuggestions.innerHTML = `<div class="address-no-results">⚠️ Unable to search locations.</div>`;
+        addressSuggestions.innerHTML = `<div class="address-no-results"> Unable to search locations.</div>`;
     }
 }
 
