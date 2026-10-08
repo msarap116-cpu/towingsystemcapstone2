@@ -9,57 +9,68 @@ const requireRole = require('../middleware/requireRole');
 function shortPrivateCache(seconds = 5) {
     return (req, res, next) => {
         res.setHeader('Cache-Control', `private, max-age=${seconds}`);
-        res.setHeader('Vary', 'Authorization');   // critical for auth'd GETs
+        res.setHeader('Vary', 'Authorization');
         next();
     };
 }
 
-//debug log
-router.use((req, res, next) => {
-    // console.log('requestRoutes hit:', req.method, req.path);
+function noStore(req, res, next) {
+    res.setHeader('Cache-Control', 'no-store');
     next();
-});
+}
 
-//Specific Routes (Order matters!) why?
+// ---- Specific routes (must come before /:id) ----
 
-// GET /latest - This MUST come before GET /:id
-router.get('/latest', authenticateToken,shortPrivateCache(5), async (req, res) => {
+// GET /latest
+router.get('/latest', authenticateToken, shortPrivateCache(5), async (req, res) => {
     const user_id = req.user.id ?? req.user.user_id;
 
     try {
         const result = await Request.getLatestByUser(user_id);
-
-        // console.log("ROUTE result:", result);
-        // console.log("ROUTE isArray:", Array.isArray(result));
 
         if (!result || result.length === 0) {
             return res.json([]);
         }
 
         res.json(result);
-
     } catch (err) {
         console.error('Error fetching latest requests:', err);
-
-        res.status(500).json({
-            error: 'Database query failed: ' + err.message
-        });
+        res.status(500).json({ error: 'Database query failed: ' + err.message });
     }
 });
 
-// GET /pending all unassigned pending requests for drivers This MUST come before GET /:id
-router.get("/pending",authenticateToken,requireRole("driver"),authenticateToken,shortPrivateCache(10),requestController.getPendingRequests);
+// GET /pending — drivers only
+router.get(
+    '/pending',
+    authenticateToken,
+    requireRole('driver'),
+    shortPrivateCache(10),
+    requestController.getPendingRequests
+);
 
-// GET /my-trips – all requests assigned to this driver - This MUST come before GET /:id
-router.get("/my-trips",authenticateToken,requireRole("driver"),shortPrivateCache(10),requestController.getMyTrips);
+// GET /my-trips — drivers only
+router.get(
+    '/my-trips',
+    authenticateToken,
+    requireRole('driver'),
+    shortPrivateCache(10),
+    requestController.getMyTrips
+);
 
+// GET /can-create
 router.get('/can-create', authenticateToken, requestController.checkCanRequest);
 
+// POST /driver-location
 router.post('/driver-location', authenticateToken, async (req, res) => {
     const { lat, lng, request_id } = req.body;
     const driver_id = req.user.id ?? req.user.user_id;
 
-    if (!lat || !lng || !request_id) {
+    // Use nullish checks so 0 is a valid coordinate
+    if (
+        lat === undefined || lat === null ||
+        lng === undefined || lng === null ||
+        !request_id
+    ) {
         return res.status(400).json({ error: 'lat, lng, and request_id are required' });
     }
 
@@ -71,169 +82,117 @@ router.post('/driver-location', authenticateToken, async (req, res) => {
     }
 });
 
-// router.post('/', authenticateToken, requestController.createRequest);
+// POST / — create request
 router.post(
-  '/',
-  authenticateToken,
-  (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); },
-  async (req, res, next) => {
-    try {
-      await requestController.createRequest(req, res, next);
-      const io = req.app.get('io');
-      if (io && res.statusCode < 400) {
-        // createRequest probably puts the new id on res.locals or in the body
-        // simplest: broadcast a generic "list changed" event
-        io.emit('request:created', {});
-        console.log('📡 emitted request:created');
-      }
-    } catch (e) { next(e); }
-  }
-);
-router.get('/my-requests', authenticateToken,shortPrivateCache(10),
-requestController.getMyRequests
+    '/',
+    authenticateToken,
+    noStore,
+    requestController.createRequest
 );
 
+// GET /my-requests
+router.get(
+    '/my-requests',
+    authenticateToken,
+    shortPrivateCache(10),
+    requestController.getMyRequests
+);
+
+// GET / — all requests (admin/driver view)
 router.get('/', authenticateToken, requestController.getAllRequests);
 
+// ---- Mutations on a specific request ----
+
+// PUT /:id/status
 router.put(
-  '/:id/status',
-  authenticateToken,
-  (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); },
-  async (req, res, next) => {
-    try {
-      await requestController.updateStatus(req, res, next);
-      const io = req.app.get('io');
-      if (io && res.statusCode < 400) {
-        io.emit('request:updated', { request_id: Number(req.params.id) });
-        console.log('📡 emitted request:updated (status)', req.params.id);
-      }
-    } catch (e) { next(e); }
-  }
+    '/:id/status',
+    authenticateToken,
+    noStore,
+    requestController.updateStatus
 );
 
+// PUT /:id/address
 router.put(
-  '/:id/address',
-  authenticateToken,
-  (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); },
-  async (req, res, next) => {
-    try {
-      await requestController.updateAddress(req, res, next);
-      const io = req.app.get('io');
-      if (io && res.statusCode < 400) {
-        io.emit('request:updated', { request_id: Number(req.params.id) });
-        console.log('📡 emitted request:updated (address)', req.params.id);
-      }
-    } catch (e) { next(e); }
-  }
+    '/:id/address',
+    authenticateToken,
+    noStore,
+    requestController.updateAddress
 );
 
-// Accept a request (assign driver, set status = 'assigned')
-
-// router.put('/:id/status', authenticateToken, async (req, res) => {
-//     const driver_id = req.user.id;
-//     const { id } = req.params;
-//     const { status } = req.body; // expected: 'in_progress' or 'completed'
-
-//     const allowed = ['in progress', 'completed'];
-//     if (!allowed.includes(status)) {
-//         return res.status(400).json({ error: 'Invalid status' });
-//     }
-
-//     try {
-//         const [request] = await db.query(
-//             'SELECT request_id, driver_id, status FROM service_requests WHERE request_id = ?',
-//             [id]
-//         );
-//         if (!request) return res.status(404).json({ error: 'Request not found' });
-//         if (request.driver_id !== driver_id) {
-//             return res.status(403).json({ error: 'Not your trip' });
-//         }
-
-//         await db.query(
-//             'UPDATE service_requests SET status = ?, updated_at = NOW() WHERE request_id = ?',
-//             [status, id]
-//         );
-
-//         res.json({ success: true, message: `Status updated to ${status}` });
-//     } catch (err) {
-//         res.status(500).json({ error: err.message });
-//     }
-// });
+// PUT /:id/accept — drivers only
 router.put(
-  '/:id/accept',
-  authenticateToken,
-  requireRole('driver'),
-  (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); },
-  async (req, res, next) => {
-    try {
-      await requestController.acceptRequest(req, res, next);
-      const io = req.app.get('io');
-      if (io && res.statusCode < 400) {
-        io.emit('request:updated', { request_id: Number(req.params.id) });
-        console.log('📡 emitted request:updated (accept)', req.params.id);
-      }
-    } catch (e) { next(e); }
-  }
+    '/:id/accept',
+    authenticateToken,
+    requireRole('driver'),
+    noStore,
+    requestController.acceptRequest
 );
 
+// PUT /:id/cancel
 router.put(
-  '/:id/cancel',
-  authenticateToken,
-  (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); },
-  async (req, res, next) => {
-    try {
-      await requestController.cancelRequest(req, res, next);
-      const io = req.app.get('io');
-      if (io && res.statusCode < 400) {
-        io.emit('request:updated', { request_id: Number(req.params.id) });
-        console.log('📡 emitted request:updated (cancel)', req.params.id);
-      }
-    } catch (e) { next(e); }
-  }
+    '/:id/cancel',
+    authenticateToken,
+    noStore,
+    requestController.cancelRequest
 );
 
+// PUT /:id — generic update
 router.put(
-  '/:id',
-  authenticateToken,
-  (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); },
-  async (req, res, next) => {
-    try {
-      await requestController.updateRequest(req, res, next);
-      const io = req.app.get('io');
-      if (io && res.statusCode < 400) {
-        io.emit('request:updated', { request_id: Number(req.params.id) });
-        console.log('📡 emitted request:updated (generic)', req.params.id);
-      }
-    } catch (e) { next(e); }
-  }
-);
-// GET single request by ID
-router.get(
-    "/:id", authenticateToken,
-    requestController.getRequestById
+    '/:id',
+    authenticateToken,
+    noStore,
+    requestController.updateRequest
 );
 
-// DELETE request by ID
-router.delete('/:id', authenticateToken, async (req, res) => {
+// ---- Single request by ID (must come after specific paths) ----
+
+// GET /:id
+router.get('/:id', authenticateToken, requestController.getRequestById);
+
+// DELETE /:id — ownership checked
+router.delete('/:id', authenticateToken, noStore, async (req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.id ?? req.user.user_id;
+        const userRole = req.user.role;
+
+        const rows = await Request.findForCancel(id);
+        const request = Array.isArray(rows) ? rows[0] : rows;
+
+        if (!request) {
+            return res.status(404).json({ error: 'Request not found' });
+        }
+
+        const isOwner =
+            (userRole === 'customer' && Number(request.user_id) === Number(userId)) ||
+            (userRole === 'driver' && Number(request.driver_id) === Number(userId));
+
+        if (userRole !== 'admin' && !isOwner) {
+            return res.status(403).json({ error: 'Not your request' });
+        }
+
+        if (request.status !== 'cancelled') {
+            return res.status(400).json({
+                error: 'Only cancelled requests can be deleted'
+            });
+        }
+
         await Request.deleteById(id);
         res.json({ success: true, message: `Request #${id} deleted` });
-        res.setHeader('Cache-Control','no-store')
     } catch (err) {
         res.status(500).json({ error: 'Failed to delete request: ' + err.message });
     }
 });
+
+// POST /:id/charges — driver or admin
 router.post(
-    '/:id/charges',authenticateToken,requireRole('driver', 'admin'),
+    '/:id/charges',
+    authenticateToken,
+    requireRole('driver', 'admin'),
     requestController.addAdditionalCharge
 );
 
-router.get('/:id/receipt',authenticateToken,
-    requestController.getReceipt
-);
-
-
-
+// GET /:id/receipt — commented out until Request.getReceiptData exists
+// router.get('/:id/receipt', authenticateToken, requestController.getReceipt);
 
 module.exports = router;

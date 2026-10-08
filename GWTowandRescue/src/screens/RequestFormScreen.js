@@ -66,15 +66,15 @@ const RequestFormScreen = ({ navigation, route }) => {
     ];
 
     // Load vehicles on mount
-    useEffect(() => {
-        checkAuthAndLoadVehicles();
-        restoreDraft();
+useEffect(() => {
+    checkAuthAndLoadVehicles();
+    restoreDraft();
 
-        return () => {
-            clearTimeout(searchTimeout.current);
-            addressSearchController.current?.abort();
-        };
-    }, []);
+    return () => {
+        if (searchTimer.current) clearTimeout(searchTimer.current);
+        addressSearchController.current?.abort();
+    };
+}, []);
 
     useFocusEffect(
         useCallback(() => {
@@ -129,18 +129,6 @@ const RequestFormScreen = ({ navigation, route }) => {
     }[status] || 'payment is not completed');
 
 
-    const searchTimeout = useRef(null);
-
-    const onAddressChange = (text) => {
-        updateField('address', text);
-
-        clearTimeout(searchTimeout.current);
-
-        searchTimeout.current = setTimeout(() => {
-            searchAddressLocations(text);
-        }, 800);
-    };
-
 
     const requestLocationPermission = async () => {
         if (Platform.OS === 'ios') {
@@ -161,41 +149,41 @@ const RequestFormScreen = ({ navigation, route }) => {
     };
 
 
-    const loadVehicles = async () => {
-        try {
-            setLoadingVehicles(true);
-            const token = await AsyncStorage.getItem('token');
+const loadVehicles = async () => {
+    try {
+        setLoadingVehicles(true);
+        const token = await AsyncStorage.getItem('token');
 
-            const response = await fetch(`${API_BASE_URL}/vehicles`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                const vehicleList = data.vehicles || [];
-                setVehicles(vehicleList);
-
-                // Auto-select default vehicle
-                const defaultVehicle = vehicleList.find(v => v.is_default);
-                if (defaultVehicle) {
-                    setFormData(prev => ({
-                        ...prev,
-                        vehicleId: String(defaultVehicle.vehicle_id)
-                    }));
-                }
-            } else {
-                Alert.alert('Error', data.error || 'Failed to load vehicles');
+        const response = await fetch(`${API_BASE_URL}/vehicles`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
             }
-        } catch (error) {
-            console.error('loadVehicles error:', error);
-            Alert.alert('Network Error', 'Cannot load your vehicles.');
-        } finally {
-            setLoadingVehicles(false);
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            const vehicleList = data.vehicles || [];
+            setVehicles(vehicleList);
+
+            // Auto-select default vehicle
+            const defaultVehicle = vehicleList.find(v => v.is_default);
+            if (defaultVehicle) {
+                setFormData(prev => ({
+                    ...prev,
+                    vehicleId: String(defaultVehicle.vehicle_id)
+                }));
+            }
+        } else {
+            Alert.alert('Error', data.error || 'Failed to load vehicles');
         }
-    };
+    } catch (error) {
+        console.error('loadVehicles error:', error);
+        Alert.alert('Network Error', 'Cannot load your vehicles.');
+    } finally {
+        setLoadingVehicles(false);
+    }
+};
 
     const restoreDraft = async () => {
         try {
@@ -461,71 +449,96 @@ const RequestFormScreen = ({ navigation, route }) => {
         return true;
     };
 
-    const handleSubmit = async () => {
-        if (!validateForm()) return;
+const handleSubmit = async () => {
+    if (!validateForm()) return;
 
-        const token = await AsyncStorage.getItem('token');
-        if (!token) {
-            setIsGuest(true);
-            setShowGuestModal(true);
-            return;
-        }
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+        setIsGuest(true);
+        setShowGuestModal(true);
+        return;
+    }
 
-        setLoading(true);
+    setLoading(true);
 
-        const requestData = {
-            service_type_id: parseInt(formData.serviceType),
-            vehicle_id: parseInt(formData.vehicleId),
-            location_lat: formData.latitude ? parseFloat(formData.latitude) : null,
-            location_lng: formData.longitude ? parseFloat(formData.longitude) : null,
-            address: formData.address.trim() || null
-        };
+    const requestData = {
+        service_type_id: parseInt(formData.serviceType),
+        vehicle_id: parseInt(formData.vehicleId),
+        location_lat: formData.latitude ? parseFloat(formData.latitude) : null,
+        location_lng: formData.longitude ? parseFloat(formData.longitude) : null,
+        address: formData.address.trim() || null
+    };
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/requests`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(requestData)
-            });
+    try {
+        const response = await fetch(`${API_BASE_URL}/requests`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(requestData)
+        });
 
-            const data = await response.json();
+        const data = await response.json();
 
-            if (response.ok) {
-                setRequestId(data.request.id);
+        if (response.ok) {
+            if (__DEV__) {
+                console.log('POST /requests response:', JSON.stringify(data, null, 2));
+            }
+
+            const id =
+                data?.request?.id ??
+                data?.request_id ??
+                data?.id ??
+                data?.data?.id ??
+                data?.data?.request?.id ??
+                null;
+
+            if (!id) {
+                console.error('Success response but no ID found. Payload:', data);
                 setSubmitted(true);
-                // Clear draft on successful submission
                 await AsyncStorage.removeItem('draftRequest');
-
                 Alert.alert(
-                    'Request Submitted!',
-                    `Your request ID: ${data.request.id}\nEstimated arrival time: 25-40 minutes\n\nYou can track your request in the dashboard.`,
+                    'Request Submitted',
+                    'Your request was submitted. Please check your dashboard to view it.',
                     [
-                        {
-                            text: 'View Dashboard',
-                            onPress: () => navigation.replace('Dashboard')
-                        },
-                        {
-                            text: 'OK',
-                            style: 'cancel'
-                        }
+                        { text: 'View Dashboard', onPress: () => navigation.replace('Dashboard') },
+                        { text: 'OK', style: 'cancel', onPress: () => resetForm() }
                     ]
                 );
-            } else if (response.status === 402 && data.code === 'UNPAID_REQUEST') {
-                setUnpaidRequest(data.request);
+                return;
+            }
+
+            setRequestId(id);
+            setSubmitted(true);
+            await AsyncStorage.removeItem('draftRequest');
+
+            Alert.alert(
+                'Request Submitted!',
+                `Your request ID: ${id}\nEstimated arrival time: 25-40 minutes\n\nYou can track your request in the dashboard.`,
+                [
+                    { text: 'View Dashboard', onPress: () => navigation.replace('Dashboard') },
+                    { text: 'OK', style: 'cancel', onPress: () => resetForm() }
+                ]
+            );
+        } else if (response.status === 402 && data.code === 'UNPAID_REQUEST') {
+            const unpaid = data?.data?.request ?? data?.request ?? data?.data ?? null;
+            if (unpaid && unpaid.id) {
+                setUnpaidRequest(unpaid);
                 setShowUnpaidModal(true);
             } else {
-                Alert.alert('Error', data.error || 'Failed to submit request');
+                Alert.alert('Payment Required', 'You have an unpaid request. Please check your dashboard.');
             }
-        } catch (error) {
-            console.error('Request submission error:', error);
-            Alert.alert('Network Error', 'Cannot connect to server. Please check your connection.');
-        } finally {
-            setLoading(false);
+        } else {
+            Alert.alert('Error', data.error || 'Failed to submit request');
         }
-    };
+    } catch (error) {
+        console.error('Request submission error:', error);
+        Alert.alert('Network Error', 'Cannot connect to server. Please check your connection.');
+    } finally {
+        setLoading(false);
+    }
+};
 
     const resetForm = () => {
         setFormData({
@@ -640,46 +653,46 @@ const RequestFormScreen = ({ navigation, route }) => {
                             </View>
 
                             {!loadingVehicles && !isGuest && (
-    vehicles.length === 0 ? (
-        <Text style={styles.noticeText}>
-            You don't have any saved vehicles yet.{' '}
-            <Text
-                style={styles.linkText}
-                onPress={() =>
-                    navigation.navigate('MyVehicles', { openAddForm: true })
-                }
-            >
-                Add one here
-            </Text>
-            {' '}before requesting assistance.
-        </Text>
-    ) : (
-        <Text style={styles.noticeText}>
-            Need to add another vehicle?{' '}
-            <Text
-                style={styles.linkText}
-                onPress={() =>
-                    navigation.navigate('MyVehicles', { openAddForm: true })
-                }
-            >
-                Add it here
-            </Text>
-        </Text>
-    )
-)}
+                                vehicles.length === 0 ? (
+                                    <Text style={styles.noticeText}>
+                                        You don't have any saved vehicles yet.{' '}
+                                        <Text
+                                            style={styles.linkText}
+                                            onPress={() =>
+                                                navigation.navigate('MyVehicles', { openAddForm: true })
+                                            }
+                                        >
+                                            Add one here
+                                        </Text>
+                                        {' '}before requesting assistance.
+                                    </Text>
+                                ) : (
+                                    <Text style={styles.noticeText}>
+                                        Need to add another vehicle?{' '}
+                                        <Text
+                                            style={styles.linkText}
+                                            onPress={() =>
+                                                navigation.navigate('MyVehicles', { openAddForm: true })
+                                            }
+                                        >
+                                            Add it here
+                                        </Text>
+                                    </Text>
+                                )
+                            )}
 
-{isGuest && (
-    <Text style={styles.noticeText}>
-        You need an account to submit a request.{' '}
-        <Text style={styles.linkText} onPress={handleGuestLogin}>
-            Log in
-        </Text>
-        {' '}or{' '}
-        <Text style={styles.linkText} onPress={handleGuestRegister}>
-            Register
-        </Text>
-    </Text>
-)}
+                            {isGuest && (
+                                <Text style={styles.noticeText}>
+                                    You need an account to submit a request.{' '}
+                                    <Text style={styles.linkText} onPress={handleGuestLogin}>
+                                        Log in
+                                    </Text>
+                                    {' '}or{' '}
+                                    <Text style={styles.linkText} onPress={handleGuestRegister}>
+                                        Register
+                                    </Text>
+                                </Text>
+                            )}
                         </View>
 
                         {/* Location Section */}
@@ -777,9 +790,18 @@ const RequestFormScreen = ({ navigation, route }) => {
                             <View style={styles.confirmationBox}>
                                 <Text style={styles.confirmationIcon}></Text>
                                 <Text style={styles.confirmationTitle}>Request Submitted!</Text>
-                                <Text style={styles.confirmationText}>
-                                    Your request ID: <Text style={styles.confirmationStrong}>{requestId}</Text>
-                                </Text>
+
+                                {/*  CONDITIONAL: show ID if we have it, otherwise show a fallback */}
+                                {requestId ? (
+                                    <Text style={styles.confirmationText}>
+                                        Your request ID: <Text style={styles.confirmationStrong}>{requestId}</Text>
+                                    </Text>
+                                ) : (
+                                    <Text style={styles.confirmationText}>
+                                        Your request was submitted. Check your dashboard for details.
+                                    </Text>
+                                )}
+
                                 <Text style={styles.confirmationText}>
                                     Estimated arrival time: <Text style={styles.confirmationStrong}>25-40 minutes</Text>
                                 </Text>

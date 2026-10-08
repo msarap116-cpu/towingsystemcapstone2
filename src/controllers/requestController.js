@@ -118,11 +118,11 @@ exports.createRequest = async (req, res) => {
             message: `New service request #${requestId} was submitted.`,
         });
 
-        const io = req.app.get('io');
-        if (io) {
-            io.emit('request:updated', { request_id: Number(id) });
-            console.log('📡 emitted request:updated (address)', id);
-        }
+const io = req.app.get('io');
+if (io) {
+    io.emit('request:updated', { request_id: Number(requestId) });
+    console.log('📡 emitted request:updated (address)', requestId);
+}
 
         res.status(201).json({
             message: "Request created successfully",
@@ -418,6 +418,13 @@ exports.updateStatus = async (req, res) => {
 
         await conn.commit();
 
+        const io = req.app.get('io');
+if (io) {
+    io.emit('request:updated', { request_id: Number(id) });
+    console.log('📡 emitted request:updated (status)', id);
+}
+
+
         res.json({
             success: true,
             request_id: Number(id),
@@ -446,11 +453,11 @@ exports.updateAddress = async (req, res) => {
             location_lng
         );
 
-        const io = req.app.get('io');
-        if (io) {
-            io.emit('request:updated', { request_id: Number(id) });
-            console.log('📡 emitted request:updated (address)', id);
-        }
+const io = req.app.get('io');
+if (io) {
+    io.emit('request:updated', { request_id: Number(requestId) });
+    console.log('📡 emitted request:updated (address)', requestId);
+}
 
         res.json({
             message: "Address updated successfully"
@@ -506,11 +513,13 @@ exports.updateRequest = async (req, res) => {
 
         await Request.updateRequestDetails(id, service_type, location, status);
 
-        const io = req.app.get('io');
-        if (io) {
-            io.emit('request:updated', { request_id: Number(id) });
-            console.log('📡 emitted request:updated (address)', id);
-        }
+const io = req.app.get('io');
+if (io) {
+    io.emit('request:updated', { request_id: Number(requestId) });
+    console.log('📡 emitted request:updated (address)', requestId);
+}
+
+
         res.json({ success: true, message: `Request #${id} updated` });
 
     } catch (err) {
@@ -587,6 +596,11 @@ exports.cancelRequest = async (req, res) => {
             type: 'order',
             message: `Request #${id} is back in the pending pool.`,
         });
+            const io = req.app.get('io');
+if (io) {
+    io.emit('request:updated', { request_id: Number(id) });
+    console.log('📡 emitted request:updated (driver released)', id);
+}
 
         return res.json({ success: true, message: 'Trip released back to the pending pool' });
     } catch (err) {
@@ -621,24 +635,20 @@ exports.addAdditionalCharge = async (req, res) => {
     }
 };
 
-exports.getReceipt = async (req, res) => {
-    try {
-        const { id } = req.params;
+// exports.getReceipt = async (req, res) => {
+//     try {
+//         const { id } = req.params;
 
-        const receipt = await Request.getReceiptData(id);
+//         const receipt = await Request.getReceiptData(id);
 
-        const io = req.app.get('io');
-        if (io) {
-            io.emit('request:updated', { request_id: Number(id) });
-            console.log('📡 emitted request:updated (address)', id);
-        }
-        res.json({ success: true, receipt });
+//         res.json({ success: true, receipt });
 
-    } catch (error) {
-        console.error('Get receipt error:', error);
-        res.status(400).json({ error: error.message });
-    }
-};
+//     } catch (error) {
+//         console.error('Get receipt error:', error);
+//         res.status(400).json({ error: error.message });
+//     }
+// };
+
 exports.checkCanRequest = async (req, res) => {
     try {
         const user_id = req.user.id ?? req.user.user_id;
