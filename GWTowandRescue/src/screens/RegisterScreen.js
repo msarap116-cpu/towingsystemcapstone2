@@ -277,7 +277,7 @@ const RegisterScreen = ({ navigation }) => {
                 role: 'Customer' // matches your web payload
             };
 
-            console.log('📤 Sending registration:', payload);
+            console.log(' Sending registration:', payload);
 
             const response = await fetch(`${API_BASE_URL}/users/register`, {
                 method: 'POST',
@@ -300,7 +300,7 @@ const RegisterScreen = ({ navigation }) => {
                 );
             }
         } catch (error) {
-            console.error('❌ Registration error:', error);
+            console.error(' Registration error:', error);
             Alert.alert(
                 'Network Error',
                 'Cannot connect to server. Please check your connection and make sure the backend is running.'

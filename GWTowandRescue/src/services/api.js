@@ -60,7 +60,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     return JSON.parse(text);
   } catch (error) {
     // Enhanced error logging
-    console.error('❌ API Error:', {
+    console.error(' API Error:', {
       endpoint: endpoint,
       fullUrl: `${API_BASE_URL}${endpoint}`,
       message: error.message,
@@ -89,7 +89,7 @@ export const checkApiHealth = async () => {
     console.log(' API Health Status:', response.status);
     return response.ok;
   } catch (error) {
-    console.error('❌ API Health Check Failed:', error.message);
+    console.error(' API Health Check Failed:', error.message);
     return false;
   }
 };

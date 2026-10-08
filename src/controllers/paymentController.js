@@ -41,7 +41,7 @@ async function downloadReceipt(req, res) {
 
         // Verify fonts exist (helps debug path issues)
         if (!fs.existsSync(FONT_REGULAR) || !fs.existsSync(FONT_BOLD)) {
-            console.error('❌ Font file missing!');
+            console.error(' Font file missing!');
             console.error('FONT_REGULAR:', FONT_REGULAR, fs.existsSync(FONT_REGULAR));
             console.error('FONT_BOLD:', FONT_BOLD, fs.existsSync(FONT_BOLD));
             return res.status(500).json({ message: 'Receipt fonts not found on server.' });

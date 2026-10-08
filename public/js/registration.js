@@ -1,7 +1,7 @@
 // registration.js
 
 
- let isSubmitting = false
+let isSubmitting = false
 
 document.addEventListener("DOMContentLoaded", () => {
     const toggleButtons = document.querySelectorAll('.toggle-password');
@@ -39,123 +39,114 @@ document.addEventListener("DOMContentLoaded", () => {
 async function handleRegister(e) {
     e.preventDefault();
 
-        if (isSubmitting) return;      // double safety
+    if (isSubmitting) return;   // double safety
     isSubmitting = true;
 
-    const submitBtn = document.querySelector('#registrationForm button[type="submit"]');
+    // ✅ FIXED: correct form id (#registerForm, not #registrationForm)
+    const submitBtn = document.querySelector('#registerForm button[type="submit"]');
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Registering...'; // optional, para malinaw sa user
+        submitBtn.textContent = 'Registering...';
         console.log('submit button is clicked');
     }
 
-    const name = document.getElementById('name').value;
-    const email = document.getElementById('email').value;
-    const phone = document.getElementById('phone').value;
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirm_password').value;
+    try {
+        const name = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
+        const phone = document.getElementById('phone').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
 
-    // Clear previous password error
-    const passwordError = document.getElementById('passwordError');
-
-    if (passwordError) {
-        passwordError.style.display = 'none';
-        passwordError.textContent = '';
-    }
-
-    // Validate email
-    const emailValidation = validateEmail(email);
-
-    if (!emailValidation.isValid) {
-        showAlert(emailValidation.message, 'danger');
-        return;
-    }
-
-    // Validate password
-    const passwordValidation = validatePassword(password);
-
-    if (!passwordValidation.isValid) {
+        // Clear previous password error
+        const passwordError = document.getElementById('passwordError');
         if (passwordError) {
-            passwordError.textContent = passwordValidation.message;
-            passwordError.style.display = 'block';
+            passwordError.style.display = 'none';
+            passwordError.textContent = '';
         }
 
-        document.getElementById('password').focus();
-        return;
+        // Validate email
+        const emailValidation = validateEmail(email);
+        if (!emailValidation.isValid) {
+            showAlert(emailValidation.message, 'danger');
+            return;
+        }
+
+        // Validate password
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
+            if (passwordError) {
+                passwordError.textContent = passwordValidation.message;
+                passwordError.style.display = 'block';
+            }
+            document.getElementById('password').focus();
+            return;
+        }
+
+        // Validate passwords match
+        if (password !== confirmPassword) {
+            showAlert('Passwords do not match!', 'danger');
+            return;
+        }
+
+        // Validate phone
+        const phoneValidation = validatePhoneNumber(phone);
+        if (!phoneValidation.isValid) {
+            showAlert(phoneValidation.message, 'danger');
+            return;
+        }
+
+        const payload = {
+            name,
+            email: emailValidation.correctedEmail || email,
+            phone,
+            password,
+            role: 'Customer'
+        };
+
+        console.log('Sending registration:', payload);
+
+        const data = await apiFetch('/users/register', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+
+        console.log('Registration successful:', data);
+
+        // Make sure no registration token is kept
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+
+        // Show success notification
+        showAlert(
+            'Registration successful! Redirecting to login...',
+            'success'
+        );
+
+        // Redirect to login after notification
+        setTimeout(() => {
+            window.location.replace('/login');
+        }, 8000);
+
+    } catch (error) {
+        console.error('Registration error:', error);
+        showAlert(
+            error.message || 'Registration failed. Please try again.',
+            'danger'
+        );
+    } finally {
+        // Runs on success, on early return, and on thrown error
+        isSubmitting = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Register';
+        }
     }
-
-    // Validate passwords match
-    if (password !== confirmPassword) {
-        showAlert('Passwords do not match!', 'danger');
-        return;
-    }
-
-    // Validate phone
-    const phoneValidation = validatePhoneNumber(phone);
-
-    if (!phoneValidation.isValid) {
-        showAlert(phoneValidation.message, 'danger');
-        return;
-    }
-
-    const payload = {
-        name,
-        email: emailValidation.correctedEmail || email,
-        phone,
-        password,
-        role: 'Customer'
-    };
-
-    console.log('📤 Sending registration:', payload);
-
-
-try {
-    const data = await apiFetch('/users/register', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-    });
-
-    console.log('Registration successful:', data);
-
-    // Make sure no registration token is kept
-    sessionStorage.removeItem('token');
-    sessionStorage.removeItem('user');
-
-    // Show success notification
-    showAlert(
-        'Registration successful! Redirecting to login...',
-        'success'
-    );
-
-    // Redirect to login after notification
-    setTimeout(() => {
-        window.location.replace('/login');
-    }, 8000);
-
-} catch (error) {
-    console.error('❌ Registration error:', error);
-
-    showAlert(
-        error.message || 'Registration failed. Please try again.',
-        'danger'
-    );
-
-} finally {
-    isSubmitting = false;
-    if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Register';
-    }
-}
 }
 
 // Helper function for showing alerts
 function showAlert(message, type = 'danger') {
-    // Remove any existing alert
     const existingAlert = document.querySelector('.alert-message');
-    if (existingAlert) {
-        existingAlert.remove();
-    }
+    if (existingAlert) existingAlert.remove();
 
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert-message alert alert-${type}`;
@@ -170,14 +161,16 @@ function showAlert(message, type = 'danger') {
     `;
     alertDiv.textContent = message;
 
-    const formContainer = document.querySelector('.form-container');
+    // ✅ FIXED: fall back so this never throws
+    const formContainer =
+        document.querySelector('.form-container') ||
+        document.getElementById('registerForm') ||
+        document.body;
+
     formContainer.insertBefore(alertDiv, formContainer.firstChild);
 
-    // Auto-remove after 5 seconds
     setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.remove();
-        }
+        if (alertDiv.parentNode) alertDiv.remove();
     }, 5000);
 }
 
@@ -283,7 +276,7 @@ function validatePassword(password) {
     if (!passwordRegex.test(password)) {
         return {
             isValid: false,
-            message: '😤😒😒😒'
+            message: 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character (@$!%*?&_).'
         };
     }
     return { isValid: true };
@@ -347,23 +340,32 @@ document.addEventListener('DOMContentLoaded', function () {
             if (phoneStatus) phoneStatus.style.display = 'none';
 
             const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+
+            // Only validate once the user has typed enough to judge
             if (cleanPhone.length >= 11) {
                 const validation = validatePhoneNumber(phone);
+
+                // Ensure the status element exists (needed for both success and error)
+                if (!phoneStatus) {
+                    phoneStatus = document.createElement('div');
+                    phoneStatus.id = 'phoneStatus';
+                    phoneStatus.style.marginTop = '5px';
+                    phoneStatus.style.fontSize = '14px';
+                    this.parentNode.appendChild(phoneStatus);
+                }
+
                 if (validation.isValid) {
                     this.classList.add('success');
-                    if (!phoneStatus) {
-                        phoneStatus = document.createElement('div');
-                        phoneStatus.id = 'phoneStatus';
-                        phoneStatus.style.marginTop = '5px';
-                        phoneStatus.style.fontSize = '14px';
-                        this.parentNode.appendChild(phoneStatus);
-                    }
+                    this.classList.remove('error');
                     phoneStatus.textContent = '✓ Valid Philippine number';
-                    phoneStatus.style.display = 'block';
                     phoneStatus.style.color = '#28a745';
                 } else {
                     this.classList.remove('success');
+                    this.classList.add('error');
+                    phoneStatus.textContent = validation.message;
+                    phoneStatus.style.color = '#dc3545';
                 }
+                phoneStatus.style.display = 'block';
             } else {
                 this.classList.remove('success');
             }
@@ -391,82 +393,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ===== SUBMIT: SHOW RED ERRORS ONLY NOW =====
-
-    if (form) {
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-
-
-            if(isSubmitting) return;
-
-             let isFormValid = true;
-
-            // ---- Password ----
-            if (passwordInput) {
-                const validation = validatePassword(passwordInput.value);
-                if (!validation.isValid) {
-                    isFormValid = false;
-                    passwordInput.classList.add('error');
-                    passwordInput.classList.remove('success');
-                    if (passwordError) {
-                        passwordError.textContent = validation.message;
-                        passwordError.style.display = 'block';
-                        passwordError.style.color = '#dc3545';
-                    }
-                    if (helperText) helperText.style.color = '#dc3545';
-                }
-            }
-
-            // ---- Confirm Password ----
-            if (confirmInput && passwordInput) {
-                const pass = passwordInput.value;
-                const confirm = confirmInput.value;
-                if (!confirm || confirm !== pass) {
-                    isFormValid = false;
-                    confirmInput.classList.add('error');
-                    confirmInput.classList.remove('success');
-                    if (passwordError) {
-                        if (confirm && confirm !== pass) {
-                            passwordError.textContent = '✗ Passwords do not match';
-                        }
-                        passwordError.style.display = 'block';
-                        passwordError.style.color = '#dc3545';
-                    }
-                }
-            }
-
-            // ---- Phone ----
-            if (phoneInput) {
-                const validation = validatePhoneNumber(phoneInput.value);
-                if (!validation.isValid) {
-                    isFormValid = false;
-                    phoneInput.classList.add('error');
-                    phoneInput.classList.remove('success');
-                    if (!phoneStatus) {
-                        phoneStatus = document.createElement('div');
-                        phoneStatus.id = 'phoneStatus';
-                        phoneStatus.style.marginTop = '5px';
-                        phoneStatus.style.fontSize = '14px';
-                        phoneInput.parentNode.appendChild(phoneStatus);
-                    }
-                    phoneStatus.textContent = validation.message;
-                    phoneStatus.style.display = 'block';
-                    phoneStatus.style.color = '#dc3545';
-                }
-            }
-
-            // If form is valid, call handleRegister
-            if (isFormValid) {
-                handleRegister(e);
-            }
-        });
-    }
 });
 
-// ===== EMAIL AVAILABILITY CHECK =====
-let emailCheckTimeout;
 
+// Check email availability function
 // Check email availability function
 async function checkEmailAvailability(email) {
     try {
@@ -478,10 +408,9 @@ async function checkEmailAvailability(email) {
             body: JSON.stringify({ email })
         });
 
-        // Check if response is OK
         if (!response.ok) {
             const errorData = await response.json();
-            console.error('❌ Email check error:', errorData);
+            console.error('Email check error:', errorData);
             return true; // Assume available if check fails
         }
 
@@ -510,14 +439,18 @@ async function checkEmailAvailability(email) {
         return data.available;
 
     } catch (error) {
-        console.error('❌ Email check error:', error);
+        console.error('Email check error:', error);
         return true; // Assume available if check fails
     }
 }
 
 // ===== EMAIL INPUT BLUR EVENT =====
-const emailInput = document.getElementById('email');
-if (emailInput) {
+document.addEventListener('DOMContentLoaded', function () {
+    const emailInput = document.getElementById('email');
+    if (!emailInput) return;
+
+    let emailCheckTimeout;   // now scoped here, still accessible to the blur handler
+
     emailInput.addEventListener('blur', async function () {
         const emailValidation = validateEmail(this.value);
         const suggestionDiv = document.getElementById('emailSuggestion');
@@ -529,23 +462,23 @@ if (emailInput) {
                 emailStatus.style.color = 'red';
                 emailStatus.style.display = 'block';
             }
-            suggestionDiv.style.display = 'none';
+            if (suggestionDiv) suggestionDiv.style.display = 'none';
             return;
         }
 
-        if (emailValidation.correctedEmail && emailValidation.correctedEmail !== this.value) {
-            suggestionDiv.textContent = `Did you mean: ${emailValidation.correctedEmail}?`;
-            suggestionDiv.style.display = 'block';
-            suggestionDiv.style.cursor = 'pointer';
-
-            suggestionDiv.onclick = function () {
-                emailInput.value = emailValidation.correctedEmail;
+        if (suggestionDiv) {
+            if (emailValidation.correctedEmail && emailValidation.correctedEmail !== this.value) {
+                suggestionDiv.textContent = `Did you mean: ${emailValidation.correctedEmail}?`;
+                suggestionDiv.style.display = 'block';
+                suggestionDiv.style.cursor = 'pointer';
+                suggestionDiv.onclick = function () {
+                    emailInput.value = emailValidation.correctedEmail;
+                    suggestionDiv.style.display = 'none';
+                    emailInput.dispatchEvent(new Event('blur'));
+                };
+            } else {
                 suggestionDiv.style.display = 'none';
-                // Trigger another check after correction
-                emailInput.dispatchEvent(new Event('blur'));
-            };
-        } else {
-            suggestionDiv.style.display = 'none';
+            }
         }
 
         // Check email availability if valid
@@ -570,4 +503,4 @@ if (emailInput) {
             }, 500);
         }
     });
-}
+});

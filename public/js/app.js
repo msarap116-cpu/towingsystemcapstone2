@@ -720,7 +720,7 @@ window.loadUserProfile = async function () {
     } catch (error) {
 
         console.error(
-            '❌ Error loading user profile:',
+            ' Error loading user profile:',
             error
         );
     }
