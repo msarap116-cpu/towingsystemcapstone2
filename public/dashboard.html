@@ -12,9 +12,19 @@
         }
     </script>
 
+        <script>
+        document.addEventListener('contextmenu', event => event.preventDefault());
+    </script>
+    <script>
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F12') e.preventDefault();
+            if (e.ctrlKey && e.key === 'u') e.preventDefault();
+        })
+    </script>
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="css/notifications.css">
+
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 

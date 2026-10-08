@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Request Assistance - GoodWrench</title>
     <!-- CSS -->
+        <script>
+        document.addEventListener('contextmenu', event => event.preventDefault());
+    </script>
+    <script>
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F12') e.preventDefault();
+            if (e.ctrlKey && e.key === 'u') e.preventDefault();
+        })
+    </script>
+
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/requestform.css">
 </head>
