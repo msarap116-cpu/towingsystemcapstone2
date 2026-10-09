@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <b>${d.name || 'Driver'}</b>
                                 <br>Vehicle: ${d.vehicle || 'N/A'}
                                 <br>Status: ${d.status}
-                                <br>Rating: ${d.rating || 'N/A'} ⭐
+                                <br>Rating: ${d.rating || 'N/A'}
                             `);
                 markersList.push(marker);
                 bounds.push([lat, lng]);

@@ -69,7 +69,7 @@ const LeafletMap = ({
         var fitted = false;
         var customerPopupHtml = 'Customer';
         var driverPopupHtml = 'Driver';
-        var lastLat = null, lastLng = null, lastHeading = null, lastPov = true;   // ⭐ moved up
+        var lastLat = null, lastLng = null, lastHeading = null, lastPov = true;   // moved up
         var map = null;
 
         try {
@@ -265,20 +265,30 @@ true;
     inject(`setMode(${JSON.stringify(mode)})`);
   }, [mapReady, mode]);
 
-  useEffect(() => {
-    if (!mapReady) return;
-    const customerHtml = `⌖ ${esc(customerName || 'Customer')}<br>${esc(address || 'Customer location')}`;
-    let driverHtml = `<strong>${esc(driverName || 'Driver')}</strong>`;
-    if (distanceKm && durationMin) {
-      driverHtml += `<br>Distance: <strong>${esc(distanceKm)} </strong><br>Est. arrival: <strong>${esc(durationMin)}</strong>`;
-    } else if (distanceKm) {
-      driverHtml += `<br>~${esc(distanceKm)} km away`;
-    } else {
-      driverHtml += '<br>Calculating route…';
-    }
-    inject(`updateInfo(${JSON.stringify(customerHtml)}, ${JSON.stringify(driverHtml)})`);
-  }, [mapReady, customerName, address, driverName, distanceKm, durationMin]);
+useEffect(() => {
+  if (!mapReady) return;
 
+  // Customer popup: name + address
+  const customerHtml = `⌖ ${esc(customerName || 'Customer')}<br>${esc(address || 'Customer location')}`;
+
+  // Driver popup: just the driver name (no ETA — that belongs to the customer's view)
+  let driverHtml = `<strong>${esc(driverName || 'Driver')}</strong>`;
+
+  // Only attach distance/ETA to the CUSTOMER popup, because it describes
+  // the driver's arrival at the customer's location.
+  let customerHtmlWithEta = customerHtml;
+  if (distanceKm && durationMin) {
+    customerHtmlWithEta += `<br>Driver: <strong>${esc(driverName || 'Driver')}</strong>`;
+    customerHtmlWithEta += `<br>Distance: <strong>${esc(distanceKm)}</strong>`;
+    customerHtmlWithEta += `<br>Est. arrival: <strong>${esc(durationMin)}</strong>`;
+  } else if (distanceKm) {
+    customerHtmlWithEta += `<br>~${esc(distanceKm)} km away`;
+  } else {
+    customerHtmlWithEta += '<br>Calculating route…';
+  }
+
+  inject(`updateInfo(${JSON.stringify(customerHtmlWithEta)}, ${JSON.stringify(driverHtml)})`);
+}, [mapReady, customerName, address, driverName, distanceKm, durationMin]);
   useEffect(() => {
     if (!mapReady || !customerLocation) return;
     inject(`updateCustomer(${customerLocation.latitude}, ${customerLocation.longitude})`);

@@ -223,8 +223,7 @@ const DashboardScreen = ({ navigation, route }) => {
   useEffect(() => {
     if (!latestRequest) return;
 
-    // Always sync the displayed amount to the request's real total.
-    // Prefer total_amount, fall back to amount, then 0.
+
     const raw =
       latestRequest.total_amount ??
       latestRequest.amount ??
@@ -232,7 +231,7 @@ const DashboardScreen = ({ navigation, route }) => {
 
     setPaymentAmount(`₱${Number(raw).toFixed(2)}`);
 
-    // If navigated with ?pay=<id>, jump to the payment tab
+
     const payId = route?.params?.pay;
     if (payId && String(latestRequest.request_id) === String(payId)) {
       setActiveTab('payment');
@@ -380,7 +379,7 @@ const DashboardScreen = ({ navigation, route }) => {
 
   const handleLogout = () => {
     if (AppState.currentState !== 'active') {
-      // Activity not attached — bail or queue the alert
+
       return;
     }
     Alert.alert(

@@ -88,12 +88,12 @@ const DriverDashboardScreen = ({ navigation }) => {
   const initRequestRef = useRef(null);
 
   //for the pov
-  const prevLocationRef = useRef(null);   // last GPS fix, for bearing calc
-  const lastRouteCalcRef = useRef(0);     // throttle for OSRM calls
-  const ROUTE_RECALC_INTERVAL = 15000;    // recompute route at most every 15s
+  const prevLocationRef = useRef(null);
+  const lastRouteCalcRef = useRef(0);
+  const ROUTE_RECALC_INTERVAL = 15000;
 
   const [driverHeading, setDriverHeading] = useState(null);
-  const driverHeadingRef = useRef(null); // mirrors driverHeading, readable inside the GPS callback closure
+  const driverHeadingRef = useRef(null);
 
   const [povMode, setPovMode] = useState(true); // start in POV mode
 
@@ -112,10 +112,6 @@ const DriverDashboardScreen = ({ navigation }) => {
   const [submittingCharge, setSubmittingCharge] = useState(false);
 
 
-  //  CHANGE #1: Added myTripsRef + moved ref assignment into useEffect
-  // WHY: myTripsRef lets acceptJob() check "already accepted?" without
-  //      relying on a stale closure. Moving the ref sync into useEffect
-  //      avoids assigning a possibly-undefined const during render.
 
   const loadDriverDashboardDataRef = useRef(null);
   const myTripsRef = useRef([]);
@@ -354,7 +350,7 @@ const DriverDashboardScreen = ({ navigation }) => {
     );
   };
 
-  // ===== DATA FETCHING =====
+  // DATA FETCHING
   const fetchPendingRequests = async () => {
     const token = await AsyncStorage.getItem('token');
     if (!token) return [];
@@ -493,31 +489,25 @@ const DriverDashboardScreen = ({ navigation }) => {
       setPendingRequests(pending);
 
 
-      //  CHANGE #3a: Use normalized status helpers instead of exact
-      //                string comparisons. This is the MAIN reason
-      //                accepted jobs weren't showing up.
 
-      const active = trips.filter(isActiveTrip);          //  CHANGED
+      const active = trips.filter(isActiveTrip);
       console.log('active trips:', active);
-      const completed = trips.filter(t => normalizeStatus(t.status) === 'completed'); //  CHANGED
+      const completed = trips.filter(t => normalizeStatus(t.status) === 'completed');
 
 
-      //  CHANGE #3b: Merge optimistic (not-yet-confirmed) trips
-      //                so the UI updates instantly after Accept.
-      //                Optimistic entries get replaced once the real
-      //                row appears from the server.
+
 
       const optimisticOnly = (myTripsRef.current || []).filter(
         t => t._optimistic &&
           !trips.some(r => String(r.request_id) === String(t.request_id))
       );
-      const activeMerged = [...optimisticOnly, ...active]; //  NEW
+      const activeMerged = [...optimisticOnly, ...active];
 
-      setMyTrips(activeMerged);                             //  CHANGED (was: active)
+      setMyTrips(activeMerged);
       setCompletedTripsList(completed);
       setPaymentHistory(completed.slice(0, 10));
       setAvailableJobs(pending.length);
-      setActiveTrips(activeMerged.length);                  //  CHANGED (was: active.length)
+      setActiveTrips(activeMerged.length);
       setCompletedTrips(completed.length);
       setTodayEarnings(earnings.today || 0);
       setTotalEarnings(earnings.allTime || 0);
@@ -608,8 +598,8 @@ const DriverDashboardScreen = ({ navigation }) => {
               enableHighAccuracy: false,
               timeout: 15000,
               maximumAge: 60000,
-              forceRequestLocation: true,   // ⭐
-              showLocationDialog: true,     // ⭐
+              forceRequestLocation: true,
+              showLocationDialog: true,
             }
           );
         },
@@ -1682,10 +1672,7 @@ const DriverDashboardScreen = ({ navigation }) => {
         {/*  MAIN CONTENT — flex:1 ang naa sa styles */}
         <View style={styles.contentArea}>
           {activeTab === 'dashboard' && renderDashboard()}
-          {/* ============================================================
-     CHANGE #8 (optional): Mount tracking only when the tab is
-    active. Prevents stale GPS overlays from a previous trip.
-   ============================================================ */}
+
           {activeTab === 'tracking' && (
             <View style={{ flex: 1, marginHorizontal: -16 }}>
               {renderTracking()}

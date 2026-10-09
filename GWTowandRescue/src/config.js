@@ -47,10 +47,10 @@
 
 import { Platform } from 'react-native';
 
-const LAN_API    = 'http://192.168.0.102:3000/api';
+const LAN_API    = 'http://192.168.0.104:3000/api';
 const PROD_API   = 'https://goodwrench-towing-rescue.onrender.com/api';
 
-const LAN_SOCKET  = 'http://192.168.0.102:3000';
+const LAN_SOCKET  = 'http://192.168.0.104:3000';
 const PROD_SOCKET = 'https://goodwrench-towing-rescue.onrender.com';
 
 export const API_BASE_URL = __DEV__ ? LAN_API : PROD_API;
