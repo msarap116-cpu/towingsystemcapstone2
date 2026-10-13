@@ -21,17 +21,17 @@ import notifee, { AndroidImportance } from '@notifee/react-native';
 const Stack = createNativeStackNavigator();
 
 async function setupNotifications() {
-  // 1. Request permission (Android 13+)
+
   await notifee.requestPermission();
 
-  // 2. Create a channel for your notifications
+
   const channelId = await notifee.createChannel({
-    id: 'gwtow-notifications', // Unique ID for the channel
-    name: 'GoodWrench Notifications', // Name shown in Android settings
-    importance: AndroidImportance.HIGH, // HIGH makes it pop up
+    id: 'gwtow-notifications',
+    name: 'GoodWrench Notifications',
+    importance: AndroidImportance.HIGH,
   });
 
-  return channelId; // We'll use this ID later
+  return channelId;
 }
 const App = () => {
     const [isLoading, setIsLoading] = useState(true);
@@ -50,8 +50,8 @@ const App = () => {
     useEffect(() => {
         const checkLoginStatus = async () => {
             try {
-                const token = await AsyncStorage.getItem('token');       // tama nga key
-                const userStr = await AsyncStorage.getItem('user');     // tama nga key
+                const token = await AsyncStorage.getItem('token');
+                const userStr = await AsyncStorage.getItem('user');
                 console.log('TOKEN:', token, 'USER:', userStr);
 
                 if (token && userStr) {

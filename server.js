@@ -4,15 +4,9 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const cors = require('cors');
-const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const db = require('./src/database/database');
 
-
-// const User = require('./src/models/userModel');
-// const { generateToken } = require('./src/controllers/userController');
-
-// Import routes
 const userroutes = require('./src/routes/userroutes');
 const requestsRoute = require('./src/routes/requestRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
@@ -36,42 +30,31 @@ const io = new Server(server, {
   transports: ['websocket', 'polling'],
 });
 
-// Make io reachable from any route: req.app.get('io')
 app.set('io', io);
 
-// Connection handler
 io.on('connection', (socket) => {
   console.log(' socket connected:', socket.id);
 
-  // Auth (optional): read token from handshake
   const token = socket.handshake.auth?.token;
   if (token) {
     try {
-      // If you have a verifyToken helper, use it:
-      // const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      // socket.userId = decoded.id;
-      // socket.join(`driver:${decoded.id}`);
+
       console.log('   auth token present');
     } catch (e) {
       console.log('   invalid token:', e.message);
     }
   }
-
   socket.on('disconnect', (reason) => {
     console.log(' socket disconnected:', socket.id, reason);
   });
 });
 
-
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API routes
 app.use('/api/users/', userroutes);
 app.use('/api/requests', requestsRoute);
 app.use('/api/admin', adminRoutes);
@@ -82,10 +65,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/earnings',earningsRoutes);
 app.use('/api/settings', settingsRoutes);
 
-
-// global error handler — keep JSON errors JSON,
 app.use((err, req, res, next) => {
-    // Safely log whatever we got
+
     const message =
         (err && err.message) ||
         (typeof err === 'string' ? err : null) ||
@@ -97,7 +78,6 @@ app.use((err, req, res, next) => {
 
     if (res.headersSent) return next(err);
 
-    // If err is not a real Error, don't leak "undefined" to the client
     res.status(500).json({
         success: false,
         message: message,

@@ -192,7 +192,7 @@ router.post(
     requestController.addAdditionalCharge
 );
 
-// GET /:id/receipt — commented out until Request.getReceiptData exists
-// router.get('/:id/receipt', authenticateToken, requestController.getReceipt);
+
+router.get('/:id/receipt', authenticateToken, requestController.getReceipt);
 
 module.exports = router;

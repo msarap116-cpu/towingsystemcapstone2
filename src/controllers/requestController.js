@@ -635,19 +635,19 @@ exports.addAdditionalCharge = async (req, res) => {
     }
 };
 
-// exports.getReceipt = async (req, res) => {
-//     try {
-//         const { id } = req.params;
+exports.getReceipt = async (req, res) => {
+    try {
+        const { id } = req.params;
 
-//         const receipt = await Request.getReceiptData(id);
+        const receipt = await Request.getReceiptData(id);
 
-//         res.json({ success: true, receipt });
+        res.json({ success: true, receipt });
 
-//     } catch (error) {
-//         console.error('Get receipt error:', error);
-//         res.status(400).json({ error: error.message });
-//     }
-// };
+    } catch (error) {
+        console.error('Get receipt error:', error);
+        res.status(400).json({ error: error.message });
+    }
+};
 
 exports.checkCanRequest = async (req, res) => {
     try {

@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const Payment = require('../models/paymentModel');
 
-// ⬇️ Two ".." to reach project root from src/controllers
+// Two ".." to reach project root from src/controllers
 const FONT_REGULAR = path.join(__dirname, '..', '..', 'public', 'fonts', 'NotoSans-Regular.ttf');
 const FONT_BOLD    = path.join(__dirname, '..', '..', 'public', 'fonts', 'NotoSans-Bold.ttf');
 
