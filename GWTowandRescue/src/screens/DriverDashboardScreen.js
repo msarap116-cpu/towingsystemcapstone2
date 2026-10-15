@@ -1446,12 +1446,6 @@ const DriverDashboardScreen = ({ navigation }) => {
   };
   const renderTrips = () => {
 
-    // ============================================================
-    //  CHANGE #5: De-duplicate by request_id.
-    // WHY: myTrips and completedTripsList can briefly overlap while
-    //      the backend is catching up, producing what looked like a
-    //      "duplicated request". This dedupes on the client side too.
-    // ============================================================
     const seen = new Set();
     const allTrips = [...(myTrips || []), ...(completedTripsList || [])].filter(t => {
       const key = String(t.request_id);
@@ -1509,11 +1503,6 @@ const DriverDashboardScreen = ({ navigation }) => {
                         </TouchableOpacity>
                       )} */}
 
-                      {/* ============================================================
-     CHANGE #6: Use normalized status checks so buttons show
-    for "accepted", "ongoing", etc. — not just the literal
-    "assigned" / "in progress" strings.
-   ============================================================ */}
                       {isTrackingTrip(item) && (
                         <TouchableOpacity
                           style={[styles.tripBtn, styles.tripBtnSuccess]}

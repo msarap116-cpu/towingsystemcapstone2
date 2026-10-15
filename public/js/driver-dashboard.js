@@ -131,7 +131,7 @@ async function loadDriverDashboardData() {
 }
 
 
-// ---------- RENDER UI ----------
+// RENDER UI
 function renderDashboardUI() {
 
     console.log(sessionStorage.getItem('token'));
@@ -182,7 +182,6 @@ function renderDashboardUI() {
     document.getElementById('statEarnings').innerText = `₱${todayEarnings}`;
     document.getElementById('statEarnings').innerText = `₱${todayEarnings.toFixed(2)}`;
 
-    // Other tabs
     const totalTrips = document.getElementById('totalTripsCount');
     if (totalTrips) totalTrips.innerText = completedTrips.length + myActiveTrips.length;
     const totalEarnings = document.getElementById('totalEarnings');
@@ -192,7 +191,7 @@ function renderDashboardUI() {
     if (totalEarningsEl) totalEarningsEl.innerText = `₱${totalEarningsValue.toFixed(2)}`;
 
 
-    // NEW: "All Trips" tab — active + completed
+
     const allTripsList = document.getElementById('allTripsList');
     if (allTripsList) {
         const allTrips = [...myActiveTrips, ...completedTrips];
@@ -203,7 +202,7 @@ function renderDashboardUI() {
 
     renderPendingRequests();
 };
-// existing dashboard "On Going Job" — active trips only
+
 
 function renderTripCard(trip) {
     const isActive = ['assigned', 'in progress'].includes(trip.status);
@@ -936,7 +935,7 @@ function setupEventListeners() {
 
 // ---------- INIT ----------
 document.addEventListener('DOMContentLoaded', function () {
-    // 1. Keep your existing initialization
+
     displayUserInfo();
     setupEventListeners();
     // renderTripCard();
@@ -946,7 +945,6 @@ document.addEventListener('DOMContentLoaded', function () {
         console.error('Failed to load dashboard:', err);
     });
 
-    // 2. ADD THIS: The auto-refresh timer
     // This checks for updates from the Admin every 10 seconds
     setInterval(() => {
         loadDriverDashboardData().catch(err => console.error(err));

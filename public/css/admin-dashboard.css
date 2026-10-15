@@ -20,7 +20,7 @@ body {
     left: 0;
     right: 0;
     height: 64px;
-    background: #ffffff;
+    background:  #0b3d84;
     border-bottom: 1px solid #e9edf4;
     display: flex;
     align-items: center;
@@ -52,7 +52,7 @@ body {
 .brand h1 {
     font-size: 2.0rem;
     font-weight: 700;
-    color: #0b1a2e;
+    color: #f3f4f6;
     letter-spacing: -0.2px;
 }
 
@@ -84,7 +84,7 @@ body {
 }
 
 .search-input::placeholder {
-    color: #94a3b8;
+    color: #25272a;
 }
 
 .search-input:focus {
@@ -132,7 +132,7 @@ body {
     width: 260px;
     flex-shrink: 0;
     background: #ffffff;
-    border-right: 1px solid #e9edf4;
+    border-right: 2px solid #8d8da2;
     padding: 24px 18px 20px;
     display: flex;
     flex-direction: column;
@@ -142,7 +142,8 @@ body {
 
 .sidebar-header {
     padding: 0 0 20px 0;
-    border-bottom: 1px solid #edf2f8;
+    border-bottom: 1px solid #565b62;
+    border-width: 100%;
     margin-bottom: 20px;
 }
 
@@ -464,25 +465,25 @@ body {
     border-radius: 20px;
 
     /* Colors */
-    background: #0b1a2e;
+    background: #0b3d84;
     color: #fff;
 
-    /* ✨ Smooth transition: applies to ALL animated properties */
+    /* Smooth transition: applies to ALL animated properties */
     transition: all 0.3s ease;
     cursor: pointer;
 }
 
 /* Hover state with smooth change */
 .btn-primary:hover {
-    background: #1e3349;
+    background: #47709b;
     transform: scale(1.05);
-    /* Slight zoom effect */
+
 }
 
 .btn-outline {
     background: transparent;
     border: 1px solid #cdd8e5;
-    color: #1e3349;
+    color: #23272c;
 }
 
 .btn-outline:hover {
@@ -932,7 +933,7 @@ body {
         flex-direction: row;
         overflow-x: auto;
         border-right: none;
-        border-bottom: 1px solid #e9edf4;
+        border-bottom: 3px solid #070707;
         padding: 12px 16px;
         flex-wrap: nowrap;
     }
@@ -1375,7 +1376,7 @@ body {
     color: #334155;
 }
 
-/* 3. Body */
+
 #assignDriverModal .modal-body {
     padding: 24px;
 }
@@ -1396,12 +1397,11 @@ body {
     display: block;
 }
 
-/* 4. Inputs & Selects */
 #assignDriverModal .form-control {
     width: 100%;
     padding: 10px 14px;
     border: 1px solid #cbd5e1;
-    border-radius: 10px;       /* Matching dashboard input radius */
+    border-radius: 10px;
     font-size: 0.95rem;
     font-family: inherit;
     color: #0b1a2e;
@@ -1409,7 +1409,6 @@ body {
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-/* Readonly field styling */
 #assignDriverModal input[readonly] {
     background-color: #f1f5f9;
     color: #64748b;
@@ -1452,24 +1451,24 @@ body {
 
 #assignDriverModal .btn-outline:hover {
     background: #f1f5f9;
-    color: #0b1a2e;
+    color: #0b3d84;
     border-color: #94a3b8;
 }
 
 /* Assign Button (overriding the global .btn-primary scale effect) */
 #assignDriverModal .btn-primary {
-    background: #0b1a2e;
+    background: #0b3d84;
     color: #fff;
     border: none;
-    margin-bottom: 0; /* Reset global margin */
+    margin-bottom: 0;
 }
 
 #assignDriverModal .btn-primary:hover {
-    background: #1e3349;
-    transform: none; /* Remove the scale effect inside modal for stability */
+    background: #4b6b99;
+    transform: none;
     box-shadow: 0 4px 12px rgba(11, 26, 46, 0.2);
 }
-/* ===== 1. ADD SOMEONE BUTTON (Specific Styling) ===== */
+
 .add-someone-btn {
     display: inline-flex;
     align-items: center;
@@ -1477,25 +1476,24 @@ body {
     gap: 8px;
     font-size: 15px;
     font-weight: 600;
-    padding: 10px 18px; /* Slightly wider padding for text */
+    padding: 10px 18px;
     border: none;
     border-radius: 999px;
-    background: #161616; /* Clean white background */
-    color: #e0e3e6;      /* Dark text */
+    background: #0b3d84;
+    color: #e0e3e6;
     cursor: pointer;
     line-height: 1;
     transition: all 0.2s ease;
     white-space: nowrap;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Subtle shadow for depth */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .add-someone-btn:hover {
-    background: #3f3f40;
+    background: #5a5ac1;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
     transform: translateY(-1px);
 }
 
-/* ===== 2. DOTTED MENU BUTTON (Original Styling preserved) ===== */
 .dotted-menu-btn {
     display: inline-flex;
     align-items: center;
@@ -1506,8 +1504,8 @@ body {
     padding: 10px 14px;
     border: none;
     border-radius: 999px;
-    background: #faf8f8; /* Original background */
-    color: #090909;      /* Original text color */
+    background: #faf8f8;
+    color: #090909;
     cursor: pointer;
     line-height: 1;
     transition: background 0.2s ease, transform 0.15s ease;
@@ -1515,5 +1513,35 @@ body {
 }
 
 .dotted-menu-btn:hover {
-    background: #e2e8f0; /* Slight hover effect for the dots */
+    background: #e2e8f0;
+}
+ #gcashqrPanel .qr-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+#gcashqrPanel .qr-section {
+    text-align: center;
+    width: 100%;
+    max-width: 260px;
+}
+
+#gcashqrPanel .qr-upload-card {
+    width: 100%;
+    max-width: 260px;
+    min-width: unset;
+    padding: 0;
+    border: none;
+    background: transparent;
+}
+#gcashqrPanel .panel-header {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+}
+
+#gcashqrPanel .panel-header > div {
+    text-align: center;   /*  THIS is what centers h2 and p */
 }

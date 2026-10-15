@@ -144,12 +144,11 @@ router.put(
     requestController.updateRequest
 );
 
-// ---- Single request by ID (must come after specific paths) ----
+
 
 // GET /:id
 router.get('/:id', authenticateToken, requestController.getRequestById);
 
-// DELETE /:id — ownership checked
 router.delete('/:id', authenticateToken, noStore, async (req, res) => {
     try {
         const { id } = req.params;

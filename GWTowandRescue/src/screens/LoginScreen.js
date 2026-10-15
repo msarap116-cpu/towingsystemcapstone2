@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles/LoginScreen.styles';
 import API_BASE_URL from '../config.js';
 import { connectSocket } from '../socket';
-// Import your PNG icons
+
 const eyeIcon = require('../assets/images/eye.png');
 const eyeCrossedIcon = require('../assets/images/eye-crossed.png');
 
@@ -28,17 +28,15 @@ const LoginScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [returnTo, setReturnTo] = useState(null);
 
-  //ONE SINGLE COMBINED useEffect — NO duplicates, NO conflicts
+
   useEffect(() => {
-    // Read returnTo from navigation params
+
     if (route.params?.returnTo) {
       setReturnTo(route.params.returnTo);
     }
 
-    // Check auth status — auto-redirect if already logged in
     checkAuthStatus();
 
-    // Show logout message (passed from Dashboard on logout)
     const message = route.params?.logoutMessage;
     if (message) {
       setTimeout(() => {
@@ -49,9 +47,9 @@ const LoginScreen = ({ navigation, route }) => {
         }
       }, 0);
     }
-  }, [route.params]); //ONE dependency list — clean & correct
+  }, [route.params]);
 
-  //Auth check — unchanged
+
   const checkAuthStatus = async () => {
     const token = await AsyncStorage.getItem('token');
     const userStr = await AsyncStorage.getItem('user');
@@ -66,7 +64,7 @@ const LoginScreen = ({ navigation, route }) => {
     }
   };
 
-  //Login — timing fixed, no orphaned Alert
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter both email and password');
@@ -84,7 +82,7 @@ const LoginScreen = ({ navigation, route }) => {
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('user', JSON.stringify(data.user));
 
-        //Alert shows FIRST → navigate AFTER user taps OK
+
         Alert.alert(' Success', 'Login successful!', [
           {
             text: 'OK',
@@ -95,7 +93,7 @@ const LoginScreen = ({ navigation, route }) => {
               } else if (returnTo) {
                 redirectScreen = returnTo;
               }
-              //Wait for Alert to CLOSE COMPLETELY before navigating
+
               setTimeout(() => {
                 navigation.replace(redirectScreen);
               }, 100);

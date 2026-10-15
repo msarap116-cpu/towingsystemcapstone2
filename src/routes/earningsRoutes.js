@@ -4,7 +4,7 @@ const router = express.Router();
 const db = require('../database/database');
 const authenticateToken = require('../middleware/authMiddleware');
 
-// GET /api/earnings/summary
+
 router.get('/summary', authenticateToken, async (req, res) => {
     const driver_id = req.user.id;
 

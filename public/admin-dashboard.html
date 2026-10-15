@@ -99,7 +99,7 @@
             <div id="dashboardPanel" class="tab-panel active">
                 <div id="maptop-card"
                     style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
-                    <span style="font-weight: 600;">available request and etchoss</span>
+                    <span style="font-weight: 600;">Customer and Driver Map monitor</span>
                     <button class="btn btn-primary" onclick="refreshMapMarkers()">Refresh locations</button>
                 </div>
                 <div class="map-container">
@@ -279,12 +279,13 @@
                     </div>
                 </div>
 
-                <div class="qr-layout">
+                <!-- Combined Layout: Image on top, Button directly underneath -->
+               <div class="qr-layout"
+    style="display: flex; flex-direction: column; gap: 20px; align-items: center;">
 
                     <!-- Current QR Section -->
                     <div class="qr-section">
                         <p class="qr-label">Current QR</p>
-
                         <div class="qr-image-wrapper">
                             <img id="currentQr" src="" alt="Current GCash QR"
                                 onerror="this.style.display='none'; document.getElementById('qrPlaceholder').style.display='flex';">
@@ -295,12 +296,13 @@
                         </div>
                     </div>
 
-                    <!-- Replace QR Section -->
-                    <div class="qr-section qr-upload-card">
+                    <!-- Replace QR Section (Now directly under the image) -->
+                    <div class="qr-section qr-upload-card"
+                        style="min-width: unset; width: 100%; max-width: 260px; padding: 0; border: none; background: transparent;">
                         <p class="qr-label">Replace QR</p>
                         <form id="qrUploadForm" enctype="multipart/form-data">
                             <input type="file" name="gcash_qr" id="gcash_qr" accept="image/png, image/jpeg" required
-                                class="qr-file-input">
+                                class="qr-file-input" style="margin-bottom: 10px;">
                             <button type="submit" class="btn btn-primary btn-block">Update QR Code</button>
                         </form>
                         <p id="qrMsg" class="qr-message"></p>

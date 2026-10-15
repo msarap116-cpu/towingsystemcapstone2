@@ -306,9 +306,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
                 marker.bindPopup(`
                                 <b>${d.name || 'Driver'}</b>
-                                <br>Vehicle: ${d.vehicle || 'N/A'}
-                                <br>Status: ${d.status}
-                                <br>Rating: ${d.rating || 'N/A'}
+
                             `);
                 markersList.push(marker);
                 bounds.push([lat, lng]);
@@ -330,7 +328,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-    //  RENDER: DRIVERS
 
     function renderDrivers() {
         const container = document.getElementById("driversListContainer");
@@ -357,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <tbody>
                                 ${drivers.map(d => `
                                     <tr>
-                                        <td><strong>${d.name || 'Unnamed'}</strong></td>
+                                        <td>${d.name || 'Unnamed'}</td>
                                         <td>${d.phone || 'No phone'}</td>
                                         <td>${d.email || 'No email'}</td>
                                         <td>
@@ -1138,7 +1135,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 return `
                                 <tr>
-                                    <td><strong>${escapeHtml(service.name)}</strong></td>
+                                    <td>${escapeHtml(service.name)}</td>
                                     <td>${escapeHtml(service.description || 'No description')}</td>
                                     <td><strong>₱${price.toLocaleString('en-PH', {
                     minimumFractionDigits: 2,
