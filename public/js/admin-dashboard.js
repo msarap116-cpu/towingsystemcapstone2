@@ -575,64 +575,103 @@ document.addEventListener('DOMContentLoaded', function () {
 
     //  RENDER: REQUESTS
 
-    function renderRequests(dataToRender) {
-        const tbody = document.getElementById("requestsTable");
-        if (!tbody) return;
+   function renderRequests(dataToRender) {
+    const tbody = document.getElementById("requestsTable");
+    if (!tbody) return;
 
-        if (!Array.isArray(dataToRender) || dataToRender.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:2rem;">No service requests found</td></tr>`;
-            return;
-        }
-
-        tbody.innerHTML = dataToRender.map(r => `
-                    <tr>
-                        <td><strong>#${r.request_id}</strong></td>
-                        <td>
-                            <div><strong>${r.customer_name || 'Unknown'}</strong></div>
-                        </td>
-                        <td style="max-width:300px; white-space:normal; word-wrap:break-word;">${r.location || 'Unknown'}</td>
-                        <td>${r.driver_name || '—'}</td>
-                        <td><span class="status-badge status-${r.status || 'pending'}">${r.status || 'pending'}</span></td>
-                        <td>${paymentBadge(r.payment_status)}</td>
-                        <td style="color:#666; font-size:0.9em;">${r.created_at || ''}</td>
-                        <td>
-                            <div class="overflow-menu">
-                                <button class="btn-icon overflow-trigger" data-menu-id="req-${r.request_id}" title="Actions">⋮</button>
-                                <div class="overflow-dropdown" data-menu-id="req-${r.request_id}">
-                                    ${!r.driver_id && r.status === 'pending'
-                ? `<button class="dropdown-item" onclick="openAssignDriverModal(${r.request_id})">Assign Driver</button>`
-                : ''
-            }
-
-                                    ${r.completion_photo_url
-                ? `<button
-                                                class="dropdown-item view-completion-btn"
-                                                data-url="${escapeHtml(r.completion_photo_url)}"
-                                                data-request-id="${r.request_id}">
-                                                Completion Photo
-                                        </button>`
-                : ''
-            }
-
-                                    <button class="dropdown-item" onclick="editRequest(${r.request_id})" title="Edit Request">
-                                        Edit Request
-                                    </button>
-
-                                    <button class="dropdown-item" onclick="viewCustomer(${r.user_id})" title="View Customer">
-                                        View Customer
-                                    </button>
-
-                                    <button class="dropdown-item" onclick="deleteRequest(${r.request_id})" title="Delete Request" style="color:#dc3545;">
-                                        Delete Request
-                                    </button>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    `).join("");
-
-        pruneOrphanDropdowns();
+    if (!Array.isArray(dataToRender) || dataToRender.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:2rem;">No service requests found</td></tr>`;
+        return;
     }
+
+    tbody.innerHTML = dataToRender.map(r => {
+        // ----- Vehicle cell -----
+        const plate = r.license_plate ? escapeHtml(r.license_plate) : null;
+
+        const label = r.vehicle_label
+            || [r.vehicle_color, r.vehicle_make, r.vehicle_model]
+                .filter(Boolean).join(' ')
+            || r.vehicle_type
+            || null;
+
+        const vehicleCell = (plate || label)
+            ? `
+                <div>
+                    ${plate ? `<span class="plate">${plate}</span>` : ''}
+                </div>
+                ${label ? `<div class="vehicle-sub">${escapeHtml(label)}</div>` : ''}
+              `
+            : `<span class="vehicle-empty">vehicle removed</span>`;
+
+        return `
+            <tr>
+                <td><strong>#${r.request_id}</strong></td>
+
+                <td>
+                    <div><strong>${escapeHtml(r.customer_name || 'Unknown')}</strong></div>
+                </td>
+
+                <td>${vehicleCell}</td>
+
+                <td style="max-width:300px; white-space:normal; word-wrap:break-word;">
+                    ${escapeHtml(r.location || 'Unknown')}
+                </td>
+
+                <td>${escapeHtml(r.driver_name || '—')}</td>
+
+                <td>
+                    <span class="status-badge status-${r.status || 'pending'}">
+                        ${r.status || 'pending'}
+                    </span>
+                </td>
+
+                <td>${paymentBadge(r.payment_status)}</td>
+
+                <td style="color:#666; font-size:0.9em;">${r.created_at || ''}</td>
+
+                <td>
+                    <div class="overflow-menu">
+                        <button class="btn-icon overflow-trigger"
+                                data-menu-id="req-${r.request_id}"
+                                title="Actions">⋮</button>
+                        <div class="overflow-dropdown" data-menu-id="req-${r.request_id}">
+
+                            ${!r.driver_id && r.status === 'pending'
+                                ? `<button class="dropdown-item"
+                                           onclick="openAssignDriverModal(${r.request_id})">
+                                       Assign Driver
+                                   </button>`
+                                : ''}
+
+                            ${r.completion_photo_url
+                                ? `<button class="dropdown-item view-completion-btn"
+                                           data-url="${escapeHtml(r.completion_photo_url)}"
+                                           data-request-id="${r.request_id}">
+                                       Completion Photo
+                                   </button>`
+                                : ''}
+
+                            <button class="dropdown-item"
+                                    onclick="editRequest(${r.request_id})"
+                                    title="Edit Request">Edit Request</button>
+
+                            <button class="dropdown-item"
+                                    onclick="viewCustomer(${r.user_id})"
+                                    title="View Customer">View Customer</button>
+
+                            <button class="dropdown-item"
+                                    onclick="deleteRequest(${r.request_id})"
+                                    title="Delete Request"
+                                    style="color:#dc3545;">Delete Request</button>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join("");
+
+    pruneOrphanDropdowns();
+}
 
 
     //  SEARCH
@@ -1258,7 +1297,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (msg) {
                     msg.textContent = 'No QR set yet — upload one below.';
-                    msg.className = 'qr-message info'; // Use CSS class for styling
+                    msg.className = 'qr-message info';
                 }
             }
         } catch (e) {
@@ -1333,17 +1372,17 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Handle completion photo button clicks
-document.addEventListener('click', function (e) {
-    const btn = e.target.closest('.view-completion-btn');
-    if (!btn) return;
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.view-completion-btn');
+        if (!btn) return;
 
-    const url = btn.dataset.url;
-    const requestId = btn.dataset.requestId;
+        const url = btn.dataset.url;
+        const requestId = btn.dataset.requestId;
 
-    if (url) {
-        viewCompletionProof(url, requestId);
-    }
-});
+        if (url) {
+            viewCompletionProof(url, requestId);
+        }
+    });
 
 
 

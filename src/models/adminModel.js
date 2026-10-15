@@ -146,11 +146,25 @@ async getRequests() {
             r.request_id,
             r.user_id,
             r.driver_id,
-            u.name AS customer_name,
+
+            u.name  AS customer_name,
             u.phone AS customer_phone,
-            dr.name AS driver_name,
-            st.name AS service_name,
+
+            dr.name  AS driver_name,
+            dr.phone AS driver_phone,
+
+            st.name  AS service_name,
+
+            -- Vehicle info (NEW)
+            v.vehicle_id,
             v.vehicle_type,
+            v.make  AS vehicle_make,
+            v.model AS vehicle_model,
+            v.color AS vehicle_color,
+            v.year  AS vehicle_year,
+            v.license_plate,
+            CONCAT_WS(' ', v.color, v.make, v.model) AS vehicle_label,
+
             r.address AS location,
             r.location_lat,
             r.location_lng,
@@ -158,16 +172,17 @@ async getRequests() {
             r.created_at,
             r.completion_photo_url,
             r.completed_at,
-            p.status AS payment_status,
+
+            p.status         AS payment_status,
             p.payment_method,
-            p.amount AS payment_amount,
+            p.amount         AS payment_amount,
             p.reference_number
         FROM service_requests r
-        JOIN users u ON r.user_id = u.user_id
-        LEFT JOIN users dr ON r.driver_id = dr.user_id
-        LEFT JOIN service_types st ON r.service_type_id = st.service_type_id
-        LEFT JOIN vehicles v ON r.vehicle_id = v.vehicle_id
-        LEFT JOIN payments p ON p.request_id = r.request_id
+        JOIN users u                ON r.user_id         = u.user_id
+        LEFT JOIN users dr          ON r.driver_id       = dr.user_id
+        LEFT JOIN service_types st  ON r.service_type_id = st.service_type_id
+        LEFT JOIN vehicles v        ON r.vehicle_id      = v.vehicle_id
+        LEFT JOIN payments p        ON p.request_id      = r.request_id
         ORDER BY r.created_at DESC
     `;
 
@@ -179,7 +194,6 @@ async getRequests() {
             : [];
     return rows;
 },
-
 
     async getStatistics() {
 
