@@ -27,6 +27,7 @@ body {
     padding: 0 32px;
     z-index: 1000;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+
 }
 
 .brand {
@@ -67,12 +68,46 @@ body {
     gap: 20px;
 }
 
+/* 1. Adjust the wrapper so the hint sits nicely to the left */
 .search-wrapper {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    /* Add space on the left for the hint text */
+    padding-left: 20px; /* Make this wide enough for your longest hint text */
+    margin-left: -20px; /* Offset it so your layout doesn't break */
 }
 
+/* 2. Position the hint right next to the input */
+.search-hint {
+    position: absolute;
+    right: 100%; /* Places it to the left of the wrapper */
+    top: 50%;
+    transform: translateY(-50%);
+    margin-right: 15px; /* Spacing between hint text and the input box */
+
+    color: white;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+/* 3. Move the search icon to the RIGHT side of the input */
+/* (Otherwise it stays on the left and gets covered by the hint text) */
+.search-icon {
+    position: absolute;
+    right: 14px; /* Changed from left to right */
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 0.9rem;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* 4. Update the input padding */
 .search-input {
-    padding: 8px 16px 8px 36px;
+    /* Removed left padding (since icon is on right), added right padding */
+    padding: 8px 36px 8px 16px;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     width: 220px;
@@ -81,27 +116,48 @@ body {
     color: #0b1a2e;
     transition: 0.2s;
     font-family: inherit;
+    box-sizing: border-box;
 }
 
-.search-input::placeholder {
-    color: #25272a;
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: #1a4b6d;
-    box-shadow: 0 0 0 3px rgba(26, 75, 109, 0.08);
-}
-
-.search-icon {
+/* 5. The clear 'X' button needs to move slightly to make room for the search icon */
+.search-clear {
     position: absolute;
-    left: 14px;
+    /* If the search icon is on the right (right: 14px),
+       move the X button to the left of the icon */
+    right: 36px;
     top: 50%;
     transform: translateY(-50%);
-    color: #94a3b8;
-    font-size: 0.9rem;
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+.search-clear:hover {
+    color: #0f172a;
 }
 
+.search-hint {
+    position: absolute;
+    right: 100%; /* Pushes it entirely to the left of the wrapper */
+    top: 50%;    /* Centers it vertically */
+    transform: translateY(-50%);
+    margin-right: 12px; /* Spacing between the text and the search bar */
+
+    color: white; /* Keep white to match the blue header */
+    font-size: 0.8rem;
+    white-space: nowrap; /* Prevents the text from wrapping to a new line */
+}
+
+.search-hint a {
+    color: #cbd5e1; /* Light grey link color */
+    text-decoration: underline;
+}
 .notification-badge {
     position: relative;
     cursor: pointer;
@@ -149,9 +205,14 @@ body {
 
 .profile-card {
     display: flex;
-    align-items: center;
-    gap: 14px;
+    flex-direction: column; /* STACKS avatar on top, text below */
+    align-items: center;    /* Centers everything horizontally */
+    justify-content: center;
+    gap: 10px;              /* Space between avatar and text */
+    width: 100%;
+    text-align: center;     /* Centers the text inside */
 }
+
 
 .avatar-large {
     width: 52px;
@@ -202,20 +263,20 @@ body {
     font-weight: 500;
     font-size: 0.9rem;
     cursor: pointer;
-    transition: 0.15s;
+    /* transition: 0.15s; */
 }
 
 .nav-item:hover {
     background: white;
-    color: #0b3d84 !important;
+    color: #69a1ee !important;
     border: 1px solid #0b3d84;
     transform: translateY(-2px);
     box-shadow: 0 10px 18px rgba(11, 61, 132, 0.25);
 }
 
 .nav-item.active {
-    background: #e7eef9;
-    color: #0b3d84;
+    background: #0b3d84;
+    color: #e6e9ec;
 }
 
 .nav-icon {
@@ -315,12 +376,12 @@ body {
 .map-container {
     background: #fff;
     border-radius: 22px;
-    border: 1px solid #e9edf4;
+    border: 1px solid #5f6268;
     overflow: hidden;
 }
 
 #map {
-    height: 520px;
+    height: 400px;
     width: 100%;
     background: #dce5ef;
 }
@@ -848,7 +909,7 @@ body {
 }
 
 .btn-delete:hover {
-    background: #3b3a3a;
+    background: #fcfbfb;
     /* light red background on hover */
     transform: scale(1.1);
 }

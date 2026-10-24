@@ -485,8 +485,7 @@ const userController = {
 
             const userId = req.user.id;
 
-            const profilePicture =
-                `uploads/profile_pictures/${req.file.filename}`;
+           const profilePicture = req.file.path;
 
             await User.updateProfilePicture(
                 userId,

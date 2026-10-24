@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                         <td>
                                             <button class="btn-delete" onclick="deleteDriver(${d.user_id})" title="Delete driver">
-                                                🗑️
+                                               🚮
                                             </button>
                                         </td>
                                     </tr>
@@ -393,7 +393,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <td>${c.name || '—'}</td>
                         <td>${c.phone || '—'}</td>
                         <td>${c.email || '—'}</td>
-                        <td>₱${Number(c.total_spent || 0).toFixed(2)}</td>
+
                         <td>
                             <div class="overflow-menu">
                                 <button class="btn-icon overflow-trigger" data-menu-id="cust-${c.id}" title="Actions">⋮</button>
@@ -605,10 +605,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         return `
             <tr>
-                <td><strong>#${r.request_id}</strong></td>
+                <td>#${r.request_id}</td>
 
                 <td>
-                    <div><strong>${escapeHtml(r.customer_name || 'Unknown')}</strong></div>
+                    <div>${escapeHtml(r.customer_name || 'Unknown')}</div>
                 </td>
 
                 <td>${vehicleCell}</td>

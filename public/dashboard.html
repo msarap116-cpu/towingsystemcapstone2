@@ -12,7 +12,7 @@
         }
     </script>
 
-        <script>
+    <script>
         document.addEventListener('contextmenu', event => event.preventDefault());
     </script>
     <!-- <script>
@@ -98,35 +98,21 @@
 
             <!-- Dashboard tab -->
             <section id="dashboardPanel" class="tab-panel map-tab">
-                <div class="request-header-card">
-                    <div class="request-badge">
-                        <span class="tracking-number" id="trackingIdDisplay">REQUEST ID:</span>
-                        <span class="status-chip" id="requestStatusBadge">
-                            NO REQUEST
-                        </span>
-                        <span class="eta-box" id="etaDisplay" style="display: none;">
-                            ----
-                        </span>
-                    </div>
-
-
-
-                </div>
-
                 <div class="map-card">
                     <div class="map-header">
                         <span>Live Tracking — Driver & Your Location</span>
-
-                        <!-- <button class="btn-outline" id="recenterMapBtn">
-            My Location
-        </button> -->
                     </div>
 
-                    <div id="map"></div>
+                    <!-- Map Container -->
+                    <div id="map">
+                        <!-- Floating Badges INSIDE the map -->
+                        <div class="map-overlay-badges">
+                            <span class="tracking-number" id="trackingIdDisplay">Request ID: 98</span>
+                            <span class="status-chip" id="requestStatusBadge">assigned</span>
+                            <span class="eta-box" id="etaDisplay">ETA 6 min</span>
+                        </div>
+                    </div>
                 </div>
-
-
-
             </section>
 
 
@@ -173,7 +159,7 @@
                 </div>
             </section>
 
-            <!-- Edit Address Section -->
+
             <!-- Edit Address Section -->
             <section id="editAddressSection" class="tab-panel" hidden>
                 <div class="section-content">
@@ -235,14 +221,14 @@
                             <h3>Choose Payment Method</h3>
                             <div class="payment-method-grid">
                                 <button type="button" class="payment-method-btn" data-method="gcash">
-                                    <span class="payment-method-icon">📱</span>
+                                    <span class="payment-method-icon"><img src="image/e-wallet.png" alt=""></span>
                                     <span>
                                         <strong>GCash</strong>
-                                        <small>Pay using E-wallets</small>
+                                        <small>Pay using E-wallet</small>
                                     </span>
                                 </button>
                                 <button type="button" class="payment-method-btn" data-method="cash">
-                                    <span class="payment-method-icon">💵</span>
+                                    <span class="payment-method-icon"><img src="image/money.png" alt=""></span>
                                     <span>
                                         <strong>Cash</strong>
                                         <small>Pay on hand to the driver</small>

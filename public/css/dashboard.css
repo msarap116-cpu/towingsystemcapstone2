@@ -76,11 +76,15 @@
        border-bottom: 1px solid #4a4e53;
    }
 
-   .profile-card {
-       display: flex;
-       align-items: center;
-       gap: 12px;
-   }
+.profile-card {
+    display: flex;
+    flex-direction: column; /* STACKS avatar on top, text below */
+    align-items: center;    /* Centers everything horizontally */
+    justify-content: center;
+    gap: 10px;              /* Space between avatar and text */
+    width: 100%;
+    text-align: center;     /* Centers the text inside */
+}
 
    .avatar-large {
        width: 48px;
@@ -210,7 +214,7 @@
        font-weight: 500;
        font-size: 0.9rem;
        cursor: pointer;
-       transition: 0.15s;
+       /* transition: 0.15s; */
    }
 
    .nav-item:hover {
@@ -266,56 +270,30 @@
        border-radius: 0;
    }
 
-   /* Request Header */
-   .request-header-card {
-       background: white;
-       border-radius: 0;
-       padding: 14px 20px;
-       display: flex;
-       justify-content: space-between;
-       align-items: center;
-       flex-wrap: wrap;
-       gap: 12px;
-       border: 1px solid #eef2f8;
-   }
+.tracking-number,
+.status-chip,
+.eta-box {
+    font-family: monospace;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: white; /* Ensures text is visible against dark backgrounds */
+    padding: 6px 16px; /* Cleaned up your padding */
+    border-radius: 40px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2); /* Adds a slight shadow so it pops off the map */
+}
 
-   .request-badge {
-       display: flex;
-       gap: 12px;
-       align-items: center;
-       flex-wrap: wrap;
-   }
+/* Specific Colors */
+.tracking-number {
+    background: #0b3d84; /* Red */
+}
 
-   .tracking-number {
-       font-family: monospace;
-       font-weight: 800;
-       font-size: 1.1rem;
-       background: #fdfdfd;
-       padding-left: 1;
-       padding-bottom: 2;
-       padding-top: 2;
-       padding-right: 23px;
-       border-radius: 40px;
-   }
+.status-chip {
+    background: #0b3d84; /* Red */
+}
 
-   .status-chip {
-       font-family: monospace;
-       font-weight: 800;
-       font-size: 1.1rem;
-       background: #fdfdfd;
-       padding-left: 1;
-       padding-bottom: 2;
-       padding-top: 2;
-       padding-right: 23px;
-       border-radius: 40px;
-   }
-
-   .eta-box {
-       background: #fcfffd;
-       padding: 4px 14px;
-       border-radius: 40px;
-       font-size: 0.75rem;
-   }
+.eta-box {
+    background: #0b3d84; /* Green */
+}
 
    .btn-outline {
        padding: 6px 16px;
@@ -359,10 +337,10 @@
    }
 
    #map {
+        position: relative;
        flex: 1;
        width: 100%;
        min-height: 400px;
-       /* ← CHANGE THIS from 450px to 0 */
        background: #dce5f0;
        display: flex;
        align-items: center;
@@ -370,6 +348,8 @@
        flex-direction: column;
        color: #2c4a6e;
        font-weight: 500;
+       border-radius: 20px;
+       border: 1px solid #5f6268;
        font-size: 0.9rem;
        gap: 4px;
    }
@@ -386,6 +366,16 @@
        font-size: 0.7rem;
        color: #6c86a3;
    }
+   .map-overlay-badges {
+    position: absolute;
+    top: 16px;   /* Distance from top of map */
+    left: 600px;  /* Distance from left of map */
+    z-index: 1000; /* Ensures it stays above the map tiles */
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    pointer-events: none; /* Allows clicking "through" the badges to interact with the map */
+}
 
    /* Recent Activity */
    .recent-mini {
@@ -664,6 +654,7 @@
    .payment-modal-container {
        max-width: 520px;
        width: 90%;
+
    }
 
    .payment-request-info {
@@ -671,7 +662,8 @@
        border-radius: 14px;
        background: #f8fafd;
        margin-bottom: 16px;
-       border: 1px solid #edf2f8;
+       border: 2px solid #323335;
+
    }
 
    .payment-amount {
@@ -753,6 +745,7 @@
        align-items: flex-start;
        min-height: 100%;
        overflow-y: auto;
+
    }
 
    #paymentSection .section-container {
@@ -760,7 +753,7 @@
        width: 100%;
        max-width: 680px;
        border-radius: 16px;
-       border: 1px solid #e2e8f0;
+       border: 1px solid #323335;
        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
        overflow: hidden;
        position: relative;
@@ -1685,7 +1678,7 @@
        max-width: 560px;
        padding: 32px;
        border-radius: 16px;
-       border: 1px solid #e2e8f0;
+       border: 1px solid #2f3133;
        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
        position: relative;
    }
@@ -1759,18 +1752,29 @@
        color: #94a3b8;
    }
 
-   /* Search Icon inside input */
-   #editAddressSection .location-search-wrapper::before {
-       content: "🔍";
-       position: absolute;
-       left: 16px;
-       top: 50%;
-       transform: translateY(-50%);
-       font-size: 1.1rem;
-       opacity: 0.5;
-       pointer-events: none;
-       z-index: 2;
-   }
+  #editAddressSection .location-search-wrapper::before {
+
+    content: "";
+    width: 18px;
+    height: 18px;
+
+
+    background-image: url('../image/search (3).png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+
+
+    position: absolute;
+    left: 16px;
+    top: 55%;
+    transform: translateY(-50%);
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: 2;
+}
+
+
 
    /* Address Suggestions Dropdown */
    #editAddressSection .address-suggestions {

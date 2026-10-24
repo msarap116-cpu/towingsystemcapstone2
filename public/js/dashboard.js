@@ -427,7 +427,7 @@ async function drawRoute(fromLat, fromLng, toLat, toLng) {
         const midPoint = getMidpoint(fromLat, fromLng, toLat, toLng);
         const routeSummary = L.popup()
             .setLatLng(midPoint)
-            .setContent(` ${distanceKm} km · ⏱️ ${durationMin} min`)
+            .setContent(` ${distanceKm} km ·  ${durationMin} min`)
             .openOn(map);
 
         // Auto-close the summary after 5 seconds
@@ -570,7 +570,7 @@ function updateRequestBadge(request) {
     const etaEl = document.getElementById('etaDisplay');
 
     if (trackingEl && request?.request_id) {
-        trackingEl.textContent = `request ID  ${request.request_id}`;
+        trackingEl.textContent = `Request ID: ${request.request_id}`;
     }
 
     if (statusEl && request?.status) {

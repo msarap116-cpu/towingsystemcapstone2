@@ -2,8 +2,8 @@
 //D:towing_system1/public/js/app.js
 let loggedinUser = null;
 
-const API_BASE_URL = "http://localhost:3000/api";
-// const API_BASE_URL = "https://goodwrench-towing-rescue.onrender.com/api";
+// const API_BASE_URL = "http://localhost:3000/api";
+const API_BASE_URL = "https://goodwrench-towing-rescue.onrender.com/api";
 
 async function apiFetch(endpoint, options = {}) {
     try {
@@ -538,9 +538,33 @@ document.querySelectorAll('a[href="#"]').forEach(anchor => {
 
 })();
 
-//uploading the pictuere
-window.uploadProfilePicture = async function(file) {
+// ---- helpers ----
+window.resolveImageUrl = function resolveImageUrl(p) {
+    if (!p) return '';
+    if (/^https?:\/\//i.test(p)) return p;
+    return `${API_BASE_URL.replace('/api', '')}/${p.replace(/^\/+/, '')}`;
+};
 
+window.renderAvatar = function renderAvatar(profilePictureUrl) {
+    const avatarImage    = document.getElementById('avatarImage');
+    const avatarInitials = document.getElementById('avatarInitials');
+    if (!avatarImage || !avatarInitials) return;
+
+    const url = window.resolveImageUrl(profilePictureUrl);
+
+    if (url) {
+        avatarImage.src = url;
+        avatarImage.style.display = 'block';
+        avatarInitials.style.display = 'none';
+    } else {
+        avatarImage.removeAttribute('src');   // avoids a request to the page URL
+        avatarImage.style.display = 'none';
+        avatarInitials.style.display = 'block';
+    }
+};
+
+//uploading the pictuere
+window.uploadProfilePicture = async function (file) {
     const token = sessionStorage.getItem('token');
 
     if (!token) {
@@ -549,18 +573,14 @@ window.uploadProfilePicture = async function(file) {
     }
 
     const formData = new FormData();
-
     formData.append('profile_picture', file);
 
     try {
-
         const response = await fetch(
             `${API_BASE_URL}/users/profile-picture`,
             {
                 method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
             }
         );
@@ -575,33 +595,17 @@ window.uploadProfilePicture = async function(file) {
 
         console.log('Profile picture uploaded:', data);
 
-        const avatarImage =
-            document.getElementById('avatarImage');
 
-        const avatarInitials =
-            document.getElementById('avatarInitials');
-
-        if (data.profile_picture) {
-
-            avatarImage.src =
-                `${API_BASE_URL.replace('/api', '')}/${data.profile_picture}`;
-
-            avatarImage.style.display = 'block';
-            avatarInitials.style.display = 'none';
-        }
+        window.renderAvatar(data.profile_picture);
 
         alert('Profile picture updated successfully.');
 
     } catch (error) {
-
-        console.error(
-            'Profile picture upload error:',
-            error
-        );
-
+        console.error('Profile picture upload error:', error);
         alert(error.message);
     }
 };
+
 window.initializeProfilePicture = function() {
 
     const avatarEditButton =

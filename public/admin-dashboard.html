@@ -31,7 +31,7 @@
         </div>
         <div class="navbar-actions">
             <div class="search-wrapper">
-                <!-- <span class="search-icon"></span> -->
+                    <span class="search-icon"></span>
                 <input type="text" class="search-input" id="globalSearch" placeholder="Search requests, customers..."
                     oninput="handleGlobalSearch(this.value)">
                 <button type="button" class="search-clear" id="clearSearch" style="display:none;"
@@ -47,23 +47,30 @@
     </nav>
 
     <div class="dashboard-wrapper">
-        <!-- ========== SIDEBAR ========== -->
+        <!-- SIDEBAR -->
         <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="profile-card">
-                    <div class="avatar-large profile-avatar-container" id="profileAvatar">
-                        <span id="avatarInitials">AD</span>
-                        <img id="avatarImage" src="" alt="Profile Picture" style="display: none;">
-                        <input type="file" id="profilePictureInput" accept="image/jpeg,image/png,image/webp" hidden>
-                    </div>
-                    <!-- Edit button NOW OUTSIDE the container -->
-                    <div class="avatar-edit-icon" id="avatarEditButton">✎</div>
-                    <div class="profile-text">
-                        <h3 id="profileName">Admin User</h3>
-                        <p>Admin</p>
-                    </div>
+     <div class="sidebar-header">
+        <div class="profile-card">
+
+
+            <div class="avatar-wrapper">
+                <div class="avatar-large profile-avatar-container" id="profileAvatar">
+                    <span id="avatarInitials">AD</span>
+                    <!-- Added style="display:none" to prevent the "Profile Picture" text from showing -->
+                    <img id="avatarImage" src="" alt="" style="display: none;">
+                    <input type="file" id="profilePictureInput" accept="image/jpeg,image/png,image/webp" hidden>
                 </div>
+                <div class="avatar-edit-icon" id="avatarEditButton">✎</div>
             </div>
+
+            <!-- Text container is now cleanly beside the wrapper -->
+            <div class="profile-text">
+                <h3 id="profileName">anti inday</h3>
+                <p>Admin</p>
+            </div>
+
+        </div>
+    </div>
 
             <div class="sidebar-nav">
                 <div class="nav-item active" data-tab="dashboard">
@@ -209,8 +216,8 @@
                                 <th>ID</th>
                                 <th>Name</th>
                                 <th>Phone</th>
-                                <th>Total Trips</th>
-                                <th>Spend</th>
+                                <th>Email</th>
+
                             </tr>
                         </thead>
                         <tbody id="customersTable"></tbody>
