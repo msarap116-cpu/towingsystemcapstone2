@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const authMiddleware = require('../middleware/authMiddleware');
-const uploadProfilePicture = require('../middleware/uploadProfilePicture');
+const { uploadProfilePicture } = require('../config/cloudinary');
 // const authenticateToken = require('../middleware/authMiddleware');
 
 function noStore(req, res, next) {
