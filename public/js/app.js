@@ -666,67 +666,27 @@ window.initializeProfilePicture = function() {
     });
 };
 window.loadUserProfile = async function () {
-
     try {
-
         const user = await apiFetch('/users/profile');
-
-        console.log(' Loaded user profile:', user);
-
-        const nameElement =
-            document.getElementById('profileName');
-
-        const avatarImage =
-            document.getElementById('avatarImage');
-
-        const avatarInitials =
-            document.getElementById('avatarInitials');
-
+        console.log('Loaded user profile:', user);
 
         // NAME
-
-
+        const nameElement = document.getElementById('profileName');
         if (nameElement && user.name) {
             nameElement.textContent = user.name;
         }
 
-
         // PROFILE PICTURE
+        window.renderAvatar(user.profile_picture);
 
-
-        if (avatarImage && avatarInitials) {
-
-            if (user.profile_picture) {
-
-                const imageUrl =
-                    `${API_BASE_URL.replace('/api', '')}/${user.profile_picture}`;
-
-                // console.log(
-                //     '🖼️ Profile picture URL:',
-                //     imageUrl
-                // );
-
-                avatarImage.src = imageUrl;
-
-                avatarImage.style.display = 'block';
-                avatarInitials.style.display = 'none';
-
-            } else {
-
-                avatarImage.style.display = 'none';
-                avatarInitials.style.display = 'block';
-
-                avatarInitials.textContent =
-                    getInitials(user.name);
-            }
+        // Initials fallback (only needed if there's no picture)
+        const avatarInitials = document.getElementById('avatarInitials');
+        if (avatarInitials && !user.profile_picture) {
+            avatarInitials.textContent = getInitials(user.name);
         }
 
     } catch (error) {
-
-        console.error(
-            ' Error loading user profile:',
-            error
-        );
+        console.error('Error loading user profile:', error);
     }
 };
 function getInitials(name) {
